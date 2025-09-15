@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
+import { fetchMetadata } from '../../utils/url'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -17,6 +18,8 @@ const url = ref('')
 const title = ref('')
 const artists = ref<string[]>([])
 const timestampRows = ref<TimestampRow[]>([])
+const metadataLoading = ref(false)
+const lastMetadataUrl = ref('')
 
 function reset() {
   id.value = ''
@@ -25,6 +28,8 @@ function reset() {
   artists.value = []
   // artist tags handled by component
   timestampRows.value = [createEmptyTimestampRow()]
+  metadataLoading.value = false
+  lastMetadataUrl.value = ''
 }
 
 function createEmptyTimestampRow(): TimestampRow {
@@ -43,6 +48,7 @@ watch(
           title.value = fav.title
           artists.value = [...fav.artists]
           timestampRows.value = fav.timestamps.map((t) => ({ ...t, _id: crypto.randomUUID() }))
+          lastMetadataUrl.value = fav.url
         }
       } else {
         reset()
@@ -77,6 +83,26 @@ async function save() {
   emit('update:modelValue', false)
 }
 
+async function onUrlBlur() {
+  const u = url.value.trim()
+  if (!u) return
+  // Avoid refetch if already fetched in this modal session and unchanged
+  if (lastMetadataUrl.value === u) return
+  metadataLoading.value = true
+  try {
+    const meta = await fetchMetadata(u)
+    if (meta) {
+      if (!title.value && meta.title) title.value = meta.title
+      if (!artists.value.length && meta.artist) artists.value = [meta.artist]
+      lastMetadataUrl.value = u
+    }
+  } catch {
+    // Silent failure; user input preserved
+  } finally {
+    metadataLoading.value = false
+  }
+}
+
 function close() {
   emit('update:modelValue', false)
 }
@@ -99,7 +125,9 @@ function close() {
             type="text"
             class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
+            @blur="onUrlBlur"
           />
+          <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">Récupération des métadonnées…</p>
         </div>
         <div>
           <label for="title" class="block text-gray-700 font-medium mb-2">Titre</label>
@@ -109,6 +137,7 @@ function close() {
             type="text"
             class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
+            :placeholder="metadataLoading ? 'Chargement…' : ''"
           />
         </div>
         <div>
