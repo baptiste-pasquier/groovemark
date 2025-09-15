@@ -161,14 +161,30 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   function importFavorites(data: Favorite[]) {
     const existingIds = new Set(favorites.value.map((f) => f.id))
-    const newFavorites = data.filter((f) => !existingIds.has(f.id))
-    if (newFavorites.length === 0) {
-      showAlert("Aucun nouveau favori à importer. Les favoris existants n'ont pas été modifiés.")
-      return
+    let added = 0
+    let skipped = 0
+    for (const fav of data) {
+      if (existingIds.has(fav.id)) {
+        skipped++
+        continue
+      }
+      favorites.value.push(fav)
+      existingIds.add(fav.id)
+      added++
     }
-    favorites.value.push(...newFavorites)
+    if (added === 0) {
+      showAlert(
+        skipped > 0
+          ? `Import terminé. 0 ajouté, ${skipped} déjà présent(s).`
+          : "Aucun favori dans le fichier ou structure invalide.",
+      )
+      return { added, skipped }
+    }
     persist()
-    showAlert(`${newFavorites.length} nouveau(x) favori(s) importé(s) avec succès !`)
+    showAlert(
+      `${added} ajouté(s)` + (skipped ? `, ${skipped} déjà présent(s) ignoré(s).` : '.')
+    )
+    return { added, skipped }
   }
 
   function exportFavorites() {
