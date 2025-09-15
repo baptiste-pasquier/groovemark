@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
+import { timeFormatIsValid } from '../utils/favorite'
 
 interface ConfirmDialogState {
   message: string
@@ -113,8 +114,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     // Validate timestamps
     for (const ts of partial.timestamps) {
-      const time = ts.time.replace(/\s/g, '')
-      if (!/^\d{1,3}:?\d{2}(:\d{2})?$/.test(time)) {
+      if (!timeFormatIsValid(ts.time)) {
         await showAlert('Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.')
         return
       }

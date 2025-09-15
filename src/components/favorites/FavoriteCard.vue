@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Favorite } from '../../types/favorite'
-import { getYoutubeVideoId } from '../../utils/url'
+import { buildTimestampLink } from '../../utils/favorite'
 
 const props = defineProps<{ favorite: Favorite }>()
 const emit = defineEmits<{ (e: 'edit', id: string): void; (e: 'delete', id: string): void }>()
@@ -9,22 +9,7 @@ function openLink() {
   window.open(props.favorite.url, '_blank')
 }
 
-function timestampLink(time: string) {
-  const parts = time
-    .split(':')
-    .map(Number)
-    .filter((n) => !isNaN(n))
-  let seconds = 0
-  if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2]
-  else if (parts.length === 2) seconds = parts[0] * 60 + parts[1]
-  else seconds = parts[0]
-
-  if (props.favorite.type === 'youtube') {
-    const videoId = getYoutubeVideoId(props.favorite.url)
-    return videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${seconds}s` : props.favorite.url
-  }
-  return `${props.favorite.url}#t=${time}`
-}
+function timestampLink(time: string) { return buildTimestampLink(props.favorite, { time }) }
 </script>
 
 <template>
