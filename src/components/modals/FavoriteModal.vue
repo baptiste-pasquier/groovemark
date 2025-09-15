@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
+import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -14,37 +15,15 @@ interface TimestampRow extends Timestamp {
 const id = ref<string>('')
 const url = ref('')
 const title = ref('')
-const artistInput = ref('')
 const artists = ref<string[]>([])
 const timestampRows = ref<TimestampRow[]>([])
-const suggestions = ref<string[]>([])
-function scheduleHideSuggestions() {
-  setTimeout(() => (suggestions.value = []), 150)
-}
-
-function onArtistKeydown(e: KeyboardEvent) {
-  // When user types a comma, treat it like validation/add action
-  if (e.key === ',') {
-    e.preventDefault()
-    addArtistFromInput()
-  }
-}
-
-function selectSuggestion(name: string) {
-  // Add selected suggestion and clear input & list
-  if (!artists.value.includes(name)) {
-    artists.value.push(name)
-  }
-  artistInput.value = ''
-  suggestions.value = []
-}
 
 function reset() {
   id.value = ''
   url.value = ''
   title.value = ''
   artists.value = []
-  artistInput.value = ''
+  // artist tags handled by component
   timestampRows.value = [createEmptyTimestampRow()]
 }
 
@@ -72,32 +51,7 @@ watch(
   },
 )
 
-watch(artistInput, (val) => {
-  const q = val.toLowerCase().trim()
-  if (!q) {
-    suggestions.value = []
-    return
-  }
-  const list = store.allArtists.filter(
-    (a) => a.toLowerCase().includes(q) && !artists.value.includes(a),
-  )
-  suggestions.value = list.slice(0, 10)
-})
-
-function addArtistFromInput() {
-  const name = artistInput.value.trim()
-  if (!name || artists.value.some((a) => a.toLowerCase() === name.toLowerCase())) {
-    artistInput.value = ''
-    return
-  }
-  artists.value.push(name)
-  artistInput.value = ''
-  suggestions.value = []
-}
-
-function removeArtist(a: string) {
-  artists.value = artists.value.filter((x) => x !== a)
-}
+// Artist tag interactions moved to ArtistTagsInput component
 
 function addTimestamp() {
   timestampRows.value.push(createEmptyTimestampRow())
@@ -159,49 +113,7 @@ function close() {
         </div>
         <div>
           <label class="block text-gray-700 font-medium mb-2">Artiste(s)</label>
-          <div class="relative">
-            <div
-              class="flex flex-wrap gap-2 items-center w-full p-2 border border-gray-300 rounded-lg min-h-[42px]"
-            >
-              <span
-                v-for="a in artists"
-                :key="a"
-                class="artist-tag flex items-center bg-blue-100 text-blue-800 text-sm font-semibold px-2.5 py-1 rounded-full"
-              >
-                <span>{{ a }}</span>
-                <button
-                  type="button"
-                  class="ml-2 text-blue-600 hover:text-blue-800"
-                  @click="removeArtist(a)"
-                >
-                  &times;
-                </button>
-              </span>
-              <input
-                id="artist-input"
-                v-model="artistInput"
-                placeholder="Ajouter un artiste..."
-                class="flex-grow p-1 outline-none"
-                @keydown.enter.prevent="addArtistFromInput"
-                @keydown="onArtistKeydown"
-                @blur="scheduleHideSuggestions"
-                @focus="() => (suggestions = [])"
-              />
-            </div>
-            <div
-              v-if="suggestions.length"
-              class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto"
-            >
-              <div
-                v-for="s in suggestions"
-                :key="s"
-                class="p-2 hover:bg-gray-100 cursor-pointer"
-                @mousedown.prevent="selectSuggestion(s)"
-              >
-                {{ s }}
-              </div>
-            </div>
-          </div>
+          <ArtistTagsInput v-model="artists" :suggestions="store.allArtists" placeholder="Ajouter un artiste" />
         </div>
         <div>
           <h3 class="text-gray-700 font-medium mb-2">Timestamps</h3>
