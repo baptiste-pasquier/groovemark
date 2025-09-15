@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply font-inter bg-[#f0f2f5] antialiased;
+}
+
+.modal-bg {
+  @apply bg-black bg-opacity-50;
+}
+.sidebar {
+  transition: transform 0.3s ease-in-out;
+}
