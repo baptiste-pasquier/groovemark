@@ -9,7 +9,7 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
 
 <template>
   <div>
-    <div v-if="!store.filteredFavorites.length" class="text-center text-gray-500 mt-8">
+    <div v-if="!store.filteredFavorites.length" class="mt-8 text-center text-gray-500">
       {{
         store.favorites.length === 0
           ? "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !"
@@ -19,7 +19,7 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
     <div
       v-else
       id="favorites-grid"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       <FavoriteCard
         v-for="fav in store.filteredFavorites"

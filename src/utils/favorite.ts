@@ -9,7 +9,10 @@ export function timeFormatIsValid(time: string): boolean {
 
 // Parse a time string (H:MM:SS or MM:SS or SS) into seconds.
 export function parseTimeToSeconds(time: string): number {
-  const parts = time.split(':').map((n) => Number(n)).filter((n) => !isNaN(n))
+  const parts = time
+    .split(':')
+    .map((n) => Number(n))
+    .filter((n) => !isNaN(n))
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
   if (parts.length === 2) return parts[0] * 60 + parts[1]
   if (parts.length === 1) return parts[0]

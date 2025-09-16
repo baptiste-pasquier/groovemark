@@ -176,14 +176,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
       showAlert(
         skipped > 0
           ? `Import terminé. 0 ajouté, ${skipped} déjà présent(s).`
-          : "Aucun favori dans le fichier ou structure invalide.",
+          : 'Aucun favori dans le fichier ou structure invalide.',
       )
       return { added, skipped }
     }
     persist()
-    showAlert(
-      `${added} ajouté(s)` + (skipped ? `, ${skipped} déjà présent(s) ignoré(s).` : '.')
-    )
+    showAlert(`${added} ajouté(s)` + (skipped ? `, ${skipped} déjà présent(s) ignoré(s).` : '.'))
     return { added, skipped }
   }
 

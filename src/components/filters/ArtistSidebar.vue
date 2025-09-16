@@ -12,23 +12,23 @@ function setFilter(a: string) {
 </script>
 <template>
   <!-- Overlay -->
-  <div v-if="open" class="fixed inset-0 bg-black/50 z-40" @click="emit('close')" />
+  <div v-if="open" class="fixed inset-0 z-40 bg-black/50" @click="emit('close')" />
   <!-- Sidebar panel -->
   <div
-    class="fixed top-0 right-0 h-full w-64 bg-white shadow-lg z-50 transform sidebar flex flex-col"
-    :class="open ? 'translate-x-0' : 'translate-x-full pointer-events-none'"
+    class="sidebar fixed top-0 right-0 z-50 flex h-full w-64 transform flex-col bg-white shadow-lg"
+    :class="open ? 'translate-x-0' : 'pointer-events-none translate-x-full'"
     :aria-hidden="!open"
   >
-    <div class="p-4 flex flex-col h-full">
-      <div class="flex justify-between items-center mb-4 shrink-0">
+    <div class="flex h-full flex-col p-4">
+      <div class="mb-4 flex shrink-0 items-center justify-between">
         <h3 class="text-xl font-bold">Filtrer par artiste</h3>
         <button class="p-1 text-2xl leading-none" @click="emit('close')">&times;</button>
       </div>
-      <ul class="space-y-2 grow overflow-y-auto">
+      <ul class="grow space-y-2 overflow-y-auto">
         <li>
           <a
             href="#"
-            class="block px-4 py-2 rounded-md"
+            class="block rounded-md px-4 py-2"
             :class="
               store.currentFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
             "
@@ -39,7 +39,7 @@ function setFilter(a: string) {
         <li v-for="artist in store.allArtists" :key="artist">
           <a
             href="#"
-            class="block px-4 py-2 rounded-md"
+            class="block rounded-md px-4 py-2"
             :class="
               store.currentFilter === artist ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
             "

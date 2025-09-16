@@ -27,15 +27,15 @@ function openFilters() {
 </script>
 
 <template>
-  <header class="mb-8 flex flex-col sm:flex-row justify-between items-center">
+  <header class="mb-8 flex flex-col items-center justify-between sm:flex-row">
     <div>
       <h1 class="text-4xl font-bold text-gray-900">MixStash</h1>
       <p class="text-gray-600">Enregistrez vos sets favoris avec des timestamps précis.</p>
     </div>
-    <div class="mt-4 sm:mt-0 flex items-center space-x-2">
+    <div class="mt-4 flex items-center space-x-2 sm:mt-0">
       <button
         id="sort-btn"
-        class="p-2 rounded-lg bg-white hover:bg-gray-200 transition duration-300 shadow-sm border border-gray-300"
+        class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
         @click="toggleSort"
         :title="store.sortOrder === 'newest' ? 'Trier plus anciens' : 'Trier plus récents'"
       >
@@ -46,14 +46,14 @@ function openFilters() {
       </button>
       <button
         id="filter-menu-btn"
-        class="p-2 rounded-lg bg-white hover:bg-gray-200 transition duration-300 shadow-sm border border-gray-300"
+        class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
         @click="openFilters"
       >
         <FilterIcon class="h-6 w-6 text-gray-700" />
       </button>
       <label
         for="import-json"
-        class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-sm whitespace-nowrap"
+        class="cursor-pointer rounded-lg bg-blue-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-blue-600"
       >
         Importer JSON
       </label>
@@ -66,29 +66,29 @@ function openFilters() {
       />
       <button
         id="export-json-btn"
-        class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-sm whitespace-nowrap"
+        class="rounded-lg bg-green-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-green-600"
         @click="store.exportFavorites()"
       >
         Exporter JSON
       </button>
     </div>
   </header>
-  <div class="mb-6 relative">
+  <div class="relative mb-6">
     <input
       type="text"
       id="search-input"
       placeholder="Rechercher par titre ou artiste..."
-      class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+      class="w-full rounded-lg border border-gray-300 p-3 pl-10 transition-colors focus:ring-2 focus:ring-blue-500"
       @input="onSearch"
     />
-    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
       <SearchIcon class="h-5 w-5 text-gray-400" />
     </div>
   </div>
   <div class="mb-8">
     <button
       id="add-favorite-btn"
-      class="w-full bg-white text-blue-500 font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-50 transition duration-300 border-2 border-dashed border-gray-300 hover:border-blue-400"
+      class="w-full rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 font-semibold text-blue-500 shadow-md transition duration-300 hover:border-blue-400 hover:bg-blue-50"
       @click="emit('add')"
     >
       + Ajouter un nouveau favori

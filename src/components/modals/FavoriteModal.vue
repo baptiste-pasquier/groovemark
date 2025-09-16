@@ -109,68 +109,74 @@ function close() {
 </script>
 
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center modal-bg">
-    <div class="bg-white rounded-xl shadow-2xl w-11/12 md:max-w-2xl mx-auto p-6 animate-fade-in-up">
-      <h2 class="text-2xl font-bold mb-4 text-gray-800">
+  <div v-if="modelValue" class="modal-bg fixed inset-0 z-50 flex items-center justify-center">
+    <div class="animate-fade-in-up mx-auto w-11/12 rounded-xl bg-white p-6 shadow-2xl md:max-w-2xl">
+      <h2 class="mb-4 text-2xl font-bold text-gray-800">
         {{ id ? 'Éditer le favori' : 'Ajouter un favori' }}
       </h2>
       <form @submit.prevent="save" class="space-y-4">
         <div>
-          <label for="url" class="block text-gray-700 font-medium mb-2"
+          <label for="url" class="mb-2 block font-medium text-gray-700"
             >URL (YouTube ou SoundCloud)</label
           >
           <input
             id="url"
             v-model="url"
             type="text"
-            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             required
             @blur="onUrlBlur"
           />
-          <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">Récupération des métadonnées…</p>
+          <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
+            Récupération des métadonnées…
+          </p>
         </div>
         <div>
-          <label for="title" class="block text-gray-700 font-medium mb-2">Titre</label>
+          <label for="title" class="mb-2 block font-medium text-gray-700">Titre</label>
           <input
             id="title"
             v-model="title"
             type="text"
-            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             required
             :placeholder="metadataLoading ? 'Chargement…' : ''"
           />
         </div>
         <div>
-          <label class="block text-gray-700 font-medium mb-2">Artiste(s)</label>
-          <ArtistTagsInput v-model="artists" :suggestions="store.allArtists" placeholder="Ajouter un artiste" />
+          <label class="mb-2 block font-medium text-gray-700">Artiste(s)</label>
+          <ArtistTagsInput
+            v-model="artists"
+            :suggestions="store.allArtists"
+            placeholder="Ajouter un artiste"
+          />
         </div>
         <div>
-          <h3 class="text-gray-700 font-medium mb-2">Timestamps</h3>
+          <h3 class="mb-2 font-medium text-gray-700">Timestamps</h3>
           <div class="space-y-2">
             <div
               v-for="row in timestampRows"
               :key="row._id"
-              class="flex items-center space-x-2 timestamp-row"
+              class="timestamp-row flex items-center space-x-2"
               :data-rated="row.rated"
             >
-              <div class="grow flex items-center space-x-2">
+              <div class="flex grow items-center space-x-2">
                 <input
                   type="text"
                   placeholder="Label (optionnel)"
                   v-model="row.label"
-                  class="timestamp-label w-1/2 p-2 border border-gray-300 rounded-lg text-sm"
+                  class="timestamp-label w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Temps (ex: 1:23:45)"
                   v-model="row.time"
-                  class="timestamp-time w-1/2 p-2 border border-gray-300 rounded-lg text-sm"
+                  class="timestamp-time w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
                   required
                 />
               </div>
               <div class="favorite-star-wrapper cursor-pointer p-2" @click="toggleRated(row)">
                 <svg
-                  class="w-5 h-5"
+                  class="h-5 w-5"
                   :class="row.rated ? 'text-yellow-400' : 'text-gray-300'"
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -182,7 +188,7 @@ function close() {
               </div>
               <button
                 type="button"
-                class="remove-timestamp-btn text-red-500 hover:text-red-700 font-bold text-xl"
+                class="remove-timestamp-btn text-xl font-bold text-red-500 hover:text-red-700"
                 @click="removeTimestamp(row._id)"
               >
                 &times;
@@ -192,7 +198,7 @@ function close() {
           <button
             type="button"
             id="add-timestamp-btn"
-            class="mt-2 text-blue-500 hover:text-blue-700 font-semibold"
+            class="mt-2 font-semibold text-blue-500 hover:text-blue-700"
             @click="addTimestamp"
           >
             + Ajouter un timestamp
@@ -202,14 +208,14 @@ function close() {
           <button
             type="button"
             id="cancel-btn"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+            class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
             @click="close"
           >
             Annuler
           </button>
           <button
             type="submit"
-            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
             Sauvegarder
           </button>

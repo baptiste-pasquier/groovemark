@@ -9,24 +9,26 @@ function openLink() {
   window.open(props.favorite.url, '_blank')
 }
 
-function timestampLink(time: string) { return buildTimestampLink(props.favorite, { time }) }
+function timestampLink(time: string) {
+  return buildTimestampLink(props.favorite, { time })
+}
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-lg flex flex-col">
-    <div class="card-link cursor-pointer relative" @click="openLink">
+  <div class="flex flex-col rounded-xl bg-white shadow-lg">
+    <div class="card-link relative cursor-pointer" @click="openLink">
       <img
         :src="favorite.thumbnail"
         alt="Thumbnail"
-        class="w-full h-40 object-cover rounded-t-xl"
+        class="h-40 w-full rounded-t-xl object-cover"
         @error="
           (e: any) => (e.target.src = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature')
         "
       />
-      <div class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
+      <div class="absolute top-2 right-2 rounded-full bg-white p-1 shadow-md">
         <svg
           v-if="favorite.type === 'youtube'"
-          class="w-6 h-6 text-red-600"
+          class="h-6 w-6 text-red-600"
           fill="currentColor"
           viewBox="0 0 24 24"
         >
@@ -36,7 +38,7 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         </svg>
         <svg
           v-else
-          class="w-6 h-6 text-orange-500"
+          class="h-6 w-6 text-orange-500"
           fill="currentColor"
           viewBox="0 0 24 24"
           role="img"
@@ -47,17 +49,17 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         </svg>
       </div>
     </div>
-    <div class="p-4 grow">
-      <div class="flex justify-between items-start">
+    <div class="grow p-4">
+      <div class="flex items-start justify-between">
         <div>
-          <h3 class="font-bold text-lg text-gray-800 mb-1">{{ favorite.title }}</h3>
+          <h3 class="mb-1 text-lg font-bold text-gray-800">{{ favorite.title }}</h3>
           <p v-if="favorite.artists.length" class="text-sm text-gray-500">
             {{ favorite.artists.join(', ') }}
           </p>
         </div>
-        <div class="flex items-center space-x-3 shrink-0 ml-2">
+        <div class="ml-2 flex shrink-0 items-center space-x-3">
           <button
-            class="text-gray-400 hover:text-blue-500 transition-colors"
+            class="text-gray-400 transition-colors hover:text-blue-500"
             @click.stop="emit('edit', favorite.id)"
           >
             <svg
@@ -76,7 +78,7 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
             </svg>
           </button>
           <button
-            class="text-gray-400 hover:text-red-500 transition-colors"
+            class="text-gray-400 transition-colors hover:text-red-500"
             @click.stop="emit('delete', favorite.id)"
           >
             <svg
@@ -97,21 +99,21 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         </div>
       </div>
     </div>
-    <div v-if="favorite.timestamps.length" class="px-4 pt-3 pb-4 border-t border-gray-200">
+    <div v-if="favorite.timestamps.length" class="border-t border-gray-200 px-4 pt-3 pb-4">
       <div
         v-for="ts in favorite.timestamps"
         :key="ts.time + ts.label"
-        class="group flex justify-between items-center text-sm text-gray-700 hover:bg-gray-50 py-1 px-2 rounded-md"
+        class="group flex items-center justify-between rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
       >
         <a
           :href="timestampLink(ts.time)"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center space-x-2 grow"
+          class="flex grow items-center space-x-2"
         >
           <svg
             v-if="ts.rated"
-            class="w-4 h-4 text-yellow-400 shrink-0"
+            class="h-4 w-4 shrink-0 text-yellow-400"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -124,12 +126,12 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         <a
           :href="timestampLink(ts.time)"
           target="_blank"
-          class="flex items-center font-mono text-blue-500 shrink-0"
+          class="flex shrink-0 items-center font-mono text-blue-500"
         >
           {{ ts.time }}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            class="ml-1.5 h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

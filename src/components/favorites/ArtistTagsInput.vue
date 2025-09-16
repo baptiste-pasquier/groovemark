@@ -54,8 +54,7 @@ function onBackspace(e: KeyboardEvent) {
 
 const filteredSuggestions = computed(() => {
   const q = input.value.toLowerCase()
-  if (!q)
-    return props.suggestions.filter((s) => !internal.value.includes(s)).slice(0, 8)
+  if (!q) return props.suggestions.filter((s) => !internal.value.includes(s)).slice(0, 8)
   return props.suggestions
     .filter((s) => s.toLowerCase().includes(q) && !internal.value.includes(s))
     .sort((a, b) => a.toLowerCase().indexOf(q) - b.toLowerCase().indexOf(q))
@@ -117,12 +116,12 @@ onMounted(() => {
 <template>
   <div
     ref="wrapper"
-    class="border border-gray-300 rounded-lg px-2 py-2 flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-blue-500 relative bg-white"
+    class="relative flex flex-wrap gap-2 rounded-lg border border-gray-300 bg-white px-2 py-2 focus-within:ring-2 focus-within:ring-blue-500"
   >
     <span
       v-for="(tag, idx) in internal"
       :key="tag"
-      class="flex items-center bg-blue-100 text-blue-700 font-semibold px-2.5 py-1 rounded-full text-sm group"
+      class="group flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-sm font-semibold text-blue-700"
     >
       <span>{{ tag }}</span>
       <button
@@ -137,22 +136,22 @@ onMounted(() => {
     <input
       ref="inputEl"
       v-model="input"
-      :placeholder="internal.length ? '' : (props.placeholder || 'Ajouter un artiste')"
-      class="flex-1 min-w-[120px] outline-none text-sm p-1"
+      :placeholder="internal.length ? '' : props.placeholder || 'Ajouter un artiste'"
+      class="min-w-[120px] flex-1 p-1 text-sm outline-none"
       @keydown="onKeyDown"
       @keydown.delete="onBackspace"
       @focus="isFocused = true"
     />
     <ul
       v-if="isFocused && filteredSuggestions.length"
-      class="absolute left-0 top-full z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+      class="absolute top-full left-0 z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
     >
       <li
         v-for="(s, i) in filteredSuggestions"
         :key="s"
         @mousedown.prevent="suggestionClick(s)"
         :class="[
-          'px-3 py-2 cursor-pointer text-sm flex justify-between',
+          'flex cursor-pointer justify-between px-3 py-2 text-sm',
           i === highlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100',
         ]"
       >
