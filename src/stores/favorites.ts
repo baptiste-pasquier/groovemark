@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
@@ -108,14 +109,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const artists = partial.artists
 
     if (!partial.id && favorites.value.some((f) => f.url === url)) {
-      await showAlert('Cette URL existe déjà dans vos favoris.')
+      await showAlert(i18n.global.t('messages.url_exists') as string)
       return
     }
 
     // Validate timestamps
     for (const ts of partial.timestamps) {
       if (!timeFormatIsValid(ts.time)) {
-        await showAlert('Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.')
+        await showAlert(i18n.global.t('messages.invalid_time_format') as string)
         return
       }
     }
@@ -153,7 +154,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   async function deleteFavorite(id: string) {
-    const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer ce favori ?')
+    const confirmed = await showConfirm(i18n.global.t('messages.confirm_delete_favorite') as string)
     if (!confirmed) return
     favorites.value = favorites.value.filter((f) => f.id !== id)
     persist()
@@ -174,20 +175,23 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
     if (added === 0) {
       showAlert(
-        skipped > 0
-          ? `Import terminé. 0 ajouté, ${skipped} déjà présent(s).`
-          : 'Aucun favori dans le fichier ou structure invalide.',
+        (skipped > 0
+          ? (i18n.global.t('import.finished_zero_added', { skipped }) as string)
+          : (i18n.global.t('import.none_or_invalid') as string)) as string,
       )
       return { added, skipped }
     }
     persist()
-    showAlert(`${added} ajouté(s)` + (skipped ? `, ${skipped} déjà présent(s) ignoré(s).` : '.'))
+    showAlert(
+      (i18n.global.t('import.added', { count: added }) as string) +
+        (skipped ? (i18n.global.t('import.with_skipped', { skipped }) as string) : '.'),
+    )
     return { added, skipped }
   }
 
   function exportFavorites() {
     if (favorites.value.length === 0) {
-      showAlert("Il n'y a aucun favori à exporter.")
+      showAlert(i18n.global.t('export.no_favorites') as string)
       return
     }
     const jsonString = JSON.stringify(favorites.value, null, 2)

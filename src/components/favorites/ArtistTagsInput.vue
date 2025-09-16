@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   modelValue: string[]
@@ -8,6 +9,8 @@ interface Props {
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string[]): void }>()
+
+const { t } = useI18n()
 
 const input = ref('')
 const internal = ref<string[]>([...props.modelValue])
@@ -136,7 +139,7 @@ onMounted(() => {
     <input
       ref="inputEl"
       v-model="input"
-      :placeholder="internal.length ? '' : props.placeholder || 'Ajouter un artiste'"
+      :placeholder="internal.length ? '' : props.placeholder || t('modal.artists_placeholder')"
       class="min-w-[120px] flex-1 p-1 text-sm outline-none"
       @keydown="onKeyDown"
       @keydown.delete="onBackspace"
@@ -156,7 +159,7 @@ onMounted(() => {
         ]"
       >
         <span>{{ s }}</span>
-        <span class="text-xs text-gray-400">Ajouter</span>
+        <span class="text-xs text-gray-400">{{ t('artist.add') }}</span>
       </li>
     </ul>
   </div>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { useI18n } from 'vue-i18n'
 import FavoriteCard from './FavoriteCard.vue'
 
 const store = useFavoritesStore()
+const { t } = useI18n()
 
 const emit = defineEmits<{ (e: 'edit', id: string): void }>()
 </script>
@@ -10,11 +12,7 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
 <template>
   <div>
     <div v-if="!store.filteredFavorites.length" class="mt-8 text-center text-gray-500">
-      {{
-        store.favorites.length === 0
-          ? "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !"
-          : 'Aucun favori ne correspond à vos critères de recherche.'
-      }}
+      {{ store.favorites.length === 0 ? t('grid.empty_no_favorites') : t('grid.empty_no_results') }}
     </div>
     <div
       v-else

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
@@ -8,6 +9,7 @@ import { fetchMetadata } from '../../utils/url'
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 const store = useFavoritesStore()
+const { t } = useI18n()
 
 interface TimestampRow extends Timestamp {
   _id: string
@@ -112,7 +114,7 @@ function close() {
   <div v-if="modelValue" class="modal-bg fixed inset-0 z-50 flex items-center justify-center">
     <div class="animate-fade-in-up mx-auto w-11/12 rounded-xl bg-white p-6 shadow-2xl md:max-w-2xl">
       <h2 class="mb-4 text-2xl font-bold text-gray-800">
-        {{ id ? 'Éditer le favori' : 'Ajouter un favori' }}
+        {{ id ? t('modal.title_edit') : t('modal.title_add') }}
       </h2>
       <form @submit.prevent="save" class="space-y-4">
         <div>
@@ -128,7 +130,7 @@ function close() {
             @blur="onUrlBlur"
           />
           <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
-            Récupération des métadonnées…
+            {{ t('modal.metadata_loading') }}
           </p>
         </div>
         <div>
@@ -139,7 +141,7 @@ function close() {
             type="text"
             class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             required
-            :placeholder="metadataLoading ? 'Chargement…' : ''"
+            :placeholder="metadataLoading ? t('modal.loading') : ''"
           />
         </div>
         <div>
@@ -147,7 +149,7 @@ function close() {
           <ArtistTagsInput
             v-model="artists"
             :suggestions="store.allArtists"
-            placeholder="Ajouter un artiste"
+            :placeholder="t('modal.artists_placeholder')"
           />
         </div>
         <div>
@@ -162,13 +164,13 @@ function close() {
               <div class="flex grow items-center space-x-2">
                 <input
                   type="text"
-                  placeholder="Label (optionnel)"
+                  :placeholder="t('timestamp.label_placeholder')"
                   v-model="row.label"
                   class="timestamp-label w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
                 />
                 <input
                   type="text"
-                  placeholder="Temps (ex: 1:23:45)"
+                  :placeholder="t('timestamp.time_placeholder')"
                   v-model="row.time"
                   class="timestamp-time w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
                   required
@@ -201,7 +203,7 @@ function close() {
             class="mt-2 font-semibold text-blue-500 hover:text-blue-700"
             @click="addTimestamp"
           >
-            + Ajouter un timestamp
+            {{ t('modal.add_timestamp') }}
           </button>
         </div>
         <div class="flex justify-end space-x-2">
@@ -211,13 +213,13 @@ function close() {
             class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
             @click="close"
           >
-            Annuler
+            {{ t('modal.cancel') }}
           </button>
           <button
             type="submit"
             class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            Sauvegarder
+            {{ t('modal.save') }}
           </button>
         </div>
       </form>

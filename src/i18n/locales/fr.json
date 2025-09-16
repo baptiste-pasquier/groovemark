@@ -1,0 +1,48 @@
+{
+  "app": {
+    "add_new": "+ Ajouter un nouveau favori",
+    "export_json": "Exporter JSON",
+    "import_json": "Importer JSON",
+    "search_placeholder": "Rechercher par titre ou artiste...",
+    "sort_toggle_title_newest": "Trier plus récents",
+    "sort_toggle_title_oldest": "Trier plus anciens",
+    "subtitle": "Enregistrez vos sets favoris avec des timestamps précis.",
+    "title": "MixStash"
+  },
+  "artist": {
+    "add": "Ajouter",
+    "remove": "Supprimer"
+  },
+  "export": {
+    "no_favorites": "Il n'y a aucun favori à exporter."
+  },
+  "grid": {
+    "empty_no_favorites": "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !",
+    "empty_no_results": "Aucun favori ne correspond à vos critères de recherche."
+  },
+  "import": {
+    "added": "{count} ajouté(s)",
+    "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
+    "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
+    "with_skipped": ", {skipped} déjà présent(s) ignoré(s)."
+  },
+  "messages": {
+    "confirm_delete_favorite": "Êtes-vous sûr de vouloir supprimer ce favori ?",
+    "invalid_time_format": "Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.",
+    "url_exists": "Cette URL existe déjà dans vos favoris."
+  },
+  "modal": {
+    "add_timestamp": "+ Ajouter un timestamp",
+    "artists_placeholder": "Ajouter un artiste",
+    "cancel": "Annuler",
+    "loading": "Chargement…",
+    "metadata_loading": "Récupération des métadonnées…",
+    "save": "Sauvegarder",
+    "title_add": "Ajouter un favori",
+    "title_edit": "Éditer le favori"
+  },
+  "timestamp": {
+    "label_placeholder": "Label (optionnel)",
+    "time_placeholder": "Temps (ex: 1:23:45)"
+  }
+}
