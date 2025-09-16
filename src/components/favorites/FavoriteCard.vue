@@ -47,7 +47,7 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         </svg>
       </div>
     </div>
-    <div class="p-4 flex-grow">
+    <div class="p-4 grow">
       <div class="flex justify-between items-start">
         <div>
           <h3 class="font-bold text-lg text-gray-800 mb-1">{{ favorite.title }}</h3>
@@ -55,7 +55,7 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
             {{ favorite.artists.join(', ') }}
           </p>
         </div>
-        <div class="flex items-center space-x-3 flex-shrink-0 ml-2">
+        <div class="flex items-center space-x-3 shrink-0 ml-2">
           <button
             class="text-gray-400 hover:text-blue-500 transition-colors"
             @click.stop="emit('edit', favorite.id)"
@@ -107,11 +107,11 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
           :href="timestampLink(ts.time)"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center space-x-2 flex-grow"
+          class="flex items-center space-x-2 grow"
         >
           <svg
             v-if="ts.rated"
-            class="w-4 h-4 text-yellow-400 flex-shrink-0"
+            class="w-4 h-4 text-yellow-400 shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -124,7 +124,7 @@ function timestampLink(time: string) { return buildTimestampLink(props.favorite,
         <a
           :href="timestampLink(ts.time)"
           target="_blank"
-          class="flex items-center font-mono text-blue-500 flex-shrink-0"
+          class="flex items-center font-mono text-blue-500 shrink-0"
         >
           {{ ts.time }}
           <svg

@@ -153,7 +153,7 @@ function close() {
               class="flex items-center space-x-2 timestamp-row"
               :data-rated="row.rated"
             >
-              <div class="flex-grow flex items-center space-x-2">
+              <div class="grow flex items-center space-x-2">
                 <input
                   type="text"
                   placeholder="Label (optionnel)"

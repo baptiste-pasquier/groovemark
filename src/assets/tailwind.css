@@ -1,14 +1,36 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-inter: Inter, ui-sans-serif, system-ui;
+
+  --animate-fade-in-up: fade-in-up 0.3s ease-out forwards;
+
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  input {
+    background-color: #fff;
+  }
+}
 
 body {
   @apply font-inter bg-[#f0f2f5] antialiased;
 }
 
 .modal-bg {
-  @apply bg-black bg-opacity-50;
+  @apply bg-black/50;
 }
+
 .sidebar {
-  transition: transform 0.3s ease-in-out;
+  @apply transition-transform duration-300 ease-in-out;
 }
