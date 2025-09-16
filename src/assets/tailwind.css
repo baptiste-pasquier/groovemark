@@ -21,6 +21,11 @@
   input {
     background-color: #fff;
   }
+  /* Ensure all buttons show pointer cursor */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 body {
