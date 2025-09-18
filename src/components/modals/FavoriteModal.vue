@@ -75,14 +75,16 @@ function toggleRated(row: TimestampRow) {
 
 async function save() {
   if (!url.value.trim() || !title.value.trim()) return
-  await store.addOrUpdateFavorite({
+  const success = await store.addOrUpdateFavorite({
     id: id.value || undefined,
     url: url.value,
     title: title.value,
     artists: [...artists.value],
     timestamps: timestampRows.value.map(({ label, time, rated }) => ({ label, time, rated })),
   })
-  emit('update:modelValue', false)
+  if (success) {
+    emit('update:modelValue', false)
+  }
 }
 
 async function onUrlBlur() {

@@ -110,14 +110,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     if (!partial.id && favorites.value.some((f) => f.url === url)) {
       await showAlert(i18n.global.t('messages.url_exists') as string)
-      return
+      return false
     }
 
     // Validate timestamps
     for (const ts of partial.timestamps) {
       if (!timeFormatIsValid(ts.time)) {
         await showAlert(i18n.global.t('messages.invalid_time_format') as string)
-        return
+        return false
       }
     }
 
@@ -151,6 +151,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       favorites.value.push(newFavorite)
     }
     persist()
+    return true
   }
 
   async function deleteFavorite(id: string) {
