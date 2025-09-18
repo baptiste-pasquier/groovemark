@@ -7,7 +7,7 @@ const store = useFavoritesStore()
     v-if="store.confirmDialog.visible"
     class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
   >
-    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 shadow-xl">
+    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
       <p class="mb-6 text-gray-800">{{ store.confirmDialog.message }}</p>
       <div class="flex justify-end space-x-2">
         <button
