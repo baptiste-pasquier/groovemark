@@ -98,7 +98,7 @@ docker build -t mixstash-app -f docker/Dockerfile .
 docker build -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Build Pocketbase with specific version
-docker build --build-arg PB_VERSION=0.22.20 -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
+docker build --build-arg PB_VERSION=0.34.2 -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Run with your local images
 cd docker
