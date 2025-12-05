@@ -1,6 +1,6 @@
-# MixStash <!-- omit from toc -->
+# GrooveMark <!-- omit from toc -->
 
-MixStash is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
+GrooveMark is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
 
 - [Features](#features)
 - [Documentation](#documentation)
@@ -46,16 +46,16 @@ For detailed documentation, see the [`docs/`](./docs) folder:
 
 ## Docker Deployment
 
-MixStash can be easily deployed using Docker and Docker Compose, with both the application and Pocketbase backend running in containers.
+GrooveMark can be easily deployed using Docker and Docker Compose, with both the application and Pocketbase backend running in containers.
 
 ### Quick Start with Docker Compose
 
-The easiest way to run MixStash with Docker:
+The easiest way to run GrooveMark with Docker:
 
 ```bash
 # Clone the repository
-git clone https://github.com/baptiste-pasquier/mixstach.git
-cd mixstach/docker
+git clone https://github.com/baptiste-pasquier/groovemark.git
+cd groovemark/docker
 
 # Start both services
 docker-compose up -d
@@ -73,7 +73,7 @@ Pre-built images are automatically published to GitHub Container Registry on eve
 
 ```bash
 # Navigate to docker folder
-cd mixstach/docker
+cd groovemark/docker
 
 # Run with docker-compose using remote images
 docker-compose -f docker-compose.prod.yml up -d
@@ -92,13 +92,13 @@ Build the Docker images yourself:
 ```bash
 # From the repository root
 # Build the Vue app
-docker build -t mixstash-app -f docker/Dockerfile .
+docker build -t groovemark-app -f docker/Dockerfile .
 
 # Build Pocketbase with default version
-docker build -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
+docker build -t groovemark-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Build Pocketbase with specific version
-docker build --build-arg PB_VERSION=0.34.2 -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
+docker build --build-arg PB_VERSION=0.34.2 -t groovemark-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Run with your local images
 cd docker
@@ -133,7 +133,7 @@ To backup your data:
 ```bash
 # Create a backup
 docker-compose exec pocketbase tar czf /tmp/backup.tar.gz /pb/pb_data
-docker cp mixstash-pocketbase:/tmp/backup.tar.gz ./pocketbase-backup.tar.gz
+docker cp groovemark-pocketbase:/tmp/backup.tar.gz ./pocketbase-backup.tar.gz
 ```
 
 To restore from backup:
@@ -142,13 +142,13 @@ To restore from backup:
 docker-compose down
 
 # Remove old volume
-docker volume rm mixstach_pocketbase_data
+docker volume rm groovemark_pocketbase_data
 
 # Start services
 docker-compose up -d
 
 # Restore data
-docker cp ./pocketbase-backup.tar.gz mixstash-pocketbase:/tmp/backup.tar.gz
+docker cp ./pocketbase-backup.tar.gz groovemark-pocketbase:/tmp/backup.tar.gz
 docker-compose exec pocketbase tar xzf /tmp/backup.tar.gz -C /
 docker-compose restart pocketbase
 ```

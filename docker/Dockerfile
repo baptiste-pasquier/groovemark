@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for the MixStash Vue app
+# Multi-stage Dockerfile for the GrooveMark Vue app
 
 # Stage 1: Build the application
 FROM node:22-slim AS builder

@@ -4,8 +4,8 @@
 services:
   # Pocketbase backend service
   pocketbase:
-    image: ghcr.io/baptiste-pasquier/mixstach-pocketbase:latest
-    container_name: mixstash-pocketbase
+    image: ghcr.io/baptiste-pasquier/groovemark-pocketbase:latest
+    container_name: groovemark-pocketbase
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -22,12 +22,12 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - mixstash-network
+      - groovemark-network
 
-  # MixStash Vue application
+  # GrooveMark Vue application
   app:
-    image: ghcr.io/baptiste-pasquier/mixstach:latest
-    container_name: mixstash-app
+    image: ghcr.io/baptiste-pasquier/groovemark:latest
+    container_name: groovemark-app
     restart: unless-stopped
     ports:
       - "80:80"
@@ -44,7 +44,7 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - mixstash-network
+      - groovemark-network
 
   # Optional: Reverse proxy for production
   # nginx-proxy:
@@ -58,10 +58,10 @@ services:
   #     - app
   #     - pocketbase
   #   networks:
-  #     - mixstash-network
+  #     - groovemark-network
 
 networks:
-  mixstash-network:
+  groovemark-network:
     driver: bridge
 
 volumes:

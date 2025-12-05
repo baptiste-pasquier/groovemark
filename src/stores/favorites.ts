@@ -303,7 +303,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'mixstash-backup.json'
+    a.download = 'groovemark-backup.json'
     a.click()
     URL.revokeObjectURL(url)
     a.remove()

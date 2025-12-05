@@ -11,7 +11,7 @@ const store = useFavoritesStore()
 
 const { t, locale } = useI18n()
 
-const LOCALE_STORAGE_KEY = 'mixstash_locale'
+const LOCALE_STORAGE_KEY = 'groovemark_locale'
 
 function setAndPersistLocale(l: string) {
   locale.value = l

@@ -18,6 +18,6 @@ describe('App', () => {
         plugins: [createPinia(), i18n],
       },
     })
-    expect(wrapper.text()).toContain('MixStash')
+    expect(wrapper.text()).toContain('GrooveMark')
   })
 })

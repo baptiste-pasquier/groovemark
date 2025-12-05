@@ -1,6 +1,6 @@
 # Docker Deployment Guide
 
-This guide provides detailed instructions for deploying MixStash using Docker and Docker Compose.
+This guide provides detailed instructions for deploying GrooveMark using Docker and Docker Compose.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This guide provides detailed instructions for deploying MixStash using Docker an
 
 ## Overview
 
-MixStash uses a multi-container setup with:
+GrooveMark uses a multi-container setup with:
 - **App Container**: Vue 3 application served by nginx
 - **Pocketbase Container**: Backend database and API
 
@@ -31,8 +31,8 @@ Both containers are orchestrated using Docker Compose for easy deployment and ma
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/baptiste-pasquier/mixstach.git
-cd mixstach/docker
+git clone https://github.com/baptiste-pasquier/groovemark.git
+cd groovemark/docker
 ```
 
 ### 2. Start the Services
@@ -44,12 +44,12 @@ docker-compose up -d
 This will:
 - Build both Docker images
 - Start the Pocketbase backend on port 8090
-- Start the MixStash app on port 8080
+- Start the GrooveMark app on port 8080
 - Create a Docker volume for data persistence
 
 ### 3. Access the Application
 
-- **MixStash App**: http://localhost:8080
+- **GrooveMark App**: http://localhost:8080
 - **Pocketbase Admin**: http://localhost:8090/_/
 
 ### 4. Configure Pocketbase
@@ -121,13 +121,13 @@ Pocketbase data is stored in a named Docker volume:
 docker volume ls
 
 # Inspect volume
-docker volume inspect mixstach_pocketbase_data
+docker volume inspect groovemark_pocketbase_data
 
 # Backup volume
-docker run --rm -v mixstach_pocketbase_data:/data -v $(pwd):/backup alpine tar czf /backup/pocketbase-backup.tar.gz /data
+docker run --rm -v groovemark_pocketbase_data:/data -v $(pwd):/backup alpine tar czf /backup/pocketbase-backup.tar.gz /data
 
 # Restore volume
-docker run --rm -v mixstach_pocketbase_data:/data -v $(pwd):/backup alpine tar xzf /backup/pocketbase-backup.tar.gz -C /
+docker run --rm -v groovemark_pocketbase_data:/data -v $(pwd):/backup alpine tar xzf /backup/pocketbase-backup.tar.gz -C /
 ```
 
 ## Production Deployment
@@ -226,15 +226,15 @@ You can also pull images manually:
 
 ```bash
 # Latest version
-docker pull ghcr.io/baptiste-pasquier/mixstach:latest
-docker pull ghcr.io/baptiste-pasquier/mixstach-pocketbase:latest
+docker pull ghcr.io/baptiste-pasquier/groovemark:latest
+docker pull ghcr.io/baptiste-pasquier/groovemark-pocketbase:latest
 
 # Specific version
-docker pull ghcr.io/baptiste-pasquier/mixstach:v1.0.0
-docker pull ghcr.io/baptiste-pasquier/mixstach-pocketbase:v1.0.0
+docker pull ghcr.io/baptiste-pasquier/groovemark:v1.0.0
+docker pull ghcr.io/baptiste-pasquier/groovemark-pocketbase:v1.0.0
 
 # Specific commit
-docker pull ghcr.io/baptiste-pasquier/mixstach:main-abc1234
+docker pull ghcr.io/baptiste-pasquier/groovemark:main-abc1234
 ```
 
 ## Troubleshooting
@@ -251,14 +251,14 @@ docker-compose logs pocketbase
 
 Verify volume is mounted:
 ```bash
-docker inspect mixstash-pocketbase | grep -A 10 Mounts
+docker inspect groovemark-pocketbase | grep -A 10 Mounts
 ```
 
 ### App Can't Connect to Pocketbase
 
 1. Check if both containers are on the same network:
 ```bash
-docker network inspect mixstach_default
+docker network inspect groovemark_default
 ```
 
 2. Verify environment variable:
