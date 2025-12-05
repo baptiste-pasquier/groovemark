@@ -41,11 +41,11 @@ By default, Pocketbase runs on `http://localhost:8090`.
 1. Open the Pocketbase admin UI at `http://localhost:8090/_/`
 2. Create a new collection named `favorites`
 3. Add the following fields:
-   - `url` (Text, required)
+   - `url` (URL, required)
    - `title` (Text, required)
    - `artists` (JSON, optional) - for storing array of artist names
    - `type` (Text, required) - either "youtube" or "soundcloud"
-   - `thumbnail` (Text, optional)
+   - `thumbnail` (URL, optional)
    - `timestamps` (JSON, optional) - for storing array of timestamp objects
 
 ### 4. Configure API Rules (Optional)

@@ -6,17 +6,17 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
 
 ### Fields
 
-| Field Name | Type | Required | Description |
-|------------|------|----------|-------------|
-| id | Text (auto) | Yes | Auto-generated unique identifier |
-| url | Text | Yes | URL of the YouTube or SoundCloud mix |
-| title | Text | Yes | Title of the mix/set |
-| artists | JSON | No | Array of artist names, e.g., `["Artist 1", "Artist 2"]` |
-| type | Text | Yes | Platform type: either "youtube" or "soundcloud" |
-| thumbnail | Text | No | URL to the thumbnail image |
-| timestamps | JSON | No | Array of timestamp objects with label, time, and rated fields |
-| created | DateTime (auto) | Yes | Auto-generated creation timestamp |
-| updated | DateTime (auto) | Yes | Auto-generated last update timestamp |
+| Field Name | Type            | Required | Description                                                   |
+| ---------- | --------------- | -------- | ------------------------------------------------------------- |
+| id         | Text (auto)     | Yes      | Auto-generated unique identifier                              |
+| url        | URL             | Yes      | URL of the YouTube or SoundCloud mix                          |
+| title      | Text            | Yes      | Title of the mix/set                                          |
+| artists    | JSON            | No       | Array of artist names, e.g., `["Artist 1", "Artist 2"]`       |
+| type       | Text            | Yes      | Platform type: either "youtube" or "soundcloud"               |
+| thumbnail  | URL             | No       | URL to the thumbnail image                                    |
+| timestamps | JSON            | No       | Array of timestamp objects with label, time, and rated fields |
+| created    | DateTime (auto) | Yes      | Auto-generated creation timestamp                             |
+| updated    | DateTime (auto) | Yes      | Auto-generated last update timestamp                          |
 
 ### JSON Field Structures
 
