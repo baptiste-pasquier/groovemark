@@ -29,8 +29,9 @@ export const favoritesService = {
         timestamps: record.timestamps || [],
       }))
     } catch (error) {
-      console.error('Error fetching favorites:', error)
-      // If collection doesn't exist or other error, return empty array
+      console.error('Error fetching favorites from Pocketbase:', error)
+      // If collection doesn't exist or server is unavailable, return empty array
+      // The store will fall back to localStorage
       return []
     }
   },
