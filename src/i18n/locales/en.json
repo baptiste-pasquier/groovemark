@@ -24,7 +24,10 @@
     "added": "{count} added",
     "finished_zero_added": "Import finished. 0 added, {skipped} already present.",
     "none_or_invalid": "No favorites in the file or invalid structure.",
-    "with_skipped": ", {skipped} already present (ignored)."
+    "with_skipped": ", {skipped} already present (ignored).",
+    "error_invalid_array": "The JSON file is not a valid array.",
+    "error_invalid_structure": "Invalid structure",
+    "error_prefix": "Error during import: "
   },
   "messages": {
     "confirm_delete_favorite": "Are you sure you want to delete this favorite?",

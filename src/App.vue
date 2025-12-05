@@ -7,6 +7,7 @@ import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 import ArtistSidebar from './components/filters/ArtistSidebar.vue'
 import { useFavoritesStore } from './stores/favorites'
+import i18n from './i18n'
 
 const showModal = ref(false)
 const editId = ref<string | null>(null)
@@ -36,13 +37,14 @@ function handleImport(e: Event) {
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(String(ev.target?.result))
-      if (!Array.isArray(data)) throw new Error("Le fichier JSON n'est pas un tableau valide.")
-      if (data.length > 0 && (!data[0].id || !data[0].url)) throw new Error('Structure invalide')
+      if (!Array.isArray(data)) throw new Error(i18n.global.t('import.error_invalid_array'))
+      if (data.length > 0 && (!data[0].id || !data[0].url))
+        throw new Error(i18n.global.t('import.error_invalid_structure'))
       store.importFavorites(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       store.alertDialog = {
-        message: `Erreur lors de l'importation : ${message}`,
+        message: `${i18n.global.t('import.error_prefix')}${message}`,
         visible: true,
       }
     } finally {

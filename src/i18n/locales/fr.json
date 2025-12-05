@@ -24,7 +24,10 @@
     "added": "{count} ajouté(s)",
     "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
     "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
-    "with_skipped": ", {skipped} déjà présent(s) ignoré(s)."
+    "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
+    "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
+    "error_invalid_structure": "Structure invalide",
+    "error_prefix": "Erreur lors de l'importation : "
   },
   "messages": {
     "confirm_delete_favorite": "Êtes-vous sûr de vouloir supprimer ce favori ?",

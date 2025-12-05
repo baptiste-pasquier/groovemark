@@ -241,12 +241,17 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   async function importFavorites(data: Favorite[]) {
+    // Check for duplicates based on URL (more reliable than ID for imports)
+    const existingUrls = new Set(favorites.value.map((f) => f.url))
     const existingIds = new Set(favorites.value.map((f) => f.id))
     let added = 0
     let skipped = 0
 
     for (const fav of data) {
-      if (existingIds.has(fav.id)) {
+      // Check for duplicates by URL for Pocketbase, by ID for localStorage
+      const isDuplicate = usePocketbase.value ? existingUrls.has(fav.url) : existingIds.has(fav.id)
+
+      if (isDuplicate) {
         skipped++
         continue
       }
@@ -259,7 +264,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
           const createdFavorite = await favoritesService.create(favoriteData)
           // Push the newly created favorite with the Pocketbase-generated ID
           favorites.value.push(createdFavorite)
-          existingIds.add(createdFavorite.id)
+          existingUrls.add(createdFavorite.url)
         } else {
           // For localStorage, keep the original ID
           favorites.value.push(fav)
