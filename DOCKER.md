@@ -32,7 +32,7 @@ Both containers are orchestrated using Docker Compose for easy deployment and ma
 
 ```bash
 git clone https://github.com/baptiste-pasquier/mixstach.git
-cd mixstach
+cd mixstach/docker
 ```
 
 ### 2. Start the Services
@@ -56,7 +56,7 @@ This will:
 
 On first run, visit http://localhost:8090/_/ to:
 1. Create an admin account
-2. Configure the `favorites` collection (see [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md))
+2. Configure the `favorites` collection (see [POCKETBASE_SCHEMA.md](../POCKETBASE_SCHEMA.md))
 3. Set up authentication (optional)
 
 ## Docker Images
@@ -79,7 +79,7 @@ The app uses a multi-stage build:
 ### Pocketbase Image (Dockerfile.pocketbase)
 
 - Base: `alpine:latest`
-- Downloads Pocketbase v0.26.5
+- Downloads Pocketbase v0.22.20 (configurable)
 - Exposes port 8090
 - Data stored in `/pb/pb_data` volume
 
@@ -87,7 +87,7 @@ The app uses a multi-stage build:
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the `docker` directory:
 
 ```bash
 # Pocketbase URL (for local development)
@@ -99,7 +99,7 @@ VITE_POCKETBASE_URL=http://localhost:8090
 
 ### Port Configuration
 
-Edit `docker-compose.yml` to change exposed ports:
+Edit `docker/docker-compose.yml` to change exposed ports:
 
 ```yaml
 services:
@@ -135,8 +135,11 @@ docker run --rm -v mixstach_pocketbase_data:/data -v $(pwd):/backup alpine tar x
 ### 1. Use Production Compose File
 
 ```bash
+cd docker
 docker-compose -f docker-compose.prod.yml up -d
 ```
+
+This will use pre-built images from GitHub Container Registry instead of building locally.
 
 ### 2. Configure Domain and HTTPS
 
@@ -212,7 +215,14 @@ The project includes a GitHub Actions workflow (`.github/workflows/docker-build.
 
 ### Using CI/CD Images
 
-Pull images from GitHub Container Registry:
+The production compose file (`docker-compose.prod.yml`) is already configured to use pre-built images from GitHub Container Registry:
+
+```bash
+cd docker
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+You can also pull images manually:
 
 ```bash
 # Latest version
@@ -225,19 +235,6 @@ docker pull ghcr.io/baptiste-pasquier/mixstach-pocketbase:v1.0.0
 
 # Specific commit
 docker pull ghcr.io/baptiste-pasquier/mixstach:main-abc1234
-```
-
-Update `docker-compose.yml` to use remote images:
-
-```yaml
-services:
-  pocketbase:
-    image: ghcr.io/baptiste-pasquier/mixstach-pocketbase:latest
-    # Remove 'build' section
-  
-  app:
-    image: ghcr.io/baptiste-pasquier/mixstach:latest
-    # Remove 'build' section
 ```
 
 ## Troubleshooting

@@ -2,8 +2,8 @@ services:
   # Pocketbase backend service
   pocketbase:
     build:
-      context: .
-      dockerfile: Dockerfile.pocketbase
+      context: ..
+      dockerfile: docker/Dockerfile.pocketbase
       args:
         - PB_VERSION=0.22.20
     container_name: mixstash-pocketbase
@@ -23,8 +23,8 @@ services:
   # MixStash Vue application
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: mixstash-app
     restart: unless-stopped
     ports:

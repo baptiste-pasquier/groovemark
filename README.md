@@ -47,7 +47,7 @@ The easiest way to run MixStash with Docker:
 ```bash
 # Clone the repository
 git clone https://github.com/baptiste-pasquier/mixstach.git
-cd mixstach
+cd mixstach/docker
 
 # Start both services
 docker-compose up -d
@@ -64,9 +64,8 @@ The application will be available at `http://localhost:8080` and Pocketbase at `
 Pre-built images are automatically published to GitHub Container Registry on every release:
 
 ```bash
-# Pull the latest images
-docker pull ghcr.io/baptiste-pasquier/mixstach:latest
-docker pull ghcr.io/baptiste-pasquier/mixstach-pocketbase:latest
+# Navigate to docker folder
+cd mixstach/docker
 
 # Run with docker-compose using remote images
 docker-compose -f docker-compose.prod.yml up -d
@@ -83,16 +82,18 @@ Available image tags:
 Build the Docker images yourself:
 
 ```bash
+# From the repository root
 # Build the Vue app
-docker build -t mixstash-app -f Dockerfile .
+docker build -t mixstash-app -f docker/Dockerfile .
 
 # Build Pocketbase with default version
-docker build -t mixstash-pocketbase -f Dockerfile.pocketbase .
+docker build -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Build Pocketbase with specific version
-docker build --build-arg PB_VERSION=0.22.20 -t mixstash-pocketbase -f Dockerfile.pocketbase .
+docker build --build-arg PB_VERSION=0.22.20 -t mixstash-pocketbase -f docker/Dockerfile.pocketbase .
 
 # Run with your local images
+cd docker
 docker-compose up -d
 ```
 
