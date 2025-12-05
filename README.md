@@ -3,6 +3,11 @@
 MixStash is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
 
 - [Features](#features)
+- [Docker Deployment](#docker-deployment)
+  - [Quick Start with Docker Compose](#quick-start-with-docker-compose)
+  - [Using Pre-built Images](#using-pre-built-images)
+  - [Building Images Locally](#building-images-locally)
+  - [Environment Variables](#environment-variables)
 - [Recommended IDE Setup](#recommended-ide-setup)
 - [Type Support for `.vue` Imports in TS](#type-support-for-vue-imports-in-ts)
 - [Pocketbase Setup](#pocketbase-setup)
@@ -29,6 +34,112 @@ MixStash is a Vue 3 application for saving your favorite music sets with precise
 - Search functionality
 - Import/Export favorites as JSON
 - Pocketbase integration with localStorage fallback for offline support
+- Docker deployment ready with CI/CD support
+
+## Docker Deployment
+
+MixStash can be easily deployed using Docker and Docker Compose, with both the application and Pocketbase backend running in containers.
+
+### Quick Start with Docker Compose
+
+The easiest way to run MixStash with Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/baptiste-pasquier/mixstach.git
+cd mixstach
+
+# Start both services
+docker-compose up -d
+
+# Access the application
+# App: http://localhost:8080
+# Pocketbase admin: http://localhost:8090/_/
+```
+
+The application will be available at `http://localhost:8080` and Pocketbase at `http://localhost:8090`.
+
+### Using Pre-built Images
+
+Pre-built images are automatically published to GitHub Container Registry on every release:
+
+```bash
+# Pull the latest images
+docker pull ghcr.io/baptiste-pasquier/mixstach:latest
+docker pull ghcr.io/baptiste-pasquier/mixstach-pocketbase:latest
+
+# Run with docker-compose using remote images
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+Available image tags:
+- `latest` - Latest stable version from main branch
+- `develop` - Latest development version
+- `v*` - Specific version tags (e.g., `v1.0.0`)
+- `<branch>-<sha>` - Specific commit builds
+
+### Building Images Locally
+
+Build the Docker images yourself:
+
+```bash
+# Build the Vue app
+docker build -t mixstash-app -f Dockerfile .
+
+# Build Pocketbase
+docker build -t mixstash-pocketbase -f Dockerfile.pocketbase .
+
+# Run with your local images
+docker-compose up -d
+```
+
+### Environment Variables
+
+Configure the application using environment variables:
+
+**For the Vue App:**
+- `VITE_POCKETBASE_URL` - URL where Pocketbase is accessible (default: `http://localhost:8090`)
+
+Example `.env.docker` file:
+```bash
+VITE_POCKETBASE_URL=http://localhost:8090
+```
+
+For production deployments, update this to your domain:
+```bash
+VITE_POCKETBASE_URL=https://api.yourdomain.com
+```
+
+**Data Persistence:**
+
+Pocketbase data is persisted using Docker volumes. The `pocketbase_data` volume stores:
+- Database files
+- User uploads
+- Configuration
+
+To backup your data:
+```bash
+# Create a backup
+docker-compose exec pocketbase tar czf /tmp/backup.tar.gz /pb/pb_data
+docker cp mixstash-pocketbase:/tmp/backup.tar.gz ./pocketbase-backup.tar.gz
+```
+
+To restore from backup:
+```bash
+# Stop services
+docker-compose down
+
+# Remove old volume
+docker volume rm mixstach_pocketbase_data
+
+# Start services
+docker-compose up -d
+
+# Restore data
+docker cp ./pocketbase-backup.tar.gz mixstash-pocketbase:/tmp/backup.tar.gz
+docker-compose exec pocketbase tar xzf /tmp/backup.tar.gz -C /
+docker-compose restart pocketbase
+```
 
 ## Recommended IDE Setup
 
