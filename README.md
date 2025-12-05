@@ -3,6 +3,7 @@
 MixStash is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
 
 - [Features](#features)
+- [Documentation](#documentation)
 - [Docker Deployment](#docker-deployment)
   - [Quick Start with Docker Compose](#quick-start-with-docker-compose)
   - [Using Pre-built Images](#using-pre-built-images)
@@ -35,6 +36,13 @@ MixStash is a Vue 3 application for saving your favorite music sets with precise
 - Import/Export favorites as JSON
 - Pocketbase integration with localStorage fallback for offline support
 - Docker deployment ready with CI/CD support
+
+## Documentation
+
+For detailed documentation, see the [`docs/`](./docs) folder:
+
+- **[Docker Deployment Guide](./docs/DOCKER.md)** - Comprehensive guide for Docker deployment, production setup, troubleshooting, and CI/CD
+- **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Database schema and collection configuration details
 
 ## Docker Deployment
 

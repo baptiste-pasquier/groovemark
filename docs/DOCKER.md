@@ -56,7 +56,7 @@ This will:
 
 On first run, visit http://localhost:8090/_/ to:
 1. Create an admin account
-2. Configure the `favorites` collection (see [POCKETBASE_SCHEMA.md](../POCKETBASE_SCHEMA.md))
+2. Configure the `favorites` collection (see [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md))
 3. Set up authentication (optional)
 
 ## Docker Images
