@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import HeaderBar from './components/layout/HeaderBar.vue'
 import FavoritesGrid from './components/favorites/FavoritesGrid.vue'
 import FavoriteModal from './components/modals/FavoriteModal.vue'
 import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 import ArtistSidebar from './components/filters/ArtistSidebar.vue'
+import { useFavoritesStore } from './stores/favorites'
+import i18n from './i18n'
 
 const showModal = ref(false)
 const editId = ref<string | null>(null)
 const showSidebar = ref(false)
+
+const store = useFavoritesStore()
+
+// Initialize favorites when the app mounts
+onMounted(() => {
+  store.initializeFavorites()
+})
 
 function addFavorite() {
   editId.value = null
@@ -18,6 +27,31 @@ function addFavorite() {
 function editFavorite(id: string) {
   editId.value = id
   showModal.value = true
+}
+
+function handleImport(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(String(ev.target?.result))
+      if (!Array.isArray(data)) throw new Error(i18n.global.t('import.error_invalid_array'))
+      if (data.length > 0 && (!data[0].id || !data[0].url))
+        throw new Error(i18n.global.t('import.error_invalid_structure'))
+      store.importFavorites(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      store.alertDialog = {
+        message: `${i18n.global.t('import.error_prefix')}${message}`,
+        visible: true,
+      }
+    } finally {
+      input.value = ''
+    }
+  }
+  reader.readAsText(file)
 }
 </script>
 
@@ -35,39 +69,5 @@ function editFavorite(id: string) {
     <ConfirmDialog />
   </div>
 </template>
-
-<script lang="ts">
-import { useFavoritesStore } from './stores/favorites'
-export default {
-  methods: {
-    handleImport(e: Event) {
-      const input = e.target as HTMLInputElement
-      const file = input.files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        try {
-          const data = JSON.parse(String(ev.target?.result))
-          if (!Array.isArray(data)) throw new Error("Le fichier JSON n'est pas un tableau valide.")
-          if (data.length > 0 && (!data[0].id || !data[0].url))
-            throw new Error('Structure invalide')
-          const store = useFavoritesStore()
-          store.importFavorites(data)
-        } catch (err) {
-          const store = useFavoritesStore()
-          const message = err instanceof Error ? err.message : String(err)
-          store.alertDialog = {
-            message: `Erreur lors de l'importation : ${message}`,
-            visible: true,
-          }
-        } finally {
-          input.value = ''
-        }
-      }
-      reader.readAsText(file)
-    },
-  },
-}
-</script>
 
 <style scoped></style>

@@ -24,12 +24,17 @@
     "added": "{count} ajouté(s)",
     "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
     "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
-    "with_skipped": ", {skipped} déjà présent(s) ignoré(s)."
+    "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
+    "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
+    "error_invalid_structure": "Structure invalide",
+    "error_prefix": "Erreur lors de l'importation : "
   },
   "messages": {
     "confirm_delete_favorite": "Êtes-vous sûr de vouloir supprimer ce favori ?",
     "invalid_time_format": "Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.",
-    "url_exists": "Cette URL existe déjà dans vos favoris."
+    "url_exists": "Cette URL existe déjà dans vos favoris.",
+    "error_saving": "Erreur lors de la sauvegarde du favori. Veuillez réessayer.",
+    "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer."
   },
   "modal": {
     "add_timestamp": "+ Ajouter un timestamp",
