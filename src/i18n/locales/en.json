@@ -29,7 +29,9 @@
   "messages": {
     "confirm_delete_favorite": "Are you sure you want to delete this favorite?",
     "invalid_time_format": "Invalid time format. Use MM:SS or HH:MM:SS.",
-    "url_exists": "This URL already exists in your favorites."
+    "url_exists": "This URL already exists in your favorites.",
+    "error_saving": "Error saving favorite. Please try again.",
+    "error_deleting": "Error deleting favorite. Please try again."
   },
   "modal": {
     "add_timestamp": "+ Add a timestamp",

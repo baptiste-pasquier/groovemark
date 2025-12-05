@@ -33,3 +33,6 @@ test-results/
 playwright-report/
 
 .eslintcache
+
+# Environment variables
+.env

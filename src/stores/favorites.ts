@@ -4,6 +4,7 @@ import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
+import { favoritesService } from '../services/favorites'
 
 interface ConfirmDialogState {
   message: string
@@ -18,15 +19,46 @@ interface AlertDialogState {
 }
 
 export const useFavoritesStore = defineStore('favorites', () => {
-  const favorites = ref<Favorite[]>(loadFavorites())
+  const favorites = ref<Favorite[]>([])
   const sortOrder = ref<'newest' | 'oldest'>('newest')
   const currentFilter = ref<string>('all')
   const searchTerm = ref('')
+  const isLoading = ref(false)
+  const usePocketbase = ref(true)
 
   const alertDialog = ref<AlertDialogState>({ message: '', visible: false })
   const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
 
-  function loadFavorites(): Favorite[] {
+  // Initialize favorites on store creation
+  initializeFavorites()
+
+  async function initializeFavorites() {
+    isLoading.value = true
+    try {
+      // Try to load from Pocketbase first
+      const pbAvailable = await favoritesService.isAvailable()
+      if (pbAvailable) {
+        const pbFavorites = await favoritesService.getAll()
+        favorites.value = pbFavorites
+        usePocketbase.value = true
+        // Sync to localStorage as backup
+        persistToLocalStorage()
+      } else {
+        // Fallback to localStorage if Pocketbase is not available
+        usePocketbase.value = false
+        favorites.value = loadFromLocalStorage()
+      }
+    } catch (error) {
+      console.error('Error initializing favorites:', error)
+      // Fallback to localStorage on error
+      usePocketbase.value = false
+      favorites.value = loadFromLocalStorage()
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function loadFromLocalStorage(): Favorite[] {
     try {
       const raw = localStorage.getItem('favorites')
       if (!raw) return []
@@ -36,8 +68,23 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
-  function persist() {
-    localStorage.setItem('favorites', JSON.stringify(favorites.value))
+  function persistToLocalStorage() {
+    try {
+      localStorage.setItem('favorites', JSON.stringify(favorites.value))
+    } catch (error) {
+      console.error('Error persisting to localStorage:', error)
+    }
+  }
+
+  async function persist() {
+    if (usePocketbase.value) {
+      // Pocketbase persistence is handled per operation (create/update/delete)
+      // Just sync to localStorage as backup
+      persistToLocalStorage()
+    } else {
+      // Fallback to localStorage only
+      persistToLocalStorage()
+    }
   }
 
   const allArtists = computed(() => {
@@ -103,7 +150,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
       timestamps: Timestamp[]
     },
   ) {
-    const id = partial.id || String(Date.now())
     const url = normalizeUrl(partial.url.trim())
     let title = partial.title.trim()
     const artists = partial.artists
@@ -134,9 +180,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       if (videoId) thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
     }
 
-    const existingIndex = favorites.value.findIndex((f) => f.id === id)
-    const newFavorite: Favorite = {
-      id,
+    const favoriteData: Omit<Favorite, 'id'> = {
       url,
       title,
       artists: [...artists],
@@ -145,35 +189,84 @@ export const useFavoritesStore = defineStore('favorites', () => {
       timestamps: partial.timestamps,
     }
 
-    if (existingIndex > -1) {
-      favorites.value[existingIndex] = newFavorite
-    } else {
-      favorites.value.push(newFavorite)
+    try {
+      if (usePocketbase.value) {
+        // Use Pocketbase
+        if (partial.id) {
+          // Update existing
+          const updated = await favoritesService.update(partial.id, favoriteData)
+          const existingIndex = favorites.value.findIndex((f) => f.id === partial.id)
+          if (existingIndex > -1) {
+            favorites.value[existingIndex] = updated
+          }
+        } else {
+          // Create new
+          const created = await favoritesService.create(favoriteData)
+          favorites.value.push(created)
+        }
+      } else {
+        // Use localStorage fallback
+        const id = partial.id || String(Date.now())
+        const newFavorite: Favorite = { id, ...favoriteData }
+        const existingIndex = favorites.value.findIndex((f) => f.id === id)
+        if (existingIndex > -1) {
+          favorites.value[existingIndex] = newFavorite
+        } else {
+          favorites.value.push(newFavorite)
+        }
+      }
+      await persist()
+      return true
+    } catch (error) {
+      console.error('Error adding/updating favorite:', error)
+      await showAlert(i18n.global.t('messages.error_saving') as string)
+      return false
     }
-    persist()
-    return true
   }
 
   async function deleteFavorite(id: string) {
     const confirmed = await showConfirm(i18n.global.t('messages.confirm_delete_favorite') as string)
     if (!confirmed) return
-    favorites.value = favorites.value.filter((f) => f.id !== id)
-    persist()
+
+    try {
+      if (usePocketbase.value) {
+        await favoritesService.delete(id)
+      }
+      favorites.value = favorites.value.filter((f) => f.id !== id)
+      await persist()
+    } catch (error) {
+      console.error('Error deleting favorite:', error)
+      await showAlert(i18n.global.t('messages.error_deleting') as string)
+    }
   }
 
-  function importFavorites(data: Favorite[]) {
+  async function importFavorites(data: Favorite[]) {
     const existingIds = new Set(favorites.value.map((f) => f.id))
     let added = 0
     let skipped = 0
+
     for (const fav of data) {
       if (existingIds.has(fav.id)) {
         skipped++
         continue
       }
-      favorites.value.push(fav)
-      existingIds.add(fav.id)
-      added++
+
+      try {
+        if (usePocketbase.value) {
+          // Import to Pocketbase
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...favoriteData } = fav
+          await favoritesService.create(favoriteData)
+        }
+        favorites.value.push(fav)
+        existingIds.add(fav.id)
+        added++
+      } catch (error) {
+        console.error('Error importing favorite:', error)
+        skipped++
+      }
     }
+
     if (added === 0) {
       showAlert(
         (skipped > 0
@@ -182,7 +275,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       )
       return { added, skipped }
     }
-    persist()
+    await persist()
     showAlert(
       (i18n.global.t('import.added', { count: added }) as string) +
         (skipped ? (i18n.global.t('import.with_skipped', { skipped }) as string) : '.'),
@@ -215,6 +308,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     allArtists,
     alertDialog,
     confirmDialog,
+    isLoading,
+    usePocketbase,
     toggleSort,
     setSearch,
     setFilter,
@@ -226,5 +321,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
     respondConfirm,
     showAlert,
     showConfirm,
+    initializeFavorites,
   }
 })
