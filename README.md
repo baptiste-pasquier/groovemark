@@ -86,8 +86,11 @@ Build the Docker images yourself:
 # Build the Vue app
 docker build -t mixstash-app -f Dockerfile .
 
-# Build Pocketbase
+# Build Pocketbase with default version
 docker build -t mixstash-pocketbase -f Dockerfile.pocketbase .
+
+# Build Pocketbase with specific version
+docker build --build-arg PB_VERSION=0.22.20 -t mixstash-pocketbase -f Dockerfile.pocketbase .
 
 # Run with your local images
 docker-compose up -d

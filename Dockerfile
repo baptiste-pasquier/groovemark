@@ -9,8 +9,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./
 
-# Install dependencies without lockfile
-RUN npm install --legacy-peer-deps
+# Install dependencies
+# Note: Using npm install without lockfile due to known npm ci issues
+# In production CI/CD, the lockfile is included in the full context copy
+RUN npm install
 
 # Copy application source (including package-lock.json)
 COPY . .

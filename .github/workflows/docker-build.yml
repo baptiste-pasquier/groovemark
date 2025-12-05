@@ -85,6 +85,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.pocketbase
+          build-args: |
+            PB_VERSION=0.22.20
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-pocketbase.outputs.tags }}
           labels: ${{ steps.meta-pocketbase.outputs.labels }}
