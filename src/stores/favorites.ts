@@ -25,14 +25,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const searchTerm = ref('')
   const isLoading = ref(false)
   const usePocketbase = ref(true)
+  const initialized = ref(false)
 
   const alertDialog = ref<AlertDialogState>({ message: '', visible: false })
   const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
 
-  // Initialize favorites on store creation
-  initializeFavorites()
-
   async function initializeFavorites() {
+    if (initialized.value) return
+    initialized.value = true
     isLoading.value = true
     try {
       // Try to load from Pocketbase first
@@ -253,13 +253,18 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
       try {
         if (usePocketbase.value) {
-          // Import to Pocketbase
+          // Import to Pocketbase - create returns a new record with new ID
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...favoriteData } = fav
-          await favoritesService.create(favoriteData)
+          const createdFavorite = await favoritesService.create(favoriteData)
+          // Push the newly created favorite with the Pocketbase-generated ID
+          favorites.value.push(createdFavorite)
+          existingIds.add(createdFavorite.id)
+        } else {
+          // For localStorage, keep the original ID
+          favorites.value.push(fav)
+          existingIds.add(fav.id)
         }
-        favorites.value.push(fav)
-        existingIds.add(fav.id)
         added++
       } catch (error) {
         console.error('Error importing favorite:', error)
@@ -310,6 +315,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     confirmDialog,
     isLoading,
     usePocketbase,
+    initialized,
     toggleSort,
     setSearch,
     setFilter,
