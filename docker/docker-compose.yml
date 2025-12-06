@@ -25,14 +25,14 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        # Pass Pocketbase URL as build argument
+        # Override this using .env file or docker-compose override
+        - VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL:-http://pocketbase:8090}
     container_name: groovemark-app
     restart: unless-stopped
     ports:
       - "8080:80"
-    environment:
-      # Point to the pocketbase service
-      # Override this using .env file or docker-compose override
-      - VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL:-http://pocketbase:8090}
     depends_on:
       pocketbase:
         condition: service_healthy

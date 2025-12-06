@@ -85,6 +85,8 @@ jobs:
         with:
           context: .
           file: ./docker/Dockerfile
+          build-args: |
+            VITE_POCKETBASE_URL=${{ vars.VITE_POCKETBASE_URL || 'http://localhost:8090' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-app.outputs.tags }}
           labels: ${{ steps.meta-app.outputs.labels }}
