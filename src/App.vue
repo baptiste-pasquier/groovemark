@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import HeaderBar from './components/layout/HeaderBar.vue'
 import FavoritesGrid from './components/favorites/FavoritesGrid.vue'
 import FavoriteModal from './components/modals/FavoriteModal.vue'
 import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 import ArtistSidebar from './components/filters/ArtistSidebar.vue'
+import LoginPage from './components/auth/LoginPage.vue'
 import { useFavoritesStore } from './stores/favorites'
+import { useAuthStore } from './stores/auth'
 import i18n from './i18n'
 
 const showModal = ref(false)
@@ -14,10 +16,21 @@ const editId = ref<string | null>(null)
 const showSidebar = ref(false)
 
 const store = useFavoritesStore()
+const authStore = useAuthStore()
+
+const isAuthenticated = computed(() => !!authStore.user || authStore.isLocalMode)
 
 // Initialize favorites when the app mounts
 onMounted(() => {
-  store.initializeFavorites()
+  if (isAuthenticated.value) {
+    store.initializeFavorites()
+  }
+})
+
+watch(isAuthenticated, (newValue) => {
+  if (newValue) {
+    store.initializeFavorites()
+  }
 })
 
 function addFavorite() {
@@ -56,7 +69,8 @@ function handleImport(e: Event) {
 </script>
 
 <template>
-  <div class="container mx-auto p-4 sm:p-6 md:p-8">
+  <LoginPage v-if="!isAuthenticated" />
+  <div v-else class="container mx-auto p-4 sm:p-6 md:p-8">
     <HeaderBar
       @add="addFavorite"
       @openFilters="showSidebar = true"

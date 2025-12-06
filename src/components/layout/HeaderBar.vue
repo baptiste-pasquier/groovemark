@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { useAuthStore } from '../../stores/auth'
 import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
@@ -8,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { onMounted } from 'vue'
 
 const store = useFavoritesStore()
+const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
 
@@ -24,6 +26,14 @@ function setAndPersistLocale(l: string) {
 
 function toggleLocale() {
   setAndPersistLocale(locale.value === 'fr' ? 'en' : 'fr')
+}
+
+function handleLogout() {
+  if (authStore.isLocalMode) {
+    authStore.disableLocalMode()
+  } else {
+    authStore.logout()
+  }
 }
 
 onMounted(() => {
@@ -98,12 +108,28 @@ function openFilters() {
         <FilterIcon class="h-6 w-6 text-gray-700" />
       </button>
       <button
-        id="lang-toggle"
-        class="rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium shadow-sm hover:bg-gray-100"
+        class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+        @click="handleLogout"
+        :title="authStore.isLocalMode ? t('auth.exit_local_mode') : t('auth.logout')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6 text-gray-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+          />
+        </svg>
+      </button>
+      <button
+        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition duration-300 hover:bg-gray-200"
         @click="toggleLocale"
-        :aria-pressed="locale === 'fr' ? 'true' : 'false'"
-        aria-label="Toggle language"
-        title="Toggle language"
       >
         {{ locale === 'fr' ? 'FR' : 'EN' }}
       </button>

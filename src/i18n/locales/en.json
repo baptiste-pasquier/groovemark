@@ -9,6 +9,14 @@
     "subtitle": "Save your favorite mixes and their highlights.",
     "title": "GrooveMark"
   },
+  "auth": {
+    "login_with_google": "Login with Google",
+    "continue_local": "Continue in Local Mode",
+    "local_mode_warning": "In local mode, your data is stored only on this device.",
+    "welcome": "Welcome to GrooveMark",
+    "logout": "Logout",
+    "exit_local_mode": "Exit Local Mode"
+  },
   "artist": {
     "add": "Add",
     "remove": "Remove"

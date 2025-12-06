@@ -5,6 +5,7 @@ import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
 import { favoritesService } from '../services/favorites'
+import { useAuthStore } from './auth'
 
 interface ConfirmDialogState {
   message: string
@@ -32,21 +33,30 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function initializeFavorites() {
     if (initialized.value) return
+
+    const authStore = useAuthStore()
+
     initialized.value = true
     isLoading.value = true
     try {
-      // Try to load from Pocketbase first
-      const pbAvailable = await favoritesService.isAvailable()
-      if (pbAvailable) {
-        const pbFavorites = await favoritesService.getAll()
-        favorites.value = pbFavorites
-        usePocketbase.value = true
-        // Sync to localStorage as backup
-        persistToLocalStorage()
-      } else {
-        // Fallback to localStorage if Pocketbase is not available
+      // If local mode is enabled, skip PocketBase check
+      if (authStore.isLocalMode) {
         usePocketbase.value = false
         favorites.value = loadFromLocalStorage()
+      } else {
+        // Try to load from Pocketbase first
+        const pbAvailable = await favoritesService.isAvailable()
+        if (pbAvailable) {
+          const pbFavorites = await favoritesService.getAll()
+          favorites.value = pbFavorites
+          usePocketbase.value = true
+          // Sync to localStorage as backup
+          persistToLocalStorage()
+        } else {
+          // Fallback to localStorage if Pocketbase is not available
+          usePocketbase.value = false
+          favorites.value = loadFromLocalStorage()
+        }
       }
     } catch (error) {
       console.error('Error initializing favorites:', error)

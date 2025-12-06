@@ -9,6 +9,14 @@
     "subtitle": "Sauvegardez vos mix préférés et leurs temps forts.",
     "title": "GrooveMark"
   },
+  "auth": {
+    "login_with_google": "Se connecter avec Google",
+    "continue_local": "Continuer en mode local",
+    "local_mode_warning": "En mode local, vos données sont stockées uniquement sur cet appareil.",
+    "welcome": "Bienvenue sur GrooveMark",
+    "logout": "Se déconnecter",
+    "exit_local_mode": "Quitter le mode local"
+  },
   "artist": {
     "add": "Ajouter",
     "remove": "Supprimer"
