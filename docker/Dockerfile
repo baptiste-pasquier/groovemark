@@ -18,7 +18,7 @@ COPY package.json package-lock.json ./
 # If this fails, ensure package-lock.json is committed to your repo.
 RUN npm ci
 
-# Copy application source (including package-lock.json)
+# Copy application source
 COPY . .
 
 # Build the application with the VITE_POCKETBASE_URL environment variable
