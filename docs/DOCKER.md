@@ -87,15 +87,43 @@ The app uses a multi-stage build:
 
 ### Environment Variables
 
+The `VITE_POCKETBASE_URL` environment variable is used to configure the Pocketbase backend URL. **This variable is embedded into the application at build time**, not at runtime.
+
+#### For Local Development with Docker Compose
+
 Create a `.env` file in the `docker` directory:
 
 ```bash
-# Pocketbase URL (for local development)
-VITE_POCKETBASE_URL=http://localhost:8090
-
-# For production, use your domain
-# VITE_POCKETBASE_URL=https://api.yourdomain.com
+# Pocketbase URL - this will be used when building the Docker image
+VITE_POCKETBASE_URL=http://pocketbase:8090
 ```
+
+The default value is `http://pocketbase:8090` which allows the containerized app to communicate with the Pocketbase service.
+
+#### For Production Deployments
+
+Set the `VITE_POCKETBASE_URL` environment variable before building the Docker image:
+
+```bash
+# Build with custom Pocketbase URL
+VITE_POCKETBASE_URL=https://api.yourdomain.com docker-compose build app
+
+# Or set it in your .env file
+echo "VITE_POCKETBASE_URL=https://api.yourdomain.com" > docker/.env
+cd docker && docker-compose build app
+```
+
+#### For GitHub Actions / CI/CD
+
+The `VITE_POCKETBASE_URL` is passed as a build argument in the GitHub Actions workflow. You can set it as a repository variable:
+
+1. Go to your repository Settings → Secrets and variables → Actions → Variables
+2. Add a new variable named `VITE_POCKETBASE_URL`
+3. Set the value to your production Pocketbase URL (e.g., `https://api.yourdomain.com`)
+
+The workflow will use this variable when building the Docker image, or default to `http://localhost:8090` if not set.
+
+**Note:** Because the URL is embedded at build time, you need to rebuild the Docker image if you want to change the Pocketbase URL.
 
 ### Port Configuration
 

@@ -112,14 +112,20 @@ Configure the application using environment variables:
 **For the Vue App:**
 - `VITE_POCKETBASE_URL` - URL where Pocketbase is accessible (default: `http://localhost:8090`)
 
-Example `.env.docker` file:
+**Important:** The `VITE_POCKETBASE_URL` is embedded into the application **at build time**, not at runtime. This means:
+- For local development with Docker Compose, set this in a `.env` file before building
+- For production deployments, set this environment variable before building the Docker image
+- You need to rebuild the Docker image if you want to change the Pocketbase URL
+
+Example `.env` file in the `docker/` directory:
 ```bash
-VITE_POCKETBASE_URL=http://localhost:8090
+VITE_POCKETBASE_URL=http://pocketbase:8090
 ```
 
-For production deployments, update this to your domain:
+For production deployments with a custom domain:
 ```bash
-VITE_POCKETBASE_URL=https://api.yourdomain.com
+# Set before building
+VITE_POCKETBASE_URL=https://api.yourdomain.com docker-compose build app
 ```
 
 **Data Persistence:**

@@ -3,6 +3,10 @@
 # Stage 1: Build the application
 FROM node:22-slim AS builder
 
+# Build argument for Pocketbase URL
+# This can be overridden at build time using --build-arg VITE_POCKETBASE_URL=<url>
+ARG VITE_POCKETBASE_URL=http://localhost:8090
+
 # Set working directory
 WORKDIR /app
 
@@ -17,8 +21,9 @@ RUN npm install
 # Copy application source (including package-lock.json)
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with the VITE_POCKETBASE_URL environment variable
+# Vite will embed this value into the built JavaScript files
+RUN VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL} npm run build
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
