@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { useAuthStore } from '../../stores/auth'
 import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
 import SearchIcon from '../icons/SearchIcon.vue'
 import { useI18n } from 'vue-i18n'
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 
 const store = useFavoritesStore()
+const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
 
 const LOCALE_STORAGE_KEY = 'groovemark_locale'
+
+// Compute display name for auth status
+const authDisplayName = computed(() => {
+  if (authStore.authMode === 'google' && authStore.user) {
+    return authStore.user.name || authStore.user.email || 'User'
+  }
+  return t('auth.local_mode')
+})
 
 function setAndPersistLocale(l: string) {
   locale.value = l
@@ -24,6 +34,11 @@ function setAndPersistLocale(l: string) {
 
 function toggleLocale() {
   setAndPersistLocale(locale.value === 'fr' ? 'en' : 'fr')
+}
+
+async function handleLogout() {
+  await authStore.signOut()
+  // This will trigger the app to show the login page again
 }
 
 onMounted(() => {
@@ -126,6 +141,18 @@ function openFilters() {
         @click="store.exportFavorites()"
       >
         {{ t('app.export_json') }}
+      </button>
+      <button
+        id="logout-btn"
+        class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"
+        @click="handleLogout"
+        :title="
+          authStore.authMode === 'google'
+            ? t('auth.signed_in_as', { name: authDisplayName })
+            : authDisplayName
+        "
+      >
+        {{ t('auth.logout') }}
       </button>
     </div>
   </header>

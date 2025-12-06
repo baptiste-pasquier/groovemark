@@ -6,7 +6,9 @@ import FavoriteModal from './components/modals/FavoriteModal.vue'
 import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 import ArtistSidebar from './components/filters/ArtistSidebar.vue'
+import LoginPage from './components/auth/LoginPage.vue'
 import { useFavoritesStore } from './stores/favorites'
+import { useAuthStore } from './stores/auth'
 import i18n from './i18n'
 
 const showModal = ref(false)
@@ -14,10 +16,15 @@ const editId = ref<string | null>(null)
 const showSidebar = ref(false)
 
 const store = useFavoritesStore()
+const authStore = useAuthStore()
 
-// Initialize favorites when the app mounts
-onMounted(() => {
-  store.initializeFavorites()
+// Initialize auth and favorites when the app mounts
+onMounted(async () => {
+  await authStore.initialize()
+  // Only initialize favorites if user is logged in (either mode)
+  if (authStore.isLoggedIn) {
+    store.initializeFavorites()
+  }
 })
 
 function addFavorite() {
@@ -56,7 +63,11 @@ function handleImport(e: Event) {
 </script>
 
 <template>
-  <div class="container mx-auto p-4 sm:p-6 md:p-8">
+  <!-- Show login page if not logged in -->
+  <LoginPage v-if="!authStore.isLoggedIn" />
+
+  <!-- Show main app if logged in -->
+  <div v-else class="container mx-auto p-4 sm:p-6 md:p-8">
     <HeaderBar
       @add="addFavorite"
       @openFilters="showSidebar = true"

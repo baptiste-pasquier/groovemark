@@ -5,6 +5,7 @@ import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
 import { favoritesService } from '../services/favorites'
+import { useAuthStore } from './auth'
 
 interface ConfirmDialogState {
   message: string
@@ -34,17 +35,34 @@ export const useFavoritesStore = defineStore('favorites', () => {
     if (initialized.value) return
     initialized.value = true
     isLoading.value = true
+
+    const authStore = useAuthStore()
+
     try {
-      // Try to load from Pocketbase first
-      const pbAvailable = await favoritesService.isAvailable()
-      if (pbAvailable) {
-        const pbFavorites = await favoritesService.getAll()
-        favorites.value = pbFavorites
-        usePocketbase.value = true
-        // Sync to localStorage as backup
-        persistToLocalStorage()
+      // If user is in local mode, use localStorage only
+      if (authStore.authMode === 'local') {
+        usePocketbase.value = false
+        favorites.value = loadFromLocalStorage()
+        isLoading.value = false
+        return
+      }
+
+      // If user is authenticated with Google, use Pocketbase
+      if (authStore.authMode === 'google' && authStore.isAuthenticated) {
+        const pbAvailable = await favoritesService.isAvailable()
+        if (pbAvailable) {
+          const pbFavorites = await favoritesService.getAll()
+          favorites.value = pbFavorites
+          usePocketbase.value = true
+          // Sync to localStorage as backup
+          persistToLocalStorage()
+        } else {
+          // Pocketbase not available, fall back to localStorage
+          usePocketbase.value = false
+          favorites.value = loadFromLocalStorage()
+        }
       } else {
-        // Fallback to localStorage if Pocketbase is not available
+        // No auth mode set, fallback to localStorage
         usePocketbase.value = false
         favorites.value = loadFromLocalStorage()
       }

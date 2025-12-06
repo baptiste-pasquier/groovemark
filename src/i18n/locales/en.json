@@ -49,5 +49,20 @@
   "timestamp": {
     "label_placeholder": "Label (optional)",
     "time_placeholder": "Time (e.g. 1:23:45)"
+  },
+  "login": {
+    "welcome": "Welcome!",
+    "subtitle": "Sign in to sync your favorites across devices or continue in local mode.",
+    "signin_google": "Sign in with Google",
+    "signing_in": "Signing in...",
+    "or": "or",
+    "continue_local": "Continue in Local Mode",
+    "local_mode_info": "Local mode stores your data only on this device without cloud sync.",
+    "error_google_signin": "Failed to sign in with Google. Please try again."
+  },
+  "auth": {
+    "logout": "Logout",
+    "signed_in_as": "Signed in as {name}",
+    "local_mode": "Local Mode"
   }
 }

@@ -49,5 +49,20 @@
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
     "time_placeholder": "Temps (ex: 1:23:45)"
+  },
+  "login": {
+    "welcome": "Bienvenue !",
+    "subtitle": "Connectez-vous pour synchroniser vos favoris entre appareils ou continuez en mode local.",
+    "signin_google": "Se connecter avec Google",
+    "signing_in": "Connexion en cours...",
+    "or": "ou",
+    "continue_local": "Continuer en Mode Local",
+    "local_mode_info": "Le mode local stocke vos données uniquement sur cet appareil sans synchronisation cloud.",
+    "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer."
+  },
+  "auth": {
+    "logout": "Déconnexion",
+    "signed_in_as": "Connecté en tant que {name}",
+    "local_mode": "Mode Local"
   }
 }
