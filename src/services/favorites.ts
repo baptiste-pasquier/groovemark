@@ -8,6 +8,7 @@ export interface PocketbaseFavorite extends Favorite {
   collectionName?: string
   created?: string
   updated?: string
+  user?: string
 }
 
 export const favoritesService = {
@@ -40,7 +41,11 @@ export const favoritesService = {
    * Create a new favorite in Pocketbase
    */
   async create(favorite: Omit<Favorite, 'id'>): Promise<Favorite> {
-    const record = await pb.collection(COLLECTION_NAME).create<PocketbaseFavorite>(favorite)
+    const data = {
+      ...favorite,
+      user: pb.authStore.model?.id,
+    }
+    const record = await pb.collection(COLLECTION_NAME).create<PocketbaseFavorite>(data)
     return {
       id: record.id,
       url: record.url,
