@@ -1,7 +1,8 @@
 # Multi-stage Dockerfile for the GrooveMark Vue app
 
 # Stage 1: Build the application
-FROM node:22-slim AS builder
+# [OPTIMIZATION] Pin builder to native architecture to avoid QEMU slowness
+FROM --platform=$BUILDPLATFORM node:22-slim AS builder
 
 # Build argument for Pocketbase URL
 # This can be overridden at build time using --build-arg VITE_POCKETBASE_URL=<url>
@@ -10,15 +11,14 @@ ARG VITE_POCKETBASE_URL=http://localhost:8090
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Copy package files (including lockfile to allow better caching)
+COPY package.json package-lock.json ./
 
-# Install dependencies
-# Note: Using npm install without lockfile due to known npm ci issues
-# In production CI/CD, the lockfile is included in the full context copy
-RUN npm install
+# Install dependencies with npm ci for speed.
+# If this fails, ensure package-lock.json is committed to your repo.
+RUN npm ci
 
-# Copy application source (including package-lock.json)
+# Copy application source
 COPY . .
 
 # Build the application with the VITE_POCKETBASE_URL environment variable
