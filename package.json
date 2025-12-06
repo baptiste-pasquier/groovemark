@@ -15,8 +15,12 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/",
-    "prepare": "husky install"
+    "format": "prettier . --write",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,vue}": "eslint --cache --fix",
+    "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
@@ -52,9 +56,5 @@
     "vite-plugin-vue-devtools": "^8.0.0",
     "vitest": "^3.2.4",
     "vue-tsc": "^3.0.4"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,vue}": "eslint --cache --fix",
-    "src/**/*": "prettier --write"
   }
 }

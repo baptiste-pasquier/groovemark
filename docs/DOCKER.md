@@ -16,6 +16,7 @@ This guide provides detailed instructions for deploying GrooveMark using Docker 
 ## Overview
 
 GrooveMark uses a multi-container setup with:
+
 - **App Container**: Vue 3 application served by nginx
 - **Pocketbase Container**: Backend database and API
 
@@ -42,6 +43,7 @@ docker-compose up -d
 ```
 
 This will:
+
 - Build both Docker images
 - Start the Pocketbase backend on port 8090
 - Start the GrooveMark app on port 8080
@@ -50,11 +52,12 @@ This will:
 ### 3. Access the Application
 
 - **GrooveMark App**: http://localhost:8080
-- **Pocketbase Admin**: http://localhost:8090/_/
+- **Pocketbase Admin**: <http://localhost:8090/_/>
 
 ### 4. Configure Pocketbase
 
-On first run, visit http://localhost:8090/_/ to:
+On first run, visit <http://localhost:8090/_/> to:
+
 1. Create an admin account
 2. Configure the `favorites` collection (see [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md))
 3. Set up authentication (optional)
@@ -66,11 +69,13 @@ On first run, visit http://localhost:8090/_/ to:
 The app uses a multi-stage build:
 
 **Stage 1 - Builder:**
+
 - Base: `node:22-slim`
 - Installs dependencies with npm
 - Builds the Vue application
 
 **Stage 2 - Runtime:**
+
 - Base: `nginx:alpine`
 - Copies built assets from builder stage
 - Serves the app with nginx
@@ -133,11 +138,11 @@ Edit `docker/docker-compose.yml` to change exposed ports:
 services:
   pocketbase:
     ports:
-      - "8090:8090"  # Change left side for external port
-  
+      - '8090:8090' # Change left side for external port
+
   app:
     ports:
-      - "8080:80"    # Change left side for external port
+      - '8080:80' # Change left side for external port
 ```
 
 ### Volume Management
@@ -180,6 +185,7 @@ VITE_POCKETBASE_URL=https://api.yourdomain.com
 ### 3. Add Reverse Proxy (Recommended)
 
 Use nginx or Traefik to:
+
 - Terminate SSL/TLS
 - Proxy requests to containers
 - Add security headers
@@ -232,12 +238,14 @@ server {
 The project includes a GitHub Actions workflow (`.github/workflows/docker-build.yml`) that automatically:
 
 ### On Push to `main` or `develop`:
+
 - Builds Docker images for both services
 - Pushes images to GitHub Container Registry (ghcr.io)
 - Tags images with branch name and commit SHA
 - Supports multi-platform builds (linux/amd64, linux/arm64)
 
 ### On Tag Push (`v*`):
+
 - Creates versioned releases
 - Tags images with semantic versions (e.g., `v1.0.0`, `1.0`, `1`)
 
@@ -270,6 +278,7 @@ docker pull ghcr.io/baptiste-pasquier/groovemark:main-abc1234
 ### Container Won't Start
 
 Check logs:
+
 ```bash
 docker-compose logs app
 docker-compose logs pocketbase
@@ -278,6 +287,7 @@ docker-compose logs pocketbase
 ### Pocketbase Data Not Persisting
 
 Verify volume is mounted:
+
 ```bash
 docker inspect groovemark-pocketbase | grep -A 10 Mounts
 ```
@@ -285,16 +295,19 @@ docker inspect groovemark-pocketbase | grep -A 10 Mounts
 ### App Can't Connect to Pocketbase
 
 1. Check if both containers are on the same network:
+
 ```bash
 docker network inspect groovemark_default
 ```
 
 2. Verify environment variable:
+
 ```bash
 docker-compose exec app printenv VITE_POCKETBASE_URL
 ```
 
 3. Test connectivity:
+
 ```bash
 docker-compose exec app wget -O- http://pocketbase:8090/api/health
 ```
@@ -302,6 +315,7 @@ docker-compose exec app wget -O- http://pocketbase:8090/api/health
 ### Permission Issues
 
 Fix volume permissions:
+
 ```bash
 docker-compose exec pocketbase chown -R 1000:1000 /pb/pb_data
 ```
@@ -309,6 +323,7 @@ docker-compose exec pocketbase chown -R 1000:1000 /pb/pb_data
 ### Rebuild Images
 
 Force rebuild without cache:
+
 ```bash
 docker-compose build --no-cache
 docker-compose up -d
@@ -323,6 +338,7 @@ docker stats
 ### Clean Up
 
 Remove containers and volumes:
+
 ```bash
 # Stop and remove containers
 docker-compose down
@@ -339,14 +355,17 @@ docker image prune -a
 Both services include health checks:
 
 ### Application
+
 - Endpoint: `http://localhost/health`
 - Returns: `200 OK` with "healthy" text
 
 ### Pocketbase
+
 - Endpoint: `http://localhost:8090/api/health`
 - Returns: `200 OK`
 
 Check health status:
+
 ```bash
 docker-compose ps
 ```
@@ -379,7 +398,7 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
-  
+
   pocketbase:
     deploy:
       resources:

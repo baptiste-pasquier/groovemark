@@ -21,11 +21,13 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
 ### JSON Field Structures
 
 #### artists
+
 ```json
 ["Artist Name 1", "Artist Name 2"]
 ```
 
 #### timestamps
+
 ```json
 [
   {
