@@ -1,19 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import pb from '../services/pocketbase'
-import type { RecordModel } from 'pocketbase'
+import type { RecordModel, AuthProviderInfo } from 'pocketbase'
 
 export type AuthMode = 'google' | 'local' | null
-
-interface AuthProviderInfo {
-  name: string
-  displayName: string
-  state: string
-  authURL: string
-  codeVerifier: string
-  codeChallengeMethod: string
-  codeChallenge: string
-}
 
 export const useAuthStore = defineStore('auth', () => {
   const authMode = ref<AuthMode>(null)
