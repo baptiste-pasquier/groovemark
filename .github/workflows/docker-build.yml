@@ -11,6 +11,11 @@ on:
     branches:
       - main
       - develop
+    # Trigger on standard events + when a PR is marked "Ready for Review"
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -20,6 +25,10 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
+    # Skip the job if the PR is a draft
+    if: ${{ !github.event.pull_request.draft }}
+
     permissions:
       contents: read
       packages: write
