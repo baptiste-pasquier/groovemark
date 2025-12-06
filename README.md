@@ -26,7 +26,6 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
   - [Run End-to-End Tests with Playwright](#run-end-to-end-tests-with-playwright)
   - [Lint with ESLint](#lint-with-eslint)
 
-
 ## Features
 
 - Save favorite YouTube and SoundCloud mixes
@@ -80,6 +79,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 Available image tags:
+
 - `latest` - Latest stable version from main branch
 - `develop` - Latest development version
 - `v*` - Specific version tags (e.g., `v1.0.0`)
@@ -110,19 +110,23 @@ docker-compose up -d
 Configure the application using environment variables:
 
 **For the Vue App:**
+
 - `VITE_POCKETBASE_URL` - URL where Pocketbase is accessible (default: `http://localhost:8090`)
 
 **Important:** The `VITE_POCKETBASE_URL` is embedded into the application **at build time**, not at runtime. This means:
+
 - For local development with Docker Compose, set this in a `.env` file before building
 - For production deployments, set this environment variable before building the Docker image
 - You need to rebuild the Docker image if you want to change the Pocketbase URL
 
 Example `.env` file in the `docker/` directory:
+
 ```bash
 VITE_POCKETBASE_URL=http://pocketbase:8090
 ```
 
 For production deployments with a custom domain:
+
 ```bash
 # Set before building
 VITE_POCKETBASE_URL=https://api.yourdomain.com docker-compose build app
@@ -131,11 +135,13 @@ VITE_POCKETBASE_URL=https://api.yourdomain.com docker-compose build app
 **Data Persistence:**
 
 Pocketbase data is persisted using Docker volumes. The `pocketbase_data` volume stores:
+
 - Database files
 - User uploads
 - Configuration
 
 To backup your data:
+
 ```bash
 # Create a backup
 docker-compose exec pocketbase tar czf /tmp/backup.tar.gz /pb/pb_data
@@ -143,6 +149,7 @@ docker cp groovemark-pocketbase:/tmp/backup.tar.gz ./pocketbase-backup.tar.gz
 ```
 
 To restore from backup:
+
 ```bash
 # Stop services
 docker-compose down
@@ -199,6 +206,7 @@ By default, Pocketbase runs on `http://localhost:8090`.
 ### 4. Configure API Rules (Optional)
 
 For development, you can allow public access to the `favorites` collection:
+
 - List/Search Rule: `@request.auth.id != ""`
 - View Rule: `@request.auth.id != ""`
 - Create Rule: `@request.auth.id != ""`
@@ -216,6 +224,7 @@ cp .env.example .env
 ```
 
 Default configuration:
+
 ```
 VITE_POCKETBASE_URL=http://localhost:8090
 ```
