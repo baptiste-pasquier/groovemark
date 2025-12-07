@@ -5,13 +5,16 @@ import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
 import SearchIcon from '../icons/SearchIcon.vue'
+import SettingsIcon from '../icons/SettingsIcon.vue'
 import { useI18n } from 'vue-i18n'
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 
 const store = useFavoritesStore()
 const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
+
+const isMenuOpen = ref(false)
 
 const LOCALE_STORAGE_KEY = 'groovemark_locale'
 
@@ -151,26 +154,60 @@ function openFilters() {
         >
           {{ locale === 'fr' ? 'FR' : 'EN' }}
         </button>
-        <label
-          for="import-json"
-          class="cursor-pointer rounded-lg bg-blue-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-blue-600"
-        >
-          {{ t('app.import_json') }}
-        </label>
-        <input
-          type="file"
-          id="import-json"
-          class="hidden"
-          accept=".json"
-          @change="(e) => emit('importClick', e)"
-        />
-        <button
-          id="export-json-btn"
-          class="rounded-lg bg-green-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-green-600"
-          @click="store.exportFavorites()"
-        >
-          {{ t('app.export_json') }}
-        </button>
+        <div class="relative">
+          <button
+            id="settings-menu-btn"
+            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+            @click="isMenuOpen = !isMenuOpen"
+            :title="t('app.settings')"
+          >
+            <SettingsIcon class="h-6 w-6 text-gray-700" />
+          </button>
+
+          <!-- Backdrop to close menu -->
+          <div
+            v-if="isMenuOpen"
+            class="fixed inset-0 z-10 cursor-default"
+            @click="isMenuOpen = false"
+          ></div>
+
+          <!-- Menu Dropdown -->
+          <div
+            v-if="isMenuOpen"
+            class="ring-opacity-5 absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black focus:outline-none"
+          >
+            <label
+              for="import-json"
+              class="block w-full cursor-pointer px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+            >
+              {{ t('app.import_json') }}
+            </label>
+            <input
+              type="file"
+              id="import-json"
+              class="hidden"
+              accept=".json"
+              @change="
+                (e) => {
+                  emit('importClick', e)
+                  isMenuOpen = false
+                }
+              "
+            />
+            <button
+              id="export-json-btn"
+              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              @click="
+                () => {
+                  store.exportFavorites()
+                  isMenuOpen = false
+                }
+              "
+            >
+              {{ t('app.export_json') }}
+            </button>
+          </div>
+        </div>
         <button
           id="logout-btn"
           class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"
