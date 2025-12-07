@@ -11,6 +11,7 @@ import {
   Languages,
   Check,
   TriangleAlert,
+  LogOut,
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES } from '../../i18n'
@@ -215,7 +216,7 @@ function openFilters() {
         </div>
         <button
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
+          class="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
@@ -223,6 +224,7 @@ function openFilters() {
               : authDisplayName
           "
         >
+          <LogOut class="h-4 w-4" />
           {{ t('auth.logout') }}
         </button>
       </div>
