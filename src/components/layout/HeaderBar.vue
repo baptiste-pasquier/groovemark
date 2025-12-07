@@ -151,6 +151,8 @@ function openFilters() {
             class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
             @click="isMenuOpen = !isMenuOpen"
             :title="t('app.settings')"
+            aria-haspopup="true"
+            :aria-expanded="isMenuOpen"
           >
             <SettingsIcon class="h-6 w-6 text-gray-700" />
           </button>
@@ -166,6 +168,7 @@ function openFilters() {
           <div
             v-if="isMenuOpen"
             class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none"
+            role="menu"
           >
             <div
               class="flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider text-gray-500 uppercase"
@@ -183,6 +186,7 @@ function openFilters() {
                   isMenuOpen = false
                 }
               "
+              role="menuitem"
             >
               <span>{{ l.label }}</span>
               <CheckIcon v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
@@ -216,6 +220,7 @@ function openFilters() {
                   isMenuOpen = false
                 }
               "
+              role="menuitem"
             >
               <ExportIcon class="h-4 w-4" />
               {{ t('app.export_json') }}
