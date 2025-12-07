@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import PlusIcon from '@/components/icons/PlusIcon.vue'
+
 defineEmits<{ (e: 'click'): void }>()
 </script>
 
 <template>
   <button
-    class="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white shadow-md transition duration-300 hover:bg-blue-700 hover:shadow-lg"
+    class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white shadow-md transition duration-300 hover:bg-blue-700 hover:shadow-lg"
     @click="$emit('click')"
   >
+    <PlusIcon />
     {{ $t('app.add_new') }}
   </button>
 </template>

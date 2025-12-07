@@ -1,6 +1,6 @@
 {
   "app": {
-    "add_new": "+ Add a new favorite",
+    "add_new": "New favorite",
     "artists": "Artists",
     "export_json": "Export JSON",
     "import_json": "Import JSON",
