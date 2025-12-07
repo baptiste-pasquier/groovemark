@@ -31,8 +31,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const alertDialog = ref<AlertDialogState>({ message: '', visible: false })
   const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
 
-  async function initializeFavorites() {
-    if (initialized.value) return
+  async function initializeFavorites(force = false) {
+    if (initialized.value && !force) return
     initialized.value = true
     isLoading.value = true
 

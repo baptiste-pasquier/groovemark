@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import HeaderBar from './components/layout/HeaderBar.vue'
 import FavoritesGrid from './components/favorites/FavoritesGrid.vue'
 import FavoriteModal from './components/modals/FavoriteModal.vue'
@@ -29,6 +29,18 @@ onMounted(async () => {
     store.initializeFavorites()
   }
 })
+
+// Watch for auth mode changes and reinitialize favorites accordingly
+watch(
+  () => authStore.authMode,
+  (newMode, oldMode) => {
+    // When auth mode changes (e.g., user logs in or switches modes)
+    if (newMode && newMode !== oldMode) {
+      // Force reinitialization to update usePocketbase flag
+      store.initializeFavorites(true)
+    }
+  },
+)
 
 function addFavorite() {
   editId.value = null
