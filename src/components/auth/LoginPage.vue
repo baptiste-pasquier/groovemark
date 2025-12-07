@@ -28,20 +28,12 @@ function handleLocalMode() {
 </script>
 
 <template>
-  <div
-    class="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4"
-  >
-    <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+  <div class="flex min-h-screen items-center justify-center bg-gray-900 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-gray-800 p-8 shadow-2xl">
       <!-- Logo/Title -->
       <div class="mb-8 text-center">
-        <h1 class="text-4xl font-bold text-gray-900">{{ t('app.title') }}</h1>
-        <p class="mt-2 text-gray-600">{{ t('app.subtitle') }}</p>
-      </div>
-
-      <!-- Welcome Message -->
-      <div class="mb-8 text-center">
-        <h2 class="text-2xl font-semibold text-gray-800">{{ t('login.welcome') }}</h2>
-        <p class="mt-2 text-sm text-gray-600">{{ t('login.subtitle') }}</p>
+        <h1 class="mb-4 text-3xl font-bold text-white">{{ t('login.welcome') }}</h1>
+        <p class="mt-2 text-gray-400">{{ t('app.subtitle') }}</p>
       </div>
 
       <!-- Error Message -->
@@ -53,7 +45,7 @@ function handleLocalMode() {
       <button
         @click="handleGoogleSignIn"
         :disabled="isLoading"
-        class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-50 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+        class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg v-if="!isLoading" class="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -100,10 +92,10 @@ function handleLocalMode() {
       <!-- Divider -->
       <div class="relative my-6">
         <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-300"></div>
+          <div class="w-full border-t border-gray-600"></div>
         </div>
         <div class="relative flex justify-center text-sm">
-          <span class="bg-white px-4 text-gray-500">{{ t('login.or') }}</span>
+          <span class="bg-gray-800 px-4 text-gray-400">{{ t('login.or') }}</span>
         </div>
       </div>
 
@@ -123,5 +115,3 @@ function handleLocalMode() {
     </div>
   </div>
 </template>
-
-<style scoped></style>
