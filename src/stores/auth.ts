@@ -24,25 +24,31 @@ export const useAuthStore = defineStore('auth', () => {
     isInitialized.value = true
 
     try {
-      // Check for stored auth mode
-      const storedMode = localStorage.getItem(AUTH_MODE_KEY) as AuthMode
+      // A valid PocketBase session should always take precedence.
+      if (pb.authStore.isValid && pb.authStore.model) {
+        authMode.value = 'google'
+        isAuthenticated.value = true
+        user.value = pb.authStore.model
+        localStorage.setItem(AUTH_MODE_KEY, 'google') // Ensure consistency
+        return
+      }
 
+      // If no valid session, check if user explicitly chose local mode.
+      const storedMode = localStorage.getItem(AUTH_MODE_KEY) as AuthMode
       if (storedMode === 'local') {
-        // User chose local mode
         authMode.value = 'local'
         isAuthenticated.value = false
         return
       }
 
-      // Check if user has an active PocketBase session
-      if (pb.authStore.isValid && pb.authStore.model) {
-        authMode.value = 'google'
-        isAuthenticated.value = true
-        user.value = pb.authStore.model
-        return
+      // If we reach here, there's no valid session and no local mode preference.
+      // This can happen if `storedMode` was 'google' but the session expired.
+      // In that case, we should clean up the stale setting.
+      if (storedMode === 'google') {
+        localStorage.removeItem(AUTH_MODE_KEY)
       }
 
-      // No authentication
+      // Default to no authentication.
       authMode.value = null
       isAuthenticated.value = false
     } catch (error) {
