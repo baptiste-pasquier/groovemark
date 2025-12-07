@@ -11,13 +11,13 @@ const store = useFavoritesStore()
       <p class="mb-6 text-gray-800">{{ store.confirmDialog.message }}</p>
       <div class="flex justify-end space-x-2">
         <button
-          class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
+          class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="store.respondConfirm(false)"
         >
           Annuler
         </button>
         <button
-          class="rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+          class="rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="store.respondConfirm(true)"
         >
           Supprimer

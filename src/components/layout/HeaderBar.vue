@@ -119,7 +119,7 @@ function openFilters() {
       <div class="flex items-center space-x-2">
         <button
           id="sort-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="toggleSort"
           :title="
             store.sortOrder === 'newest'
@@ -134,7 +134,7 @@ function openFilters() {
         </button>
         <button
           id="filter-menu-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 lg:hidden"
+          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
           @click="openFilters"
         >
           <FilterIcon class="h-6 w-6 text-gray-700" />
@@ -142,7 +142,7 @@ function openFilters() {
         <div class="relative">
           <button
             id="settings-menu-btn"
-            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
             @click="isMenuOpen = !isMenuOpen"
             :title="t('app.settings')"
             aria-haspopup="true"
@@ -173,7 +173,7 @@ function openFilters() {
             <button
               v-for="l in SUPPORTED_LOCALES"
               :key="l.code"
-              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
               @click="
                 () => {
                   setAndPersistLocale(l.code)
@@ -188,7 +188,7 @@ function openFilters() {
             <div class="my-1 border-t border-gray-100"></div>
             <label
               for="import-json"
-              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
             >
               <ImportIcon class="h-4 w-4" />
               {{ t('app.import_json') }}
@@ -207,7 +207,7 @@ function openFilters() {
             />
             <button
               id="export-json-btn"
-              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
               @click="
                 () => {
                   store.exportFavorites()
@@ -223,7 +223,7 @@ function openFilters() {
         </div>
         <button
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"
+          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
