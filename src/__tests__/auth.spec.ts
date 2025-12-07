@@ -24,8 +24,9 @@ describe('Auth Store', () => {
   beforeEach(() => {
     // Create a fresh pinia instance for each test
     setActivePinia(createPinia())
-    // Clear localStorage mock
-    Object.keys(localStorageMock).forEach((key) => delete localStorageMock[key])
+    // Clear localStorage mock and reset mocks
+    localStorage.clear()
+    vi.clearAllMocks()
   })
 
   it('initializes with no auth mode', () => {
