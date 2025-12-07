@@ -3,6 +3,7 @@
     "add_new": "+ Ajouter un nouveau favori",
     "export_json": "Exporter JSON",
     "import_json": "Importer JSON",
+    "language": "Langue",
     "search_placeholder": "Rechercher par titre ou artiste...",
     "settings": "Paramètres",
     "sort_toggle_title_newest": "Trier plus récents",
