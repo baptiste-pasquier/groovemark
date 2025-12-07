@@ -5,6 +5,15 @@ import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 import { fetchMetadata } from '../../utils/url'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -113,21 +122,22 @@ function close() {
 </script>
 
 <template>
-  <div v-if="modelValue" class="modal-bg fixed inset-0 z-50 flex items-center justify-center">
-    <div class="animate-fade-in-up mx-auto w-11/12 rounded-xl bg-white p-6 shadow-2xl md:max-w-2xl">
-      <h2 class="mb-4 text-2xl font-bold text-gray-800">
-        {{ id ? t('modal.title_edit') : t('modal.title_add') }}
-      </h2>
+  <Dialog :open="modelValue" @update:open="(v) => emit('update:modelValue', v)">
+    <DialogContent class="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>
+          {{ id ? t('modal.title_edit') : t('modal.title_add') }}
+        </DialogTitle>
+      </DialogHeader>
       <form @submit.prevent="save" class="space-y-4">
         <div>
           <label for="url" class="mb-2 block font-medium text-gray-700"
             >URL (YouTube ou SoundCloud)</label
           >
-          <input
+          <Input
             id="url"
             v-model="url"
             type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             required
             @blur="onUrlBlur"
           />
@@ -137,11 +147,10 @@ function close() {
         </div>
         <div>
           <label for="title" class="mb-2 block font-medium text-gray-700">Titre</label>
-          <input
+          <Input
             id="title"
             v-model="title"
             type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
             required
             :placeholder="metadataLoading ? t('modal.loading') : ''"
           />
@@ -164,17 +173,17 @@ function close() {
               :data-rated="row.rated"
             >
               <div class="flex grow items-center space-x-2">
-                <input
+                <Input
                   type="text"
                   :placeholder="t('timestamp.label_placeholder')"
                   v-model="row.label"
-                  class="timestamp-label w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
+                  class="timestamp-label w-1/2 text-sm"
                 />
-                <input
+                <Input
                   type="text"
                   :placeholder="t('timestamp.time_placeholder')"
                   v-model="row.time"
-                  class="timestamp-time w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
+                  class="timestamp-time w-1/2 text-sm"
                   required
                 />
               </div>
@@ -199,32 +208,32 @@ function close() {
               </button>
             </div>
           </div>
-          <button
+          <Button
             type="button"
             id="add-timestamp-btn"
-            class="mt-2 font-semibold text-blue-500 hover:text-blue-700"
+            variant="link"
+            class="mt-2"
             @click="addTimestamp"
           >
             {{ t('modal.add_timestamp') }}
-          </button>
+          </Button>
         </div>
-        <div class="flex justify-end space-x-2">
-          <button
+        <DialogFooter>
+          <Button
             type="button"
             id="cancel-btn"
-            class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
+            variant="secondary"
             @click="close"
           >
             {{ t('modal.cancel') }}
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
             {{ t('modal.save') }}
-          </button>
-        </div>
+          </Button>
+        </DialogFooter>
       </form>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>
