@@ -33,9 +33,9 @@ onMounted(async () => {
 // Watch for auth mode changes and reinitialize favorites accordingly
 watch(
   () => authStore.authMode,
-  (newMode, oldMode) => {
+  (newMode) => {
     // When auth mode changes (e.g., user logs in or switches modes)
-    if (newMode && newMode !== oldMode && authStore.isLoggedIn) {
+    if (newMode && authStore.isLoggedIn) {
       // Force reinitialization to update usePocketbase flag
       store.initializeFavorites(true)
     }
