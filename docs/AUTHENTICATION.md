@@ -1,11 +1,11 @@
-# Authentication Setup Guide
+# Authentication Setup Guide <!-- omit from toc -->
 
 GrooveMark supports two authentication modes:
 
 1. **Google SSO** - Sign in with Google to sync favorites across devices
 2. **Local Mode** - Continue without authentication, data stored locally in browser
 
-## Table of Contents
+## Table of Contents <!-- omit from toc -->
 
 - [Local Mode Setup](#local-mode-setup)
 - [Google SSO Setup](#google-sso-setup)
@@ -15,6 +15,14 @@ GrooveMark supports two authentication modes:
   - [Step 3: Update Environment Variables](#step-3-update-environment-variables)
   - [Step 4: Test the Integration](#step-4-test-the-integration)
 - [Troubleshooting](#troubleshooting)
+  - [Error: "Google OAuth provider not configured in PocketBase"](#error-google-oauth-provider-not-configured-in-pocketbase)
+  - [Error: "redirect_uri_mismatch"](#error-redirect_uri_mismatch)
+  - [OAuth Popup Blocked](#oauth-popup-blocked)
+  - [Can't Access PocketBase from the App](#cant-access-pocketbase-from-the-app)
+  - [Favorites Not Syncing After Login](#favorites-not-syncing-after-login)
+  - [Data Lost When Switching Between Modes](#data-lost-when-switching-between-modes)
+- [Security Best Practices](#security-best-practices)
+- [Additional Resources](#additional-resources)
 
 ## Local Mode Setup
 
@@ -43,12 +51,7 @@ Before setting up Google SSO, you need:
    - Navigate to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project or select an existing one
 
-2. **Enable Google+ API**
-   - In the left sidebar, go to **APIs & Services** > **Library**
-   - Search for "Google+ API" and enable it
-   - Alternatively, search for "Google Identity" and enable the OAuth API
-
-3. **Create OAuth 2.0 Credentials**
+2. **Create OAuth 2.0 Credentials**
    - Go to **APIs & Services** > **Credentials**
    - Click **Create Credentials** > **OAuth client ID**
    - If prompted, configure the OAuth consent screen first:
@@ -59,7 +62,7 @@ Before setting up Google SSO, you need:
      - Add scopes: `email`, `profile`, `openid` (basic profile info)
      - Add test users if in development mode
 
-4. **Configure OAuth Client**
+3. **Configure OAuth Client**
    - Application type: **Web application**
    - Name: "GrooveMark Web Client"
    - Authorized JavaScript origins:
@@ -70,7 +73,7 @@ Before setting up Google SSO, you need:
      - `https://api.yourdomain.com/api/oauth2-redirect` (for production)
    - Click **Create**
 
-5. **Save Your Credentials**
+4. **Save Your Credentials**
    - Copy the **Client ID**
    - Copy the **Client Secret**
    - Keep these secure - you'll need them in the next step
