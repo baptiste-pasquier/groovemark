@@ -12,4 +12,5 @@ export interface Favorite {
   type: 'youtube' | 'soundcloud'
   thumbnail: string
   timestamps: Timestamp[]
+  created?: string
 }
