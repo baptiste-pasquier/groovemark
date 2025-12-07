@@ -4,7 +4,6 @@ import { useAuthStore } from '../../stores/auth'
 import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
-import SearchIcon from '../icons/SearchIcon.vue'
 import SettingsIcon from '../icons/SettingsIcon.vue'
 import ImportIcon from '../icons/ImportIcon.vue'
 import ExportIcon from '../icons/ExportIcon.vue'
@@ -71,12 +70,7 @@ onMounted(() => {
 const emit = defineEmits<{
   (e: 'openFilters'): void
   (e: 'importClick', evt: Event): void
-  (e: 'add'): void
 }>()
-
-function onSearch(e: Event) {
-  store.setSearch((e.target as HTMLInputElement).value)
-}
 
 function toggleSort() {
   store.toggleSort()
@@ -125,7 +119,7 @@ function openFilters() {
       <div class="flex items-center space-x-2">
         <button
           id="sort-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="toggleSort"
           :title="
             store.sortOrder === 'newest'
@@ -140,7 +134,7 @@ function openFilters() {
         </button>
         <button
           id="filter-menu-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
           @click="openFilters"
         >
           <FilterIcon class="h-6 w-6 text-gray-700" />
@@ -148,7 +142,7 @@ function openFilters() {
         <div class="relative">
           <button
             id="settings-menu-btn"
-            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
             @click="isMenuOpen = !isMenuOpen"
             :title="t('app.settings')"
             aria-haspopup="true"
@@ -179,7 +173,7 @@ function openFilters() {
             <button
               v-for="l in SUPPORTED_LOCALES"
               :key="l.code"
-              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
               @click="
                 () => {
                   setAndPersistLocale(l.code)
@@ -194,7 +188,7 @@ function openFilters() {
             <div class="my-1 border-t border-gray-100"></div>
             <label
               for="import-json"
-              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
             >
               <ImportIcon class="h-4 w-4" />
               {{ t('app.import_json') }}
@@ -213,7 +207,7 @@ function openFilters() {
             />
             <button
               id="export-json-btn"
-              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
               @click="
                 () => {
                   store.exportFavorites()
@@ -229,7 +223,7 @@ function openFilters() {
         </div>
         <button
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"
+          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
@@ -242,26 +236,8 @@ function openFilters() {
       </div>
     </div>
   </header>
-  <div class="relative mb-6">
-    <input
-      type="text"
-      id="search-input"
-      :placeholder="t('app.search_placeholder')"
-      class="w-full rounded-lg border border-gray-300 p-3 pl-10 transition-colors focus:ring-2 focus:ring-blue-500"
-      @input="onSearch"
-    />
-    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-      <SearchIcon class="h-5 w-5 text-gray-400" />
-    </div>
-  </div>
   <div class="mb-8">
-    <button
-      id="add-favorite-btn"
-      class="w-full rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 font-semibold text-blue-500 shadow-md transition duration-300 hover:border-blue-400 hover:bg-blue-50"
-      @click="emit('add')"
-    >
-      {{ t('app.add_new') }}
-    </button>
+    <!-- Search and Add button moved to App.vue for layout flexibility -->
   </div>
 </template>
 
