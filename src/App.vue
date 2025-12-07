@@ -24,10 +24,7 @@ const authStore = useAuthStore()
 // Initialize auth and favorites when the app mounts
 onMounted(async () => {
   await authStore.initialize()
-  // Only initialize favorites if user is logged in (either mode)
-  if (authStore.isLoggedIn) {
-    store.initializeFavorites()
-  }
+  // Note: initializeFavorites() is called automatically by the authMode watcher below
 })
 
 // Watch for auth mode changes and reinitialize favorites accordingly
