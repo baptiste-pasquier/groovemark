@@ -36,6 +36,7 @@ watch(
       store.reset()
     }
   },
+  { immediate: true },
 )
 
 function addFavorite() {
