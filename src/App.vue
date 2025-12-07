@@ -35,7 +35,7 @@ watch(
   () => authStore.authMode,
   (newMode, oldMode) => {
     // When auth mode changes (e.g., user logs in or switches modes)
-    if (newMode && newMode !== oldMode) {
+    if (newMode && newMode !== oldMode && authStore.isLoggedIn) {
       // Force reinitialization to update usePocketbase flag
       store.initializeFavorites(true)
     }
