@@ -234,19 +234,20 @@ export const useFavoritesStore = defineStore('favorites', () => {
         const id = partial.id || String(Date.now())
         const existingIndex = favorites.value.findIndex((f) => f.id === id)
 
+        const created =
+          (existingIndex > -1 && favorites.value[existingIndex].created) || new Date().toISOString()
+        const newFavorite: Favorite = {
+          ...favoriteData,
+          id,
+          created,
+        }
+
         if (existingIndex > -1) {
-          const existing = favorites.value[existingIndex]
-          favorites.value[existingIndex] = {
-            ...favoriteData,
-            id,
-            created: existing.created || new Date().toISOString(),
-          }
+          // Update existing favorite
+          favorites.value[existingIndex] = newFavorite
         } else {
-          favorites.value.push({
-            ...favoriteData,
-            id,
-            created: new Date().toISOString(),
-          })
+          // Create new favorite
+          favorites.value.push(newFavorite)
         }
       }
       await persist()
