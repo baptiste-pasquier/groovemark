@@ -36,5 +36,14 @@ export default defineConfigWithVueTs(
     ...pluginPlaywright.configs['flat/recommended'],
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
+
+  // Disable multi-word-component-names for shadcn-vue UI components
+  {
+    files: ['src/components/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 )

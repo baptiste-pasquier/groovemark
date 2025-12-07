@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@/components/ui/button'
 
 const authStore = useAuthStore()
 const { t } = useI18n()
@@ -42,10 +43,11 @@ function handleLocalMode() {
       </div>
 
       <!-- Sign in with Google Button -->
-      <button
+      <Button
         @click="handleGoogleSignIn"
         :disabled="isLoading"
-        class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        variant="outline"
+        class="mb-4 w-full gap-3 border-2 bg-white text-gray-700 hover:bg-gray-300"
       >
         <svg v-if="!isLoading" class="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -87,7 +89,7 @@ function handleLocalMode() {
           ></path>
         </svg>
         <span>{{ isLoading ? t('login.signing_in') : t('login.signin_google') }}</span>
-      </button>
+      </Button>
 
       <!-- Divider -->
       <div class="relative my-6">
@@ -100,13 +102,14 @@ function handleLocalMode() {
       </div>
 
       <!-- Continue in Local Mode Button -->
-      <button
+      <Button
         @click="handleLocalMode"
         :disabled="isLoading"
-        class="w-full rounded-lg bg-gray-600 px-6 py-3 font-semibold text-white shadow-md transition duration-300 hover:bg-gray-700 hover:shadow-lg focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        variant="secondary"
+        class="w-full bg-gray-600 text-white hover:bg-gray-700"
       >
         {{ t('login.continue_local') }}
-      </button>
+      </Button>
 
       <!-- Info about local mode -->
       <p class="mt-4 text-center text-xs text-gray-500">

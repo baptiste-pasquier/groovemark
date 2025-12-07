@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 import SearchIcon from '../icons/SearchIcon.vue'
+import { Input } from '@/components/ui/input'
 import { useFavoritesStore } from '../../stores/favorites'
 
 const store = useFavoritesStore()
@@ -14,10 +15,10 @@ const onSearch = useDebounceFn((e: Event) => {
 
 <template>
   <div class="relative">
-    <input
+    <Input
       type="text"
       :placeholder="$t('app.search_placeholder')"
-      class="w-full rounded-lg border border-gray-200 bg-white p-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+      class="pl-10"
       @input="onSearch"
     />
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
