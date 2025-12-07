@@ -16,24 +16,24 @@ function setFilter(a: string) {
 <template>
   <ul class="space-y-2 overflow-y-auto">
     <li>
-      <a
-        href="#"
-        class="block rounded-md px-4 py-2 transition-colors"
+      <button
+        type="button"
+        class="mb-2 block w-full rounded-md border-b border-gray-200 px-4 py-2 text-left font-bold transition-colors"
         :class="store.currentFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'"
-        @click.prevent="setFilter('all')"
+        @click="setFilter('all')"
       >
         {{ t('app.all_artists') }}
-      </a>
+      </button>
     </li>
     <li v-for="artist in store.allArtists" :key="artist">
-      <a
-        href="#"
-        class="block rounded-md px-4 py-2 transition-colors"
+      <button
+        type="button"
+        class="block w-full rounded-md px-4 py-2 text-left transition-colors"
         :class="store.currentFilter === artist ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'"
-        @click.prevent="setFilter(artist)"
+        @click="setFilter(artist)"
       >
         {{ artist }}
-      </a>
+      </button>
     </li>
   </ul>
 </template>
