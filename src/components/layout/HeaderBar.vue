@@ -6,6 +6,8 @@ import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
 import SearchIcon from '../icons/SearchIcon.vue'
 import SettingsIcon from '../icons/SettingsIcon.vue'
+import ImportIcon from '../icons/ImportIcon.vue'
+import ExportIcon from '../icons/ExportIcon.vue'
 import { useI18n } from 'vue-i18n'
 import { onMounted, computed, ref } from 'vue'
 
@@ -174,12 +176,13 @@ function openFilters() {
           <!-- Menu Dropdown -->
           <div
             v-if="isMenuOpen"
-            class="ring-opacity-5 absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black focus:outline-none"
+            class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none"
           >
             <label
               for="import-json"
-              class="block w-full cursor-pointer px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
             >
+              <ImportIcon class="h-4 w-4" />
               {{ t('app.import_json') }}
             </label>
             <input
@@ -196,7 +199,7 @@ function openFilters() {
             />
             <button
               id="export-json-btn"
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
               @click="
                 () => {
                   store.exportFavorites()
@@ -204,6 +207,7 @@ function openFilters() {
                 }
               "
             >
+              <ExportIcon class="h-4 w-4" />
               {{ t('app.export_json') }}
             </button>
           </div>
