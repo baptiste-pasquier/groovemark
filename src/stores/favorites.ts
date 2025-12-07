@@ -123,9 +123,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
           f.artists.join(' ').toLowerCase().includes(term)
         return artistPass && searchPass
       })
-      .sort((a, b) =>
-        sortOrder.value === 'newest' ? Number(b.id) - Number(a.id) : Number(a.id) - Number(b.id),
-      )
+      .sort((a, b) => {
+        let timeA = a.created ? new Date(a.created).getTime() : 0
+        let timeB = b.created ? new Date(b.created).getTime() : 0
+
+        // Fallback to ID if it looks like a timestamp (numeric) and created is missing
+        if (!timeA && !isNaN(Number(a.id))) timeA = Number(a.id)
+        if (!timeB && !isNaN(Number(b.id))) timeB = Number(b.id)
+
+        return sortOrder.value === 'newest' ? timeB - timeA : timeA - timeB
+      })
   })
 
   function toggleSort() {
@@ -225,12 +232,21 @@ export const useFavoritesStore = defineStore('favorites', () => {
       } else {
         // Use localStorage fallback
         const id = partial.id || String(Date.now())
-        const newFavorite: Favorite = { id, ...favoriteData }
         const existingIndex = favorites.value.findIndex((f) => f.id === id)
+
         if (existingIndex > -1) {
-          favorites.value[existingIndex] = newFavorite
+          const existing = favorites.value[existingIndex]
+          favorites.value[existingIndex] = {
+            ...favoriteData,
+            id,
+            created: existing.created || new Date().toISOString(),
+          }
         } else {
-          favorites.value.push(newFavorite)
+          favorites.value.push({
+            ...favoriteData,
+            id,
+            created: new Date().toISOString(),
+          })
         }
       }
       await persist()

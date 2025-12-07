@@ -28,6 +28,7 @@ export const favoritesService = {
         type: record.type,
         thumbnail: record.thumbnail,
         timestamps: record.timestamps || [],
+        created: record.created,
       }))
     } catch (error) {
       console.error('Error fetching favorites from Pocketbase:', error)
@@ -54,6 +55,7 @@ export const favoritesService = {
       type: record.type,
       thumbnail: record.thumbnail,
       timestamps: record.timestamps || [],
+      created: record.created,
     }
   },
 
@@ -70,6 +72,7 @@ export const favoritesService = {
       type: record.type,
       thumbnail: record.thumbnail,
       timestamps: record.timestamps || [],
+      created: record.created,
     }
   },
 
