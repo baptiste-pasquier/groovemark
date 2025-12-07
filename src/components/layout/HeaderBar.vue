@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
 import { useAuthStore } from '../../stores/auth'
+import { Button } from '@/components/ui/button'
 import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
@@ -117,9 +118,10 @@ function openFilters() {
         </span>
       </div>
       <div class="flex items-center space-x-2">
-        <button
+        <Button
           id="sort-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+          variant="outline"
+          size="icon"
           @click="toggleSort"
           :title="
             store.sortOrder === 'newest'
@@ -129,27 +131,30 @@ function openFilters() {
         >
           <component
             :is="store.sortOrder === 'newest' ? SortIconNewest : SortIconOldest"
-            class="h-6 w-6 text-gray-700"
+            class="h-6 w-6"
           />
-        </button>
-        <button
+        </Button>
+        <Button
           id="filter-menu-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
+          variant="outline"
+          size="icon"
+          class="lg:hidden"
           @click="openFilters"
         >
-          <FilterIcon class="h-6 w-6 text-gray-700" />
-        </button>
+          <FilterIcon class="h-6 w-6" />
+        </Button>
         <div class="relative">
-          <button
+          <Button
             id="settings-menu-btn"
-            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+            variant="outline"
+            size="icon"
             @click="isMenuOpen = !isMenuOpen"
             :title="t('app.settings')"
             aria-haspopup="true"
             :aria-expanded="isMenuOpen"
           >
-            <SettingsIcon class="h-6 w-6 text-gray-700" />
-          </button>
+            <SettingsIcon class="h-6 w-6" />
+          </Button>
 
           <!-- Backdrop to close menu -->
           <div
@@ -221,9 +226,10 @@ function openFilters() {
             </button>
           </div>
         </div>
-        <button
+        <Button
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
+          variant="destructive"
+          class="whitespace-nowrap"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
@@ -232,7 +238,7 @@ function openFilters() {
           "
         >
           {{ t('auth.logout') }}
-        </button>
+        </Button>
       </div>
     </div>
   </header>
