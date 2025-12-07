@@ -217,7 +217,6 @@ function closeMobileMenu() {
               <label
                 for="import-json-mobile"
                 class="flex w-full cursor-pointer items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                @click="closeMobileMenu"
               >
                 {{ t('app.import_json') }}
               </label>
@@ -236,8 +235,10 @@ function closeMobileMenu() {
               <button
                 class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                 @click="
-                  store.exportFavorites()
-                  closeMobileMenu()
+                  () => {
+                    store.exportFavorites()
+                    closeMobileMenu()
+                  }
                 "
               >
                 {{ t('app.export_json') }}
