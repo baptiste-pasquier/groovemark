@@ -344,6 +344,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
     a.remove()
   }
 
+  function reset() {
+    favorites.value = []
+    usePocketbase.value = true
+    initialized.value = false
+    isLoading.value = false
+    sortOrder.value = 'newest'
+    currentFilter.value = 'all'
+    searchTerm.value = ''
+  }
+
   return {
     favorites,
     sortOrder,
@@ -368,5 +378,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
     showAlert,
     showConfirm,
     initializeFavorites,
+    reset,
   }
 })
