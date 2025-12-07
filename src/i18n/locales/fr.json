@@ -1,6 +1,7 @@
 {
   "app": {
     "add_new": "Nouveau favori",
+    "all_artists": "Tous les artistes",
     "artists": "Artistes",
     "export_json": "Exporter JSON",
     "import_json": "Importer JSON",

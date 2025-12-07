@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useFavoritesStore } from '../../stores/favorites'
 
+const { t } = useI18n()
 const store = useFavoritesStore()
 
 const emit = defineEmits<{ (e: 'select'): void }>()
@@ -20,7 +22,7 @@ function setFilter(a: string) {
         :class="store.currentFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'"
         @click.prevent="setFilter('all')"
       >
-        Tous les artistes
+        {{ t('app.all_artists') }}
       </a>
     </li>
     <li v-for="artist in store.allArtists" :key="artist">
