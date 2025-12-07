@@ -28,11 +28,14 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
 
 ## Features
 
+- **Authentication**: Sign in with Google SSO or continue in local mode (no account needed)
 - Save favorite YouTube and SoundCloud mixes
 - Add timestamps to mark important parts of your mixes
 - Filter by artists
 - Search functionality
 - Import/Export favorites as JSON
+- **Cloud Sync**: When using Google SSO, favorites sync across devices via PocketBase
+- **Offline Support**: Local mode stores data in browser localStorage
 - Pocketbase integration with localStorage fallback for offline support
 - Docker deployment ready with CI/CD support
 
@@ -40,6 +43,7 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
 
 For detailed documentation, see the [`docs/`](./docs) folder:
 
+- **[Authentication Setup](./docs/AUTHENTICATION.md)** - Guide for setting up Google SSO and understanding local mode
 - **[Docker Deployment Guide](./docs/DOCKER.md)** - Comprehensive guide for Docker deployment, production setup, troubleshooting, and CI/CD
 - **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Database schema and collection configuration details
 

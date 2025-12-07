@@ -49,5 +49,19 @@
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
     "time_placeholder": "Temps (ex: 1:23:45)"
+  },
+  "login": {
+    "welcome": "Bienvenue sur GrooveMark",
+    "signin_google": "Se connecter avec Google",
+    "signing_in": "Connexion en cours...",
+    "or": "ou",
+    "continue_local": "Continuer en mode local",
+    "local_mode_info": "En mode local, vos données sont stockées uniquement sur cet appareil.",
+    "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer."
+  },
+  "auth": {
+    "logout": "Déconnexion",
+    "signed_in_as": "Connecté en tant que {name}",
+    "local_mode": "Mode Local"
   }
 }
