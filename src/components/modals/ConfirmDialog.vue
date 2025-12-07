@@ -1,28 +1,54 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
+import { useI18n } from 'vue-i18n'
+
 const store = useFavoritesStore()
+const { t } = useI18n()
+
+const isOpen = computed({
+  get: () => store.confirmDialog.visible,
+  set: (value) => {
+    if (!value) {
+      store.respondConfirm(false)
+    }
+  },
+})
 </script>
+
 <template>
-  <div
-    v-if="store.confirmDialog.visible"
-    class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
-  >
-    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
-      <p class="mb-6 text-gray-800">{{ store.confirmDialog.message }}</p>
-      <div class="flex justify-end space-x-2">
-        <button
-          class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
-          @click="store.respondConfirm(false)"
-        >
-          Annuler
-        </button>
-        <button
-          class="rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
-          @click="store.respondConfirm(true)"
-        >
-          Supprimer
-        </button>
+  <UModal v-model:open="isOpen" :title="t('app.confirm')">
+    <template #content>
+      <div class="p-4">
+        <p class="text-gray-800">{{ store.confirmDialog.message }}</p>
       </div>
-    </div>
-  </div>
+    </template>
+    <template #footer="{ close }">
+      <div class="flex justify-end gap-2">
+        <UButton
+          color="neutral"
+          variant="outline"
+          @click="
+            () => {
+              store.respondConfirm(false)
+              close()
+            }
+          "
+        >
+          {{ t('app.cancel') }}
+        </UButton>
+        <UButton
+          color="error"
+          @click="
+            () => {
+              store.respondConfirm(true)
+              close()
+            }
+          "
+        >
+          {{ t('app.delete') }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>

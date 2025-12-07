@@ -75,52 +75,54 @@ function handleImport(e: Event) {
 </script>
 
 <template>
-  <!-- Show login page if not logged in -->
-  <LoginPage v-if="!authStore.isLoggedIn" />
+  <UApp>
+    <!-- Show login page if not logged in -->
+    <LoginPage v-if="!authStore.isLoggedIn" />
 
-  <!-- Show main app if logged in -->
-  <div v-else class="container mx-auto p-4 sm:p-6 md:p-8">
-    <HeaderBar @openFilters="showSidebar = true" @importClick="$event && handleImport($event)" />
+    <!-- Show main app if logged in -->
+    <div v-else class="container mx-auto p-4 sm:p-6 md:p-8">
+      <HeaderBar @openFilters="showSidebar = true" @importClick="$event && handleImport($event)" />
 
-    <div class="flex flex-col lg:flex-row lg:gap-8">
-      <!-- Left Sidebar (Desktop) -->
-      <aside
-        class="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 shrink-0 flex-col gap-6 rounded-2xl bg-gray-50 p-6 shadow-sm lg:flex"
-      >
-        <!-- Search -->
-        <FavoriteSearchBar />
-
-        <!-- Add Button -->
-        <AddFavoriteButton @click="addFavorite" />
-
-        <!-- Artist List -->
-        <div class="flex flex-1 flex-col overflow-hidden">
-          <h3 class="mb-3 text-xs font-bold tracking-wider text-gray-500 uppercase">
-            {{ $t('app.artists') }}
-          </h3>
-          <ArtistList class="flex-1 overflow-y-auto" />
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="min-w-0 flex-1">
-        <!-- Mobile Search and Add (Visible only on small screens) -->
-        <div class="mb-6 space-y-4 lg:hidden">
+      <div class="flex flex-col lg:flex-row lg:gap-8">
+        <!-- Left Sidebar (Desktop) -->
+        <aside
+          class="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 shrink-0 flex-col gap-6 rounded-2xl bg-gray-50 p-6 shadow-sm lg:flex"
+        >
           <!-- Search -->
           <FavoriteSearchBar />
+
           <!-- Add Button -->
           <AddFavoriteButton @click="addFavorite" />
-        </div>
 
-        <FavoritesGrid @edit="editFavorite" />
-      </main>
+          <!-- Artist List -->
+          <div class="flex flex-1 flex-col overflow-hidden">
+            <h3 class="mb-3 text-xs font-bold tracking-wider text-gray-500 uppercase">
+              {{ $t('app.artists') }}
+            </h3>
+            <ArtistList class="flex-1 overflow-y-auto" />
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="min-w-0 flex-1">
+          <!-- Mobile Search and Add (Visible only on small screens) -->
+          <div class="mb-6 space-y-4 lg:hidden">
+            <!-- Search -->
+            <FavoriteSearchBar />
+            <!-- Add Button -->
+            <AddFavoriteButton @click="addFavorite" />
+          </div>
+
+          <FavoritesGrid @edit="editFavorite" />
+        </main>
+      </div>
+
+      <FavoriteModal v-model="showModal" :edit-id="editId" />
+      <ArtistSidebar :open="showSidebar" @close="showSidebar = false" />
+      <AlertDialog />
+      <ConfirmDialog />
     </div>
-
-    <FavoriteModal v-model="showModal" :edit-id="editId" />
-    <ArtistSidebar :open="showSidebar" @close="showSidebar = false" />
-    <AlertDialog />
-    <ConfirmDialog />
-  </div>
+  </UApp>
 </template>
 
 <style scoped></style>

@@ -1,20 +1,33 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
+
 const store = useFavoritesStore()
+// useToast is auto-imported by Nuxt UI via unplugin-auto-import
+// TypeScript recognition in vue-tsc is inconsistent, so we suppress the error
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const toast = useToast()
+
+// Watch for alert dialog changes and show toast instead
+watch(
+  () => store.alertDialog.visible,
+  (visible) => {
+    if (visible && store.alertDialog.message) {
+      toast.add({
+        title: store.alertDialog.message,
+        color: 'error',
+      })
+      // Auto-close the alert in the store
+      store.closeAlert()
+    }
+  },
+)
 </script>
+
 <template>
-  <div
-    v-if="store.alertDialog.visible"
-    class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
-  >
-    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
-      <p class="mb-4 text-gray-800">{{ store.alertDialog.message }}</p>
-      <button
-        class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none"
-        @click="store.closeAlert()"
-      >
-        OK
-      </button>
-    </div>
-  </div>
+  <!-- This component uses toast notifications instead of a modal -->
+  <!-- The template requires at least one element, but this component has no UI -->
+  <!-- eslint-disable-next-line vue/valid-template-root -->
+  <template />
 </template>
