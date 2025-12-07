@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { useDebounceFn } from '@vueuse/core'
 import SearchIcon from '../icons/SearchIcon.vue'
 import { useFavoritesStore } from '../../stores/favorites'
 
 const store = useFavoritesStore()
 
-function onSearch(e: Event) {
-  store.setSearch((e.target as HTMLInputElement).value)
-}
+// Creates a debounced version of the function
+const onSearch = useDebounceFn((e: Event) => {
+  const value = (e.target as HTMLInputElement).value
+  store.setSearch(value)
+}, 300)
 </script>
 
 <template>
