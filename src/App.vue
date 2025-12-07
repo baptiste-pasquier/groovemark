@@ -31,7 +31,7 @@ watch(
   () => authStore.isLoggedIn,
   (isLoggedIn: boolean) => {
     if (isLoggedIn) {
-      store.initializeFavorites()
+      store.initializeFavorites(true)
     } else {
       store.reset()
     }

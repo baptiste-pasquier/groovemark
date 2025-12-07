@@ -45,8 +45,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     confirmDialog,
   } = toRefs(state)
 
-  async function initializeFavorites() {
-    if (initialized.value) return
+  async function initializeFavorites(force = false) {
+    if (initialized.value && !force) return
     initialized.value = true
     isLoading.value = true
 
