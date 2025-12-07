@@ -93,7 +93,7 @@ const settingsMenuItems = computed(() => {
 
   // Separator
   items.push({
-    type: 'separator',
+    type: 'separator' as const,
   })
 
   // Import
@@ -126,7 +126,7 @@ const settingsMenuItems = computed(() => {
           v-if="authStore.authMode === 'local'"
           color="warning"
           variant="soft"
-          :ui="{ base: 'flex items-center gap-1' }"
+          class="flex items-center gap-1"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +142,7 @@ const settingsMenuItems = computed(() => {
           </svg>
           {{ t('auth.local_mode') }}
         </UBadge>
-        <UBadge v-else color="neutral" variant="soft" :ui="{ base: 'flex items-center gap-2' }">
+        <UBadge v-else color="neutral" variant="soft" class="flex items-center gap-2">
           <span class="h-2 w-2 rounded-full bg-green-500"></span>
           {{ authDisplayName }}
         </UBadge>
