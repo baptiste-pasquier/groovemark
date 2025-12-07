@@ -1,6 +1,7 @@
 # Authentication Setup Guide
 
 GrooveMark supports two authentication modes:
+
 1. **Google SSO** - Sign in with Google to sync favorites across devices
 2. **Local Mode** - Continue without authentication, data stored locally in browser
 
@@ -20,6 +21,7 @@ GrooveMark supports two authentication modes:
 Local mode requires no additional setup. Users can simply click "Continue in Local Mode" on the login page, and all data will be stored in the browser's localStorage.
 
 **Limitations of Local Mode:**
+
 - Data is only available on the device/browser where it was created
 - No cloud sync across devices
 - Data may be lost if browser data is cleared
@@ -30,6 +32,7 @@ Local mode requires no additional setup. Users can simply click "Continue in Loc
 ### Prerequisites
 
 Before setting up Google SSO, you need:
+
 - A running PocketBase instance (see main [README.md](../README.md))
 - A Google Cloud Platform account
 - Access to the Google Cloud Console
@@ -75,6 +78,7 @@ Before setting up Google SSO, you need:
 ### Step 2: Configure PocketBase
 
 1. **Start PocketBase**
+
    ```bash
    ./pocketbase serve
    ```
@@ -99,25 +103,25 @@ Before setting up Google SSO, you need:
    - You can customize user fields if needed, but the defaults work fine
 
 5. **Update Favorites Collection Rules**
-   
+
    Since we now have authentication, update the `favorites` collection API Rules to tie records to users:
-   
+
    **Option 1: User-specific favorites (Recommended)**
-   
+
    First, add an `owner` field to the `favorites` collection:
    - Type: Relation
    - Collection: users
    - Required: Yes
-   
+
    Then update the API Rules:
    - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
    - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
    - **Create Rule**: `@request.auth.id != ""`
    - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
    - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   
+
    **Option 2: Shared favorites (Development only)**
-   
+
    Keep the current rules that just check authentication:
    - **List/Search Rule**: `@request.auth.id != ""`
    - **View Rule**: `@request.auth.id != ""`
@@ -130,11 +134,13 @@ Before setting up Google SSO, you need:
 No environment variables are needed for the OAuth setup itself. The PocketBase URL is configured at build time via `VITE_POCKETBASE_URL`.
 
 For production deployments, ensure:
+
 ```bash
 VITE_POCKETBASE_URL=https://api.yourdomain.com
 ```
 
 Then rebuild the application:
+
 ```bash
 npm run build
 ```
@@ -142,6 +148,7 @@ npm run build
 ### Step 4: Test the Integration
 
 1. **Start the Application**
+
    ```bash
    npm run dev
    ```
@@ -174,7 +181,8 @@ npm run build
 
 ### Error: "redirect_uri_mismatch"
 
-**Solution**: 
+**Solution**:
+
 - Check that your redirect URI in Google Cloud Console matches exactly
 - For local development: `http://localhost:8090/api/oauth2-redirect`
 - For production: `https://your-domain.com/api/oauth2-redirect`
@@ -187,6 +195,7 @@ npm run build
 ### Can't Access PocketBase from the App
 
 **Solution**:
+
 - Verify PocketBase is running: `http://localhost:8090/_/`
 - Check CORS settings in PocketBase if you get CORS errors
 - Ensure `VITE_POCKETBASE_URL` environment variable is set correctly
@@ -195,6 +204,7 @@ npm run build
 ### Favorites Not Syncing After Login
 
 **Solution**:
+
 - Check that the `favorites` collection API rules allow authenticated users
 - Verify user is actually authenticated by checking `pb.authStore.isValid`
 - Check browser console for any error messages
@@ -203,6 +213,7 @@ npm run build
 ### Data Lost When Switching Between Modes
 
 **Solution**:
+
 - Local mode data stays in localStorage
 - Google mode data stays in PocketBase
 - These are separate storage locations by design
