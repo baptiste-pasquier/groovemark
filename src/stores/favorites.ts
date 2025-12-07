@@ -19,17 +19,29 @@ interface AlertDialogState {
   resolve?: () => void
 }
 
+interface FavoritesState {
+  favorites: Favorite[]
+  sortOrder: 'newest' | 'oldest'
+  currentFilter: string
+  searchTerm: string
+  isLoading: boolean
+  usePocketbase: boolean
+  initialized: boolean
+  alertDialog: AlertDialogState
+  confirmDialog: ConfirmDialogState
+}
+
 export const useFavoritesStore = defineStore('favorites', () => {
-  const initialState = () => ({
-    favorites: [] as Favorite[],
-    sortOrder: 'newest' as 'newest' | 'oldest',
+  const initialState = (): FavoritesState => ({
+    favorites: [],
+    sortOrder: 'newest',
     currentFilter: 'all',
     searchTerm: '',
     isLoading: false,
     usePocketbase: true,
     initialized: false,
-    alertDialog: { message: '', visible: false } as AlertDialogState,
-    confirmDialog: { message: '', visible: false } as ConfirmDialogState,
+    alertDialog: { message: '', visible: false },
+    confirmDialog: { message: '', visible: false },
   })
 
   const state = reactive(initialState())
