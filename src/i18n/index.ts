@@ -4,6 +4,11 @@ import fr from './locales/fr.json'
 
 export const DEFAULT_LOCALE = 'fr'
 
+export const SUPPORTED_LOCALES = [
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'Français' },
+]
+
 export const i18n = createI18n({
   legacy: false,
   locale: DEFAULT_LOCALE,

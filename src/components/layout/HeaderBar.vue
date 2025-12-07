@@ -5,13 +5,21 @@ import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
 import SearchIcon from '../icons/SearchIcon.vue'
+import SettingsIcon from '../icons/SettingsIcon.vue'
+import ImportIcon from '../icons/ImportIcon.vue'
+import ExportIcon from '../icons/ExportIcon.vue'
+import LanguageIcon from '../icons/LanguageIcon.vue'
+import CheckIcon from '../icons/CheckIcon.vue'
 import { useI18n } from 'vue-i18n'
-import { onMounted, computed } from 'vue'
+import { SUPPORTED_LOCALES } from '../../i18n'
+import { onMounted, computed, ref } from 'vue'
 
 const store = useFavoritesStore()
 const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
+
+const isMenuOpen = ref(false)
 
 const LOCALE_STORAGE_KEY = 'groovemark_locale'
 
@@ -30,10 +38,6 @@ function setAndPersistLocale(l: string) {
   } catch (e) {
     // ignore storage errors
   }
-}
-
-function toggleLocale() {
-  setAndPersistLocale(locale.value === 'fr' ? 'en' : 'fr')
 }
 
 async function handleLogout() {
@@ -141,36 +145,88 @@ function openFilters() {
         >
           <FilterIcon class="h-6 w-6 text-gray-700" />
         </button>
-        <button
-          id="lang-toggle"
-          class="rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium shadow-sm hover:bg-gray-100"
-          @click="toggleLocale"
-          :aria-pressed="locale === 'fr' ? 'true' : 'false'"
-          aria-label="Toggle language"
-          title="Toggle language"
-        >
-          {{ locale === 'fr' ? 'FR' : 'EN' }}
-        </button>
-        <label
-          for="import-json"
-          class="cursor-pointer rounded-lg bg-blue-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-blue-600"
-        >
-          {{ t('app.import_json') }}
-        </label>
-        <input
-          type="file"
-          id="import-json"
-          class="hidden"
-          accept=".json"
-          @change="(e) => emit('importClick', e)"
-        />
-        <button
-          id="export-json-btn"
-          class="rounded-lg bg-green-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-green-600"
-          @click="store.exportFavorites()"
-        >
-          {{ t('app.export_json') }}
-        </button>
+        <div class="relative">
+          <button
+            id="settings-menu-btn"
+            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+            @click="isMenuOpen = !isMenuOpen"
+            :title="t('app.settings')"
+            aria-haspopup="true"
+            :aria-expanded="isMenuOpen"
+          >
+            <SettingsIcon class="h-6 w-6 text-gray-700" />
+          </button>
+
+          <!-- Backdrop to close menu -->
+          <div
+            v-if="isMenuOpen"
+            class="fixed inset-0 z-10 cursor-default"
+            @click="isMenuOpen = false"
+          ></div>
+
+          <!-- Menu Dropdown -->
+          <div
+            v-if="isMenuOpen"
+            class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none"
+            role="menu"
+          >
+            <div
+              class="flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider text-gray-500 uppercase"
+            >
+              <LanguageIcon class="h-4 w-4" />
+              {{ t('app.language') }}
+            </div>
+            <button
+              v-for="l in SUPPORTED_LOCALES"
+              :key="l.code"
+              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              @click="
+                () => {
+                  setAndPersistLocale(l.code)
+                  isMenuOpen = false
+                }
+              "
+              role="menuitem"
+            >
+              <span>{{ l.label }}</span>
+              <CheckIcon v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
+            </button>
+            <div class="my-1 border-t border-gray-100"></div>
+            <label
+              for="import-json"
+              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <ImportIcon class="h-4 w-4" />
+              {{ t('app.import_json') }}
+            </label>
+            <input
+              type="file"
+              id="import-json"
+              class="hidden"
+              accept=".json"
+              @change="
+                (e) => {
+                  emit('importClick', e)
+                  isMenuOpen = false
+                }
+              "
+            />
+            <button
+              id="export-json-btn"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              @click="
+                () => {
+                  store.exportFavorites()
+                  isMenuOpen = false
+                }
+              "
+              role="menuitem"
+            >
+              <ExportIcon class="h-4 w-4" />
+              {{ t('app.export_json') }}
+            </button>
+          </div>
+        </div>
         <button
           id="logout-btn"
           class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"
