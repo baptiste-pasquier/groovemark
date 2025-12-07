@@ -5,8 +5,9 @@ import SortIconNewest from '../icons/SortIconNewest.vue'
 import SortIconOldest from '../icons/SortIconOldest.vue'
 import FilterIcon from '../icons/FilterIcon.vue'
 import SearchIcon from '../icons/SearchIcon.vue'
+import MenuIcon from '../icons/MenuIcon.vue'
 import { useI18n } from 'vue-i18n'
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref, onUnmounted } from 'vue'
 
 const store = useFavoritesStore()
 const authStore = useAuthStore()
@@ -14,6 +15,8 @@ const authStore = useAuthStore()
 const { t, locale } = useI18n()
 
 const LOCALE_STORAGE_KEY = 'groovemark_locale'
+const showMobileMenu = ref(false)
+const menuButtonRef = ref<HTMLElement | null>(null)
 
 // Compute display name for auth status
 const authDisplayName = computed(() => {
@@ -41,7 +44,16 @@ async function handleLogout() {
   // This will trigger the app to show the login page again
 }
 
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as Node
+  if (showMobileMenu.value && menuButtonRef.value && !menuButtonRef.value.contains(target)) {
+    closeMobileMenu()
+  }
+}
+
 onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+
   try {
     const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
     if (stored && (stored === 'fr' || stored === 'en')) {
@@ -64,6 +76,10 @@ onMounted(() => {
   }
 })
 
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 const emit = defineEmits<{
   (e: 'openFilters'): void
   (e: 'importClick', evt: Event): void
@@ -80,6 +96,14 @@ function toggleSort() {
 
 function openFilters() {
   emit('openFilters')
+}
+
+function toggleMobileMenu() {
+  showMobileMenu.value = !showMobileMenu.value
+}
+
+function closeMobileMenu() {
+  showMobileMenu.value = false
 }
 </script>
 
@@ -151,9 +175,11 @@ function openFilters() {
         >
           {{ locale === 'fr' ? 'FR' : 'EN' }}
         </button>
+
+        <!-- Desktop: Show import/export buttons inline -->
         <label
           for="import-json"
-          class="cursor-pointer rounded-lg bg-blue-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-blue-600"
+          class="hidden cursor-pointer rounded-lg bg-blue-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-blue-600 sm:block"
         >
           {{ t('app.import_json') }}
         </label>
@@ -166,11 +192,61 @@ function openFilters() {
         />
         <button
           id="export-json-btn"
-          class="rounded-lg bg-green-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-green-600"
+          class="hidden rounded-lg bg-green-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-green-600 sm:block"
           @click="store.exportFavorites()"
         >
           {{ t('app.export_json') }}
         </button>
+
+        <!-- Mobile: Show menu button with dropdown -->
+        <div ref="menuButtonRef" class="relative sm:hidden">
+          <button
+            id="mobile-menu-btn"
+            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200"
+            @click="toggleMobileMenu"
+            :title="t('app.menu')"
+          >
+            <MenuIcon class="h-6 w-6 text-gray-700" />
+          </button>
+          <!-- Dropdown menu -->
+          <div
+            v-if="showMobileMenu"
+            class="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
+          >
+            <div class="py-1">
+              <label
+                for="import-json-mobile"
+                class="flex w-full cursor-pointer items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                {{ t('app.import_json') }}
+              </label>
+              <input
+                type="file"
+                id="import-json-mobile"
+                class="hidden"
+                accept=".json"
+                @change="
+                  (e) => {
+                    emit('importClick', e)
+                    closeMobileMenu()
+                  }
+                "
+              />
+              <button
+                class="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                @click="
+                  () => {
+                    store.exportFavorites()
+                    closeMobileMenu()
+                  }
+                "
+              >
+                {{ t('app.export_json') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <button
           id="logout-btn"
           class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600"

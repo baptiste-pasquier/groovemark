@@ -3,6 +3,7 @@
     "add_new": "+ Add a new favorite",
     "export_json": "Export JSON",
     "import_json": "Import JSON",
+    "menu": "Menu",
     "search_placeholder": "Search by title or artist...",
     "sort_toggle_title_newest": "Sort newest",
     "sort_toggle_title_oldest": "Sort oldest",
