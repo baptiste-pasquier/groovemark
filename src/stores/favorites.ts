@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, reactive, toRefs } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
@@ -20,16 +20,30 @@ interface AlertDialogState {
 }
 
 export const useFavoritesStore = defineStore('favorites', () => {
-  const favorites = ref<Favorite[]>([])
-  const sortOrder = ref<'newest' | 'oldest'>('newest')
-  const currentFilter = ref<string>('all')
-  const searchTerm = ref('')
-  const isLoading = ref(false)
-  const usePocketbase = ref(true)
-  const initialized = ref(false)
+  const initialState = () => ({
+    favorites: [] as Favorite[],
+    sortOrder: 'newest' as 'newest' | 'oldest',
+    currentFilter: 'all',
+    searchTerm: '',
+    isLoading: false,
+    usePocketbase: true,
+    initialized: false,
+    alertDialog: { message: '', visible: false } as AlertDialogState,
+    confirmDialog: { message: '', visible: false } as ConfirmDialogState,
+  })
 
-  const alertDialog = ref<AlertDialogState>({ message: '', visible: false })
-  const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
+  const state = reactive(initialState())
+  const {
+    favorites,
+    sortOrder,
+    currentFilter,
+    searchTerm,
+    isLoading,
+    usePocketbase,
+    initialized,
+    alertDialog,
+    confirmDialog,
+  } = toRefs(state)
 
   async function initializeFavorites() {
     if (initialized.value) return
@@ -345,13 +359,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   function reset() {
-    favorites.value = []
-    usePocketbase.value = true
-    initialized.value = false
-    isLoading.value = false
-    sortOrder.value = 'newest'
-    currentFilter.value = 'all'
-    searchTerm.value = ''
+    Object.assign(state, initialState())
   }
 
   return {
