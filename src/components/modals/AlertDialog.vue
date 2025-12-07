@@ -1,20 +1,28 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import { useFavoritesStore } from '../../stores/favorites'
+
 const store = useFavoritesStore()
+// @ts-expect-error - useToast is auto-imported by Nuxt UI
+const toast = useToast()
+
+// Watch for alert dialog changes and show toast instead
+watch(
+  () => store.alertDialog.visible,
+  (visible) => {
+    if (visible && store.alertDialog.message) {
+      toast.add({
+        title: store.alertDialog.message,
+        color: 'error',
+      })
+      // Auto-close the alert in the store
+      store.closeAlert()
+    }
+  },
+)
 </script>
+
 <template>
-  <div
-    v-if="store.alertDialog.visible"
-    class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
-  >
-    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
-      <p class="mb-4 text-gray-800">{{ store.alertDialog.message }}</p>
-      <button
-        class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none"
-        @click="store.closeAlert()"
-      >
-        OK
-      </button>
-    </div>
-  </div>
+  <!-- No UI needed - using toast notifications -->
+  <div v-if="false" />
 </template>

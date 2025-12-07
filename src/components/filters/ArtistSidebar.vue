@@ -1,24 +1,26 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import ArtistList from './ArtistList.vue'
 
-defineProps<{ open: boolean }>()
+const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (value) => {
+    if (!value) {
+      emit('close')
+    }
+  },
+})
 </script>
+
 <template>
-  <!-- Overlay -->
-  <div v-if="open" class="fixed inset-0 z-40 bg-black/50" @click="emit('close')" />
-  <!-- Sidebar panel -->
-  <div
-    class="sidebar fixed top-0 right-0 z-50 flex h-full w-64 transform flex-col bg-white shadow-lg"
-    :class="open ? 'translate-x-0' : 'pointer-events-none translate-x-full'"
-    :aria-hidden="!open"
-  >
-    <div class="flex h-full flex-col p-4">
-      <div class="mb-4 flex shrink-0 items-center justify-between">
-        <h3 class="text-xl font-bold">Filtrer par artiste</h3>
-        <button class="p-1 text-2xl leading-none" @click="emit('close')">&times;</button>
+  <USlideover v-model:open="isOpen" title="Filtrer par artiste">
+    <template #content>
+      <div class="p-4">
+        <ArtistList @select="emit('close')" />
       </div>
-      <ArtistList class="grow" @select="emit('close')" />
-    </div>
-  </div>
+    </template>
+  </USlideover>
 </template>

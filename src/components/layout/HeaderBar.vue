@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
 import { useAuthStore } from '../../stores/auth'
-import SortIconNewest from '../icons/SortIconNewest.vue'
-import SortIconOldest from '../icons/SortIconOldest.vue'
-import FilterIcon from '../icons/FilterIcon.vue'
-import SettingsIcon from '../icons/SettingsIcon.vue'
-import ImportIcon from '../icons/ImportIcon.vue'
-import ExportIcon from '../icons/ExportIcon.vue'
-import LanguageIcon from '../icons/LanguageIcon.vue'
-import CheckIcon from '../icons/CheckIcon.vue'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES } from '../../i18n'
 import { onMounted, computed, ref } from 'vue'
@@ -17,8 +9,6 @@ const store = useFavoritesStore()
 const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
-
-const isMenuOpen = ref(false)
 
 const LOCALE_STORAGE_KEY = 'groovemark_locale'
 
@@ -79,6 +69,49 @@ function toggleSort() {
 function openFilters() {
   emit('openFilters')
 }
+
+// File input ref for import
+const importFileInput = ref<HTMLInputElement>()
+
+function triggerImport() {
+  importFileInput.value?.click()
+}
+
+const settingsMenuItems = computed(() => {
+  const items = []
+
+  // Language submenu
+  items.push({
+    label: t('app.language'),
+    icon: 'i-lucide-languages',
+    children: SUPPORTED_LOCALES.map((l) => ({
+      label: l.label,
+      icon: locale.value === l.code ? 'i-lucide-check' : undefined,
+      click: () => setAndPersistLocale(l.code),
+    })),
+  })
+
+  // Separator
+  items.push({
+    type: 'separator',
+  })
+
+  // Import
+  items.push({
+    label: t('app.import_json'),
+    icon: 'i-lucide-upload',
+    click: triggerImport,
+  })
+
+  // Export
+  items.push({
+    label: t('app.export_json'),
+    icon: 'i-lucide-download',
+    click: () => store.exportFavorites(),
+  })
+
+  return items
+})
 </script>
 
 <template>
@@ -89,10 +122,11 @@ function openFilters() {
     </div>
     <div class="mt-4 flex flex-col items-center gap-3 sm:mt-0 sm:items-end">
       <div class="flex items-center gap-2 text-sm font-medium">
-        <span
+        <UBadge
           v-if="authStore.authMode === 'local'"
-          class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
-          :title="t('login.local_mode_info')"
+          color="warning"
+          variant="soft"
+          :ui="{ base: 'flex items-center gap-1' }"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -107,123 +141,67 @@ function openFilters() {
             />
           </svg>
           {{ t('auth.local_mode') }}
-        </span>
-        <span
-          v-else
-          class="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-gray-700"
-        >
+        </UBadge>
+        <UBadge v-else color="neutral" variant="soft" :ui="{ base: 'flex items-center gap-2' }">
           <span class="h-2 w-2 rounded-full bg-green-500"></span>
           {{ authDisplayName }}
-        </span>
+        </UBadge>
       </div>
       <div class="flex items-center space-x-2">
-        <button
+        <UButton
           id="sort-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+          color="neutral"
+          variant="outline"
+          size="md"
+          square
+          :icon="
+            store.sortOrder === 'newest'
+              ? 'i-lucide-arrow-down-wide-narrow'
+              : 'i-lucide-arrow-up-wide-narrow'
+          "
           @click="toggleSort"
           :title="
             store.sortOrder === 'newest'
               ? t('app.sort_toggle_title_oldest')
               : t('app.sort_toggle_title_newest')
           "
-        >
-          <component
-            :is="store.sortOrder === 'newest' ? SortIconNewest : SortIconOldest"
-            class="h-6 w-6 text-gray-700"
-          />
-        </button>
-        <button
+        />
+        <UButton
           id="filter-menu-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
+          color="neutral"
+          variant="outline"
+          size="md"
+          square
+          icon="i-lucide-filter"
           @click="openFilters"
-        >
-          <FilterIcon class="h-6 w-6 text-gray-700" />
-        </button>
-        <div class="relative">
-          <button
+          class="lg:hidden"
+        />
+        <UDropdownMenu :items="settingsMenuItems">
+          <UButton
             id="settings-menu-btn"
-            class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
-            @click="isMenuOpen = !isMenuOpen"
+            color="neutral"
+            variant="outline"
+            size="md"
+            square
+            icon="i-lucide-settings"
             :title="t('app.settings')"
-            aria-haspopup="true"
-            :aria-expanded="isMenuOpen"
-          >
-            <SettingsIcon class="h-6 w-6 text-gray-700" />
-          </button>
-
-          <!-- Backdrop to close menu -->
-          <div
-            v-if="isMenuOpen"
-            class="fixed inset-0 z-10 cursor-default"
-            @click="isMenuOpen = false"
-          ></div>
-
-          <!-- Menu Dropdown -->
-          <div
-            v-if="isMenuOpen"
-            class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none"
-            role="menu"
-          >
-            <div
-              class="flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider text-gray-500 uppercase"
-            >
-              <LanguageIcon class="h-4 w-4" />
-              {{ t('app.language') }}
-            </div>
-            <button
-              v-for="l in SUPPORTED_LOCALES"
-              :key="l.code"
-              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-              @click="
-                () => {
-                  setAndPersistLocale(l.code)
-                  isMenuOpen = false
-                }
-              "
-              role="menuitem"
-            >
-              <span>{{ l.label }}</span>
-              <CheckIcon v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
-            </button>
-            <div class="my-1 border-t border-gray-100"></div>
-            <label
-              for="import-json"
-              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
-            >
-              <ImportIcon class="h-4 w-4" />
-              {{ t('app.import_json') }}
-            </label>
-            <input
-              type="file"
-              id="import-json"
-              class="hidden"
-              accept=".json"
-              @change="
-                (e) => {
-                  emit('importClick', e)
-                  isMenuOpen = false
-                }
-              "
-            />
-            <button
-              id="export-json-btn"
-              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-              @click="
-                () => {
-                  store.exportFavorites()
-                  isMenuOpen = false
-                }
-              "
-              role="menuitem"
-            >
-              <ExportIcon class="h-4 w-4" />
-              {{ t('app.export_json') }}
-            </button>
-          </div>
-        </div>
-        <button
+          />
+        </UDropdownMenu>
+        <input
+          ref="importFileInput"
+          type="file"
+          class="hidden"
+          accept=".json"
+          @change="
+            (e) => {
+              emit('importClick', e)
+            }
+          "
+        />
+        <UButton
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
+          color="error"
+          size="md"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
@@ -232,7 +210,7 @@ function openFilters() {
           "
         >
           {{ t('auth.logout') }}
-        </button>
+        </UButton>
       </div>
     </div>
   </header>
