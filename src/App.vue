@@ -7,7 +7,8 @@ import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 import ArtistSidebar from './components/filters/ArtistSidebar.vue'
 import ArtistList from './components/filters/ArtistList.vue'
-import SearchIcon from './components/icons/SearchIcon.vue'
+import FavoriteSearchBar from './components/favorites/FavoriteSearchBar.vue'
+import AddFavoriteButton from './components/favorites/AddFavoriteButton.vue'
 import LoginPage from './components/auth/LoginPage.vue'
 import { useFavoritesStore } from './stores/favorites'
 import { useAuthStore } from './stores/auth'
@@ -36,10 +37,6 @@ function addFavorite() {
 function editFavorite(id: string) {
   editId.value = id
   showModal.value = true
-}
-
-function onSearch(e: Event) {
-  store.setSearch((e.target as HTMLInputElement).value)
 }
 
 function handleImport(e: Event) {
@@ -78,31 +75,20 @@ function handleImport(e: Event) {
 
     <div class="flex flex-col lg:flex-row lg:gap-8">
       <!-- Left Sidebar (Desktop) -->
-      <aside class="hidden w-64 shrink-0 flex-col gap-6 lg:flex">
+      <aside
+        class="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 shrink-0 flex-col gap-6 rounded-2xl bg-gray-50 p-6 shadow-sm lg:flex"
+      >
         <!-- Search -->
-        <div class="relative">
-          <input
-            type="text"
-            :placeholder="$t('app.search_placeholder')"
-            class="w-full rounded-lg border border-gray-300 p-3 pl-10 transition-colors focus:ring-2 focus:ring-blue-500"
-            @input="onSearch"
-          />
-          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <SearchIcon class="h-5 w-5 text-gray-400" />
-          </div>
-        </div>
+        <FavoriteSearchBar />
 
         <!-- Add Button -->
-        <button
-          class="w-full rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 font-semibold text-blue-500 shadow-md transition duration-300 hover:border-blue-400 hover:bg-blue-50"
-          @click="addFavorite"
-        >
-          {{ $t('app.add_new') }}
-        </button>
+        <AddFavoriteButton @click="addFavorite" />
 
         <!-- Artist List -->
         <div class="flex flex-1 flex-col overflow-hidden">
-          <h3 class="mb-2 font-bold text-gray-700">{{ $t('app.artists') }}</h3>
+          <h3 class="mb-3 text-xs font-bold tracking-wider text-gray-500 uppercase">
+            {{ $t('app.artists') }}
+          </h3>
           <ArtistList class="flex-1 overflow-y-auto" />
         </div>
       </aside>
@@ -112,24 +98,9 @@ function handleImport(e: Event) {
         <!-- Mobile Search and Add (Visible only on small screens) -->
         <div class="mb-6 space-y-4 lg:hidden">
           <!-- Search -->
-          <div class="relative">
-            <input
-              type="text"
-              :placeholder="$t('app.search_placeholder')"
-              class="w-full rounded-lg border border-gray-300 p-3 pl-10 transition-colors focus:ring-2 focus:ring-blue-500"
-              @input="onSearch"
-            />
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <SearchIcon class="h-5 w-5 text-gray-400" />
-            </div>
-          </div>
+          <FavoriteSearchBar />
           <!-- Add Button -->
-          <button
-            class="w-full rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 font-semibold text-blue-500 shadow-md transition duration-300 hover:border-blue-400 hover:bg-blue-50"
-            @click="addFavorite"
-          >
-            {{ $t('app.add_new') }}
-          </button>
+          <AddFavoriteButton @click="addFavorite" />
         </div>
 
         <FavoritesGrid @edit="editFavorite" />
