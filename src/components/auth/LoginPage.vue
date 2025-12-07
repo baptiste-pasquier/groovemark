@@ -45,7 +45,7 @@ function handleLocalMode() {
       <button
         @click="handleGoogleSignIn"
         :disabled="isLoading"
-        class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+        class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg v-if="!isLoading" class="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -103,7 +103,7 @@ function handleLocalMode() {
       <button
         @click="handleLocalMode"
         :disabled="isLoading"
-        class="w-full rounded-lg bg-gray-600 px-6 py-3 font-semibold text-white shadow-md transition duration-300 hover:bg-gray-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+        class="w-full rounded-lg bg-gray-600 px-6 py-3 font-semibold text-white shadow-md transition duration-300 hover:bg-gray-700 hover:shadow-lg focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {{ t('login.continue_local') }}
       </button>
