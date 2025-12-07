@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
-import SearchIcon from '../icons/SearchIcon.vue'
+import { Search } from 'lucide-vue-next'
 import { useFavoritesStore } from '../../stores/favorites'
 
 const store = useFavoritesStore()
@@ -21,7 +21,7 @@ const onSearch = useDebounceFn((e: Event) => {
       @input="onSearch"
     />
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-      <SearchIcon class="h-5 w-5 text-gray-400" />
+      <Search class="h-5 w-5 text-gray-400" />
     </div>
   </div>
 </template>
