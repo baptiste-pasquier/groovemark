@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import HeaderBar from './components/layout/HeaderBar.vue'
 import FavoritesGrid from './components/favorites/FavoritesGrid.vue'
 import FavoriteModal from './components/modals/FavoriteModal.vue'
@@ -21,14 +21,23 @@ const showSidebar = ref(false)
 const store = useFavoritesStore()
 const authStore = useAuthStore()
 
-// Initialize auth and favorites when the app mounts
+// Initialize auth when the app mounts
 onMounted(async () => {
   await authStore.initialize()
-  // Only initialize favorites if user is logged in (either mode)
-  if (authStore.isLoggedIn) {
-    store.initializeFavorites()
-  }
 })
+
+// Watch for auth state changes to initialize or reset favorites
+watch(
+  () => authStore.isLoggedIn,
+  (isLoggedIn: boolean) => {
+    if (isLoggedIn) {
+      store.initializeFavorites(true)
+    } else {
+      store.reset()
+    }
+  },
+  { immediate: true },
+)
 
 function addFavorite() {
   editId.value = null

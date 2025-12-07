@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, reactive, toRefs } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
@@ -19,20 +19,46 @@ interface AlertDialogState {
   resolve?: () => void
 }
 
+interface FavoritesState {
+  favorites: Favorite[]
+  sortOrder: 'newest' | 'oldest'
+  currentFilter: string
+  searchTerm: string
+  isLoading: boolean
+  usePocketbase: boolean
+  initialized: boolean
+  alertDialog: AlertDialogState
+  confirmDialog: ConfirmDialogState
+}
+
 export const useFavoritesStore = defineStore('favorites', () => {
-  const favorites = ref<Favorite[]>([])
-  const sortOrder = ref<'newest' | 'oldest'>('newest')
-  const currentFilter = ref<string>('all')
-  const searchTerm = ref('')
-  const isLoading = ref(false)
-  const usePocketbase = ref(true)
-  const initialized = ref(false)
+  const initialState = (): FavoritesState => ({
+    favorites: [],
+    sortOrder: 'newest',
+    currentFilter: 'all',
+    searchTerm: '',
+    isLoading: false,
+    usePocketbase: true,
+    initialized: false,
+    alertDialog: { message: '', visible: false },
+    confirmDialog: { message: '', visible: false },
+  })
 
-  const alertDialog = ref<AlertDialogState>({ message: '', visible: false })
-  const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
+  const state = reactive(initialState())
+  const {
+    favorites,
+    sortOrder,
+    currentFilter,
+    searchTerm,
+    isLoading,
+    usePocketbase,
+    initialized,
+    alertDialog,
+    confirmDialog,
+  } = toRefs(state)
 
-  async function initializeFavorites() {
-    if (initialized.value) return
+  async function initializeFavorites(force = false) {
+    if (initialized.value && !force) return
     initialized.value = true
     isLoading.value = true
 
@@ -344,6 +370,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
     a.remove()
   }
 
+  function reset() {
+    Object.assign(state, initialState())
+  }
+
   return {
     favorites,
     sortOrder,
@@ -368,5 +398,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
     showAlert,
     showConfirm,
     initializeFavorites,
+    reset,
   }
 })
