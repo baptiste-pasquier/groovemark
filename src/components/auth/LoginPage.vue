@@ -33,6 +33,7 @@ function handleLocalMode() {
     <div class="w-full max-w-md rounded-2xl bg-gray-800 p-8 shadow-2xl">
       <!-- Logo/Title -->
       <div class="mb-8 text-center">
+        <img src="/logo.svg" alt="GrooveMark Logo" class="mx-auto mb-4 h-20 w-20" />
         <h1 class="mb-4 text-3xl font-bold text-white">{{ t('login.welcome') }}</h1>
         <p class="mt-2 text-gray-400">{{ t('app.subtitle') }}</p>
       </div>

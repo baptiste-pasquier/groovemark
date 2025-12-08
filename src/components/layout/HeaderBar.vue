@@ -87,9 +87,12 @@ function openFilters() {
 
 <template>
   <header class="mb-8 flex flex-col items-center justify-between sm:flex-row">
-    <div>
-      <h1 class="text-4xl font-bold text-gray-900">{{ t('app.title') }}</h1>
-      <p class="text-gray-600">{{ t('app.subtitle') }}</p>
+    <div class="flex items-center gap-4">
+      <img src="/logo.svg" alt="GrooveMark Logo" class="h-16 w-16" />
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900">{{ t('app.title') }}</h1>
+        <p class="text-gray-600">{{ t('app.subtitle') }}</p>
+      </div>
     </div>
     <div class="mt-4 flex flex-col items-center gap-3 sm:mt-0 sm:items-end">
       <div class="flex items-center gap-2 text-sm font-medium">
