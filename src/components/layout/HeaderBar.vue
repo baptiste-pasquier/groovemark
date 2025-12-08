@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
 import { useAuthStore } from '../../stores/auth'
-import SortIconNewest from '../icons/SortIconNewest.vue'
-import SortIconOldest from '../icons/SortIconOldest.vue'
-import FilterIcon from '../icons/FilterIcon.vue'
-import SettingsIcon from '../icons/SettingsIcon.vue'
-import ImportIcon from '../icons/ImportIcon.vue'
-import ExportIcon from '../icons/ExportIcon.vue'
-import LanguageIcon from '../icons/LanguageIcon.vue'
-import CheckIcon from '../icons/CheckIcon.vue'
+import {
+  CalendarArrowDown,
+  CalendarArrowUp,
+  Filter,
+  Settings,
+  Upload,
+  Download,
+  Languages,
+  Check,
+  TriangleAlert,
+  LogOut,
+} from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES } from '../../i18n'
 import { onMounted, computed, ref } from 'vue'
@@ -94,18 +98,7 @@ function openFilters() {
           class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
           :title="t('login.local_mode_info')"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <TriangleAlert class="h-4 w-4" />
           {{ t('auth.local_mode') }}
         </span>
         <span
@@ -128,7 +121,7 @@ function openFilters() {
           "
         >
           <component
-            :is="store.sortOrder === 'newest' ? SortIconNewest : SortIconOldest"
+            :is="store.sortOrder === 'newest' ? CalendarArrowDown : CalendarArrowUp"
             class="h-6 w-6 text-gray-700"
           />
         </button>
@@ -137,7 +130,7 @@ function openFilters() {
           class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
           @click="openFilters"
         >
-          <FilterIcon class="h-6 w-6 text-gray-700" />
+          <Filter class="h-6 w-6 text-gray-700" />
         </button>
         <div class="relative">
           <button
@@ -148,7 +141,7 @@ function openFilters() {
             aria-haspopup="true"
             :aria-expanded="isMenuOpen"
           >
-            <SettingsIcon class="h-6 w-6 text-gray-700" />
+            <Settings class="h-6 w-6 text-gray-700" />
           </button>
 
           <!-- Backdrop to close menu -->
@@ -167,7 +160,7 @@ function openFilters() {
             <div
               class="flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider text-gray-500 uppercase"
             >
-              <LanguageIcon class="h-4 w-4" />
+              <Languages class="h-4 w-4" />
               {{ t('app.language') }}
             </div>
             <button
@@ -183,14 +176,14 @@ function openFilters() {
               role="menuitem"
             >
               <span>{{ l.label }}</span>
-              <CheckIcon v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
+              <Check v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
             </button>
             <div class="my-1 border-t border-gray-100"></div>
             <label
               for="import-json"
               class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
             >
-              <ImportIcon class="h-4 w-4" />
+              <Upload class="h-4 w-4" />
               {{ t('app.import_json') }}
             </label>
             <input
@@ -216,14 +209,14 @@ function openFilters() {
               "
               role="menuitem"
             >
-              <ExportIcon class="h-4 w-4" />
+              <Download class="h-4 w-4" />
               {{ t('app.export_json') }}
             </button>
           </div>
         </div>
         <button
           id="logout-btn"
-          class="rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
+          class="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="handleLogout"
           :title="
             authStore.authMode === 'google'
@@ -231,6 +224,7 @@ function openFilters() {
               : authDisplayName
           "
         >
+          <LogOut class="h-4 w-4" />
           {{ t('auth.logout') }}
         </button>
       </div>
