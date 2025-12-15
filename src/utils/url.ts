@@ -15,9 +15,17 @@ async function getSoundCloudUrl(shortLink: string): Promise<URL> {
       params: { url: shortLink },
     })
     return new URL(result.long_url)
-  } catch (error) {
-    console.error('Could not retrieve SoundCloud URL:', error)
-    return new URL(shortLink)
+  } catch (apiError) {
+    console.error('Could not retrieve SoundCloud URL:', apiError)
+    try {
+      // Fallback to creating a URL from the original short link
+      return new URL(shortLink)
+    } catch (parseError) {
+      // If the short link is also invalid, re-throw the original API error
+      // as it's the more relevant root cause.
+      console.error('Could not parse SoundCloud URL:', parseError)
+      throw apiError
+    }
   }
 }
 
