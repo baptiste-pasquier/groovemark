@@ -46,6 +46,7 @@
     "cancel": "Cancel",
     "loading": "Loading…",
     "metadata_loading": "Fetching metadata…",
+    "metadata_error": "Could not fetch metadata or invalid URL.",
     "save": "Save",
     "title_add": "Add a favorite",
     "title_edit": "Edit favorite"

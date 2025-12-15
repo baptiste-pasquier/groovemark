@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
-import { fetchMetadata } from '../../utils/url'
+import { fetchMetadata, normalizeUrl } from '../../utils/url'
 import { Star } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
@@ -22,6 +22,7 @@ const title = ref('')
 const artists = ref<string[]>([])
 const timestampRows = ref<TimestampRow[]>([])
 const metadataLoading = ref(false)
+const metadataError = ref('')
 const lastMetadataUrl = ref('')
 
 function reset() {
@@ -32,6 +33,7 @@ function reset() {
   // artist tags handled by component
   timestampRows.value = [createEmptyTimestampRow()]
   metadataLoading.value = false
+  metadataError.value = ''
   lastMetadataUrl.value = ''
 }
 
@@ -52,6 +54,7 @@ watch(
           artists.value = [...fav.artists]
           timestampRows.value = fav.timestamps.map((t) => ({ ...t, _id: crypto.randomUUID() }))
           lastMetadataUrl.value = fav.url
+          metadataError.value = ''
         }
       } else {
         reset()
@@ -91,18 +94,30 @@ async function save() {
 async function onUrlBlur() {
   const u = url.value.trim()
   if (!u) return
-  // Avoid refetch if already fetched in this modal session and unchanged
-  if (lastMetadataUrl.value === u) return
+
   metadataLoading.value = true
+  metadataError.value = ''
+
   try {
-    const meta = await fetchMetadata(u)
+    const normalized = await normalizeUrl(u)
+    url.value = normalized
+
+    // Avoid refetch if already fetched in this modal session and unchanged
+    if (lastMetadataUrl.value === normalized) {
+      metadataLoading.value = false
+      return
+    }
+
+    const meta = await fetchMetadata(normalized)
     if (meta) {
       if (!title.value && meta.title) title.value = meta.title
       if (!artists.value.length && meta.artist) artists.value = [meta.artist]
-      lastMetadataUrl.value = u
+      lastMetadataUrl.value = normalized
+    } else {
+      metadataError.value = t('modal.metadata_error')
     }
   } catch {
-    // Silent failure; user input preserved
+    metadataError.value = t('modal.metadata_error')
   } finally {
     metadataLoading.value = false
   }
@@ -134,6 +149,9 @@ function close() {
           />
           <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
             {{ t('modal.metadata_loading') }}
+          </p>
+          <p v-if="metadataError" class="mt-1 text-xs text-red-500">
+            {{ metadataError }}
           </p>
         </div>
         <div>
