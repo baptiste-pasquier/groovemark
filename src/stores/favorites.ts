@@ -201,7 +201,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       timestamps: Timestamp[]
     },
   ) {
-    const url = normalizeUrl(partial.url.trim())
+    const url = await normalizeUrl(partial.url.trim())
     let title = partial.title.trim()
     const artists = partial.artists
 
