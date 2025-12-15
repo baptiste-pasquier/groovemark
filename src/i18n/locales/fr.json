@@ -46,6 +46,7 @@
     "cancel": "Annuler",
     "loading": "Chargement…",
     "metadata_loading": "Récupération des métadonnées…",
+    "metadata_error": "Impossible de récupérer les métadonnées ou URL invalide.",
     "save": "Sauvegarder",
     "title_add": "Ajouter un favori",
     "title_edit": "Éditer le favori"
