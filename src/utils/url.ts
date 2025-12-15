@@ -34,14 +34,14 @@ export async function normalizeUrl(inputUrl: string): Promise<string> {
     const youtubeId = getYoutubeVideoId(inputUrl)
     if (youtubeId) return `https://www.youtube.com/watch?v=${youtubeId}`
 
-    if (inputUrl.includes('on.soundcloud.com')) {
-      const urlObj = await getSoundCloudUrl(inputUrl)
-      return `${urlObj.origin}${urlObj.pathname}`
+    const url = new URL(inputUrl)
+    if (url.hostname === 'on.soundcloud.com') {
+      const expandedUrl = await getSoundCloudUrl(inputUrl)
+      return `${expandedUrl.origin}${expandedUrl.pathname}`
     }
 
-    if (inputUrl.includes('soundcloud.com')) {
-      const urlObj = new URL(inputUrl)
-      return `${urlObj.origin}${urlObj.pathname}`
+    if (url.hostname.endsWith('soundcloud.com')) {
+      return `${url.origin}${url.pathname}`
     }
   } catch (error) {
     console.error('Could not normalize URL:', error)
