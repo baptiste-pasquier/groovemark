@@ -1,3 +1,5 @@
+import pb from '../services/pocketbase'
+
 export function getYoutubeVideoId(url: string): string | null {
   const regex =
     /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
@@ -5,14 +7,41 @@ export function getYoutubeVideoId(url: string): string | null {
   return match ? match[1] : null
 }
 
-export function normalizeUrl(inputUrl: string): string {
+async function getSoundCloudUrl(shortLink: string): Promise<URL> {
+  try {
+    // Use pb.send() which automatically attaches the Auth token
+    const result = await pb.send('/api/expand-soundcloud', {
+      method: 'GET',
+      params: { url: shortLink },
+    })
+    return new URL(result.long_url)
+  } catch (apiError) {
+    console.error('Could not retrieve SoundCloud URL:', apiError)
+    try {
+      // Fallback to creating a URL from the original short link
+      return new URL(shortLink)
+    } catch (parseError) {
+      // If the short link is also invalid, re-throw the original API error
+      // as it's the more relevant root cause.
+      console.error('Could not parse SoundCloud URL:', parseError)
+      throw apiError
+    }
+  }
+}
+
+export async function normalizeUrl(inputUrl: string): Promise<string> {
   try {
     const youtubeId = getYoutubeVideoId(inputUrl)
     if (youtubeId) return `https://www.youtube.com/watch?v=${youtubeId}`
 
-    if (inputUrl.includes('soundcloud.com')) {
-      const urlObj = new URL(inputUrl)
-      return `${urlObj.origin}${urlObj.pathname}`
+    const url = new URL(inputUrl)
+    if (url.hostname === 'on.soundcloud.com') {
+      const expandedUrl = await getSoundCloudUrl(inputUrl)
+      return `${expandedUrl.origin}${expandedUrl.pathname}`
+    }
+
+    if (url.hostname.endsWith('soundcloud.com')) {
+      return `${url.origin}${url.pathname}`
     }
   } catch (error) {
     console.error('Could not normalize URL:', error)
@@ -29,7 +58,7 @@ interface NoEmbedResponse {
 }
 
 export async function fetchMetadata(url: string) {
-  const cleanUrl = normalizeUrl(url)
+  const cleanUrl = await normalizeUrl(url)
   try {
     const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(cleanUrl)}`)
     if (!response.ok) return null
