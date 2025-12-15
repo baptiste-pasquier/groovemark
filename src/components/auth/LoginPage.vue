@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useI18n } from 'vue-i18n'
 import { LoaderCircle } from 'lucide-vue-next'
+import pb from '../../services/pocketbase'
 
 const authStore = useAuthStore()
 const { t } = useI18n()
 const isLoading = ref(false)
 const errorMessage = ref('')
+const isPbAvailable = ref(true)
+
+onMounted(async () => {
+  try {
+    await pb.health.check()
+    isPbAvailable.value = true
+  } catch (error) {
+    console.error('PocketBase health check failed:', error)
+    isPbAvailable.value = false
+    errorMessage.value = t('login.server_unavailable')
+  }
+})
 
 async function handleGoogleSignIn() {
   isLoading.value = true
@@ -38,15 +51,10 @@ function handleLocalMode() {
         <p class="mt-2 text-gray-400">{{ t('app.subtitle') }}</p>
       </div>
 
-      <!-- Error Message -->
-      <div v-if="errorMessage" class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-        <p class="text-sm text-red-600">{{ errorMessage }}</p>
-      </div>
-
       <!-- Sign in with Google Button -->
       <button
         @click="handleGoogleSignIn"
-        :disabled="isLoading"
+        :disabled="isLoading || !isPbAvailable"
         class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg v-if="!isLoading" class="h-5 w-5" viewBox="0 0 24 24">
@@ -70,6 +78,11 @@ function handleLocalMode() {
         <LoaderCircle v-else class="h-5 w-5 animate-spin" />
         <span>{{ isLoading ? t('login.signing_in') : t('login.signin_google') }}</span>
       </button>
+
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <p class="text-sm text-red-600">{{ errorMessage }}</p>
+      </div>
 
       <!-- Divider -->
       <div class="relative my-6">

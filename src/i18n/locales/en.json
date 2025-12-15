@@ -62,7 +62,8 @@
     "or": "or",
     "continue_local": "Continue in local mode",
     "local_mode_info": "In local mode, your data is stored only on this device.",
-    "error_google_signin": "Failed to sign in with Google. Please try again."
+    "error_google_signin": "Failed to sign in with Google. Please try again.",
+    "server_unavailable": "Server unavailable. Please try again later or continue in local mode."
   },
   "auth": {
     "logout": "Logout",
