@@ -5,7 +5,7 @@ import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 import { fetchMetadata, normalizeUrl } from '../../utils/url'
-import { Star } from 'lucide-vue-next'
+import { Star, AlertCircle } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -150,7 +150,8 @@ function close() {
           <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
             {{ t('modal.metadata_loading') }}
           </p>
-          <p v-if="metadataError" class="mt-1 text-xs text-red-500">
+          <p v-if="metadataError" class="mt-1 flex items-center text-xs text-red-500">
+            <AlertCircle class="mr-1 h-3 w-3" />
             {{ metadataError }}
           </p>
         </div>
