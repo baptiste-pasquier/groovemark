@@ -62,7 +62,8 @@
     "or": "ou",
     "continue_local": "Continuer en mode local",
     "local_mode_info": "En mode local, vos données sont stockées uniquement sur cet appareil.",
-    "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer."
+    "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer.",
+    "server_unavailable": "Serveur indisponible. Veuillez réessayer plus tard ou continuer en mode local."
   },
   "auth": {
     "logout": "Déconnexion",

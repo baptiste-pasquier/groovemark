@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import pb from '../services/pocketbase'
-import type { RecordModel, AuthProviderInfo } from 'pocketbase'
+import type { RecordModel } from 'pocketbase'
 
 export type AuthMode = 'google' | 'local' | null
 
@@ -61,18 +61,6 @@ export const useAuthStore = defineStore('auth', () => {
   // Sign in with Google OAuth
   async function signInWithGoogle() {
     try {
-      // Get OAuth2 providers from PocketBase
-      const authMethods = await pb.collection('users').listAuthMethods()
-
-      // Find Google provider
-      const googleProvider = authMethods.oauth2.providers.find(
-        (provider: AuthProviderInfo) => provider.name === 'google',
-      )
-
-      if (!googleProvider) {
-        throw new Error('Google OAuth provider not configured in PocketBase')
-      }
-
       // Start OAuth flow
       const authData = await pb.collection('users').authWithOAuth2({
         provider: 'google',
