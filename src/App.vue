@@ -64,6 +64,7 @@ function handleImport(e: Event) {
       const message = err instanceof Error ? err.message : String(err)
       store.alertDialog = {
         message: `${i18n.global.t('import.error_prefix')}${message}`,
+        type: 'alert',
         visible: true,
       }
     } finally {
