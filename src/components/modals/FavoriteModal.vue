@@ -5,7 +5,7 @@ import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 import { fetchMetadata, normalizeUrl } from '../../utils/url'
-import { Star, AlertCircle } from 'lucide-vue-next'
+import { Star, AlertCircle, Link, Music, Users, Tag, Clock } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -154,14 +154,17 @@ function close() {
           <label for="url" class="mb-2 block font-medium text-gray-700"
             >URL (YouTube ou SoundCloud)</label
           >
-          <input
-            id="url"
-            v-model="url"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            @blur="onUrlBlur"
-          />
+          <div class="relative">
+            <Link class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              id="url"
+              v-model="url"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 py-2 pr-3 pl-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              required
+              @blur="onUrlBlur"
+            />
+          </div>
           <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
             {{ t('modal.metadata_loading') }}
           </p>
@@ -172,22 +175,29 @@ function close() {
         </div>
         <div>
           <label for="title" class="mb-2 block font-medium text-gray-700">Titre</label>
-          <input
-            id="title"
-            v-model="title"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            :placeholder="metadataLoading ? t('modal.loading') : ''"
-          />
+          <div class="relative">
+            <Music class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              id="title"
+              v-model="title"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 py-2 pr-3 pl-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              required
+              :placeholder="metadataLoading ? t('modal.loading') : ''"
+            />
+          </div>
         </div>
         <div>
           <label class="mb-2 block font-medium text-gray-700">Artiste(s)</label>
-          <ArtistTagsInput
-            v-model="artists"
-            :suggestions="store.allArtists"
-            :placeholder="t('modal.artists_placeholder')"
-          />
+          <div class="relative">
+            <Users class="absolute top-3 left-3 z-10 h-5 w-5 text-gray-400" />
+            <ArtistTagsInput
+              v-model="artists"
+              :suggestions="store.allArtists"
+              :placeholder="t('modal.artists_placeholder')"
+              class="!pl-10"
+            />
+          </div>
         </div>
         <div>
           <h3 class="mb-2 font-medium text-gray-700">Timestamps</h3>
@@ -199,20 +209,26 @@ function close() {
               :data-rated="row.rated"
             >
               <div class="flex grow items-center space-x-2">
-                <input
-                  type="text"
-                  :placeholder="t('timestamp.label_placeholder')"
-                  v-model="row.label"
-                  class="timestamp-label flex-1 rounded-lg border border-gray-300 p-2 text-sm"
-                />
-                <input
-                  type="text"
-                  :placeholder="t('timestamp.time_placeholder')"
-                  v-model="row.time"
-                  @input="formatTimeInput($event, row)"
-                  class="timestamp-time w-40 rounded-lg border border-gray-300 p-2 text-sm"
-                  required
-                />
+                <div class="relative flex-1">
+                  <Tag class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    :placeholder="t('timestamp.label_placeholder')"
+                    v-model="row.label"
+                    class="timestamp-label w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm"
+                  />
+                </div>
+                <div class="relative w-40">
+                  <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    :placeholder="t('timestamp.time_placeholder')"
+                    v-model="row.time"
+                    @input="formatTimeInput($event, row)"
+                    class="timestamp-time w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm"
+                    required
+                  />
+                </div>
               </div>
               <div class="favorite-star-wrapper cursor-pointer p-2" @click="toggleRated(row)">
                 <Star
