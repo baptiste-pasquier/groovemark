@@ -77,6 +77,21 @@ function toggleRated(row: TimestampRow) {
   row.rated = !row.rated
 }
 
+function formatTimeInput(event: Event, row: TimestampRow) {
+  const input = event.target as HTMLInputElement
+  const digits = input.value.replace(/\D/g, '')
+  const limited = digits.slice(0, 6)
+
+  let formatted = limited
+  if (limited.length > 4) {
+    formatted = `${limited.slice(0, limited.length - 4)}:${limited.slice(limited.length - 4, limited.length - 2)}:${limited.slice(limited.length - 2)}`
+  } else if (limited.length > 2) {
+    formatted = `${limited.slice(0, limited.length - 2)}:${limited.slice(limited.length - 2)}`
+  }
+
+  row.time = formatted
+}
+
 async function save() {
   if (!url.value.trim() || !title.value.trim()) return
   const success = await store.addOrUpdateFavorite({
@@ -188,13 +203,14 @@ function close() {
                   type="text"
                   :placeholder="t('timestamp.label_placeholder')"
                   v-model="row.label"
-                  class="timestamp-label w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
+                  class="timestamp-label flex-1 rounded-lg border border-gray-300 p-2 text-sm"
                 />
                 <input
                   type="text"
                   :placeholder="t('timestamp.time_placeholder')"
                   v-model="row.time"
-                  class="timestamp-time w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
+                  @input="formatTimeInput($event, row)"
+                  class="timestamp-time w-40 rounded-lg border border-gray-300 p-2 text-sm"
                   required
                 />
               </div>
