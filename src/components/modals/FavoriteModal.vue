@@ -218,7 +218,7 @@ function close() {
                     class="timestamp-label w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm"
                   />
                 </div>
-                <div class="relative w-40">
+                <div class="relative w-43">
                   <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"

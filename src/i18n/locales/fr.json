@@ -53,7 +53,7 @@
   },
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
-    "time_placeholder": "Temps (ex: 1:23:45)"
+    "time_placeholder": "Temps (ex: 23:45)"
   },
   "login": {
     "welcome": "Bienvenue sur GrooveMark",
