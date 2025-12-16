@@ -165,10 +165,10 @@ function close() {
               @blur="onUrlBlur"
             />
           </div>
-          <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
+          <p v-if="metadataLoading" class="m-1 text-xs text-gray-500">
             {{ t('modal.metadata_loading') }}
           </p>
-          <p v-if="metadataError" class="mt-1 flex items-center text-xs text-red-500">
+          <p v-if="metadataError" class="m-1 flex items-center text-xs text-red-500">
             <AlertCircle class="mr-1 h-3 w-3" />
             {{ metadataError }}
           </p>

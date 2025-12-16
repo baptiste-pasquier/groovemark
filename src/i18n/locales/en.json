@@ -15,7 +15,8 @@
   },
   "artist": {
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "press_enter_to_add": "Press Enter to add the artist."
   },
   "export": {
     "no_favorites": "There are no favorites to export."
