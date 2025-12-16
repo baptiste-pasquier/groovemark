@@ -22,7 +22,7 @@ function setFilter(a: string) {
         :class="store.currentFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'"
         @click="setFilter('all')"
       >
-        <span>{{ t('app.all_artists') }}</span>
+        <span>{{ t('app.all_artists') }} ({{ store.allArtists.length }})</span>
         <span
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
           :class="{ 'bg-blue-100 text-blue-700': store.currentFilter === 'all' }"
