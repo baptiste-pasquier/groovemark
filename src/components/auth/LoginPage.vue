@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useI18n } from 'vue-i18n'
-import { LoaderCircle } from 'lucide-vue-next'
+import { LoaderCircle, AlertCircle } from 'lucide-vue-next'
 import pb from '../../services/pocketbase'
 
 const authStore = useAuthStore()
@@ -80,8 +80,12 @@ function handleLocalMode() {
       </button>
 
       <!-- Error Message -->
-      <div v-if="errorMessage" class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-        <p class="text-sm text-red-600">{{ errorMessage }}</p>
+      <div
+        v-if="errorMessage"
+        class="mb-6 flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 p-4"
+      >
+        <AlertCircle class="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+        <p class="text-sm text-red-200">{{ errorMessage }}</p>
       </div>
 
       <!-- Divider -->
