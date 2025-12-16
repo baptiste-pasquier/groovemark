@@ -137,6 +137,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   })
 
+  const favoritesCountByArtist = computed(() => {
+    const counts: Record<string, number> = {}
+    favorites.value.forEach((f) => {
+      ;(f.artists || []).forEach((a) => {
+        counts[a] = (counts[a] || 0) + 1
+      })
+    })
+    return counts
+  })
+
   const filteredFavorites = computed(() => {
     const term = searchTerm.value.toLowerCase().trim()
     return favorites.value
@@ -399,5 +409,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
     showConfirm,
     initializeFavorites,
     reset,
+    favoritesCountByArtist,
   }
 })
