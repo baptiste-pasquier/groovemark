@@ -151,12 +151,7 @@ onMounted(() => {
       class="min-w-[120px] flex-1 p-1 text-sm outline-none"
       @keydown="onKeyDown"
       @keydown.delete="onBackspace"
-      @focus="
-        () => {
-          isFocused = true
-          showUnfinishedInputWarning = false
-        }
-      "
+      @focus="((isFocused = true), (showUnfinishedInputWarning = false))"
     />
     <ul
       v-if="isFocused && filteredSuggestions.length"
