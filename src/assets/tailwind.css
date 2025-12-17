@@ -13,6 +13,20 @@
   [role='button']:enabled {
     cursor: pointer;
   }
+
+  /* Default transition for buttons that don't have one */
+  :where(button),
+  :where([role='button']) {
+    transition: transform 5s ease-in-out;
+  }
+
+  /* Add click effect to all buttons */
+  :where(button):enabled:active,
+  :where([role='button']):enabled:active {
+    transform: scale(0.95);
+  }
+
+  # Not working for every button
 }
 
 body {
