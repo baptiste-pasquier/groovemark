@@ -5,7 +5,7 @@ import { useFavoritesStore } from '../../stores/favorites'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 import { fetchMetadata, normalizeUrl } from '../../utils/url'
-import { Star, AlertCircle } from 'lucide-vue-next'
+import { Star, AlertCircle, Link, Music, Users, Tag, Clock } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -77,6 +77,19 @@ function toggleRated(row: TimestampRow) {
   row.rated = !row.rated
 }
 
+function formatTimeInput(event: Event, row: TimestampRow) {
+  const input = event.target as HTMLInputElement
+  const digits = input.value.replace(/\D/g, '').slice(0, 6)
+
+  if (digits.length > 4) {
+    row.time = `${digits.slice(0, -4)}:${digits.slice(-4, -2)}:${digits.slice(-2)}`
+  } else if (digits.length > 2) {
+    row.time = `${digits.slice(0, -2)}:${digits.slice(-2)}`
+  } else {
+    row.time = digits
+  }
+}
+
 async function save() {
   if (!url.value.trim() || !title.value.trim()) return
   const success = await store.addOrUpdateFavorite({
@@ -139,40 +152,50 @@ function close() {
           <label for="url" class="mb-2 block font-medium text-gray-700"
             >URL (YouTube ou SoundCloud)</label
           >
-          <input
-            id="url"
-            v-model="url"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            @blur="onUrlBlur"
-          />
-          <p v-if="metadataLoading" class="mt-1 text-xs text-gray-500">
+          <div class="relative">
+            <Link class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              id="url"
+              v-model="url"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 py-2 pr-3 pl-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              required
+              @blur="onUrlBlur"
+            />
+          </div>
+          <p v-if="metadataLoading" class="m-1 text-xs text-gray-500">
             {{ t('modal.metadata_loading') }}
           </p>
-          <p v-if="metadataError" class="mt-1 flex items-center text-xs text-red-500">
+          <p v-if="metadataError" class="m-1 flex items-center text-xs text-red-500">
             <AlertCircle class="mr-1 h-3 w-3" />
             {{ metadataError }}
           </p>
         </div>
         <div>
           <label for="title" class="mb-2 block font-medium text-gray-700">Titre</label>
-          <input
-            id="title"
-            v-model="title"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
-            :placeholder="metadataLoading ? t('modal.loading') : ''"
-          />
+          <div class="relative">
+            <Music class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              id="title"
+              v-model="title"
+              type="text"
+              class="w-full rounded-lg border border-gray-300 py-2 pr-3 pl-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              required
+              :placeholder="metadataLoading ? t('modal.loading') : ''"
+            />
+          </div>
         </div>
         <div>
           <label class="mb-2 block font-medium text-gray-700">Artiste(s)</label>
-          <ArtistTagsInput
-            v-model="artists"
-            :suggestions="store.allArtists"
-            :placeholder="t('modal.artists_placeholder')"
-          />
+          <div class="relative">
+            <Users class="absolute top-3 left-3 z-10 h-5 w-5 text-gray-400" />
+            <ArtistTagsInput
+              v-model="artists"
+              :suggestions="store.allArtists"
+              :placeholder="t('modal.artists_placeholder')"
+              class="!pl-10"
+            />
+          </div>
         </div>
         <div>
           <h3 class="mb-2 font-medium text-gray-700">Timestamps</h3>
@@ -184,19 +207,26 @@ function close() {
               :data-rated="row.rated"
             >
               <div class="flex grow items-center space-x-2">
-                <input
-                  type="text"
-                  :placeholder="t('timestamp.label_placeholder')"
-                  v-model="row.label"
-                  class="timestamp-label w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
-                />
-                <input
-                  type="text"
-                  :placeholder="t('timestamp.time_placeholder')"
-                  v-model="row.time"
-                  class="timestamp-time w-1/2 rounded-lg border border-gray-300 p-2 text-sm"
-                  required
-                />
+                <div class="relative flex-1">
+                  <Tag class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    :placeholder="t('timestamp.label_placeholder')"
+                    v-model="row.label"
+                    class="timestamp-label w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm"
+                  />
+                </div>
+                <div class="relative w-43">
+                  <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    :placeholder="t('timestamp.time_placeholder')"
+                    v-model="row.time"
+                    @input="formatTimeInput($event, row)"
+                    class="timestamp-time w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm"
+                    required
+                  />
+                </div>
               </div>
               <div class="favorite-star-wrapper cursor-pointer p-2" @click="toggleRated(row)">
                 <Star
@@ -226,14 +256,14 @@ function close() {
           <button
             type="button"
             id="cancel-btn"
-            class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
+            class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
             @click="close"
           >
             {{ t('modal.cancel') }}
           </button>
           <button
             type="submit"
-            class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none"
           >
             {{ t('modal.save') }}
           </button>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { AlertCircle } from 'lucide-vue-next'
 
 interface Props {
   modelValue: string[]
@@ -15,6 +16,7 @@ const { t } = useI18n()
 const input = ref('')
 const internal = ref<string[]>([...props.modelValue])
 const isFocused = ref(false)
+const showUnfinishedInputWarning = ref(false)
 const highlightedIndex = ref<number>(-1)
 const wrapper = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLInputElement | null>(null)
@@ -108,6 +110,7 @@ function handleClickOutside(ev: MouseEvent) {
   if (!wrapper.value) return
   if (!wrapper.value.contains(ev.target as Node)) {
     isFocused.value = false
+    showUnfinishedInputWarning.value = Boolean(input.value.trim())
   }
 }
 
@@ -118,6 +121,7 @@ onMounted(() => {
 
 <template>
   <div
+    v-bind="$attrs"
     ref="wrapper"
     class="relative flex flex-wrap gap-2 rounded-lg border border-gray-300 bg-white px-2 py-2 focus-within:ring-2 focus-within:ring-blue-500"
   >
@@ -143,7 +147,7 @@ onMounted(() => {
       class="min-w-[120px] flex-1 p-1 text-sm outline-none"
       @keydown="onKeyDown"
       @keydown.delete="onBackspace"
-      @focus="isFocused = true"
+      @focus="((isFocused = true), (showUnfinishedInputWarning = false))"
     />
     <ul
       v-if="isFocused && filteredSuggestions.length"
@@ -163,6 +167,10 @@ onMounted(() => {
       </li>
     </ul>
   </div>
+  <p v-if="showUnfinishedInputWarning" class="m-1 flex items-center text-xs text-amber-600">
+    <AlertCircle class="mr-1 h-3 w-3" />
+    {{ t('artist.press_enter_to_add') }}
+  </p>
 </template>
 
 <style scoped></style>

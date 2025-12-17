@@ -15,7 +15,8 @@
   },
   "artist": {
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "press_enter_to_add": "Press Enter to add the artist."
   },
   "export": {
     "no_favorites": "There are no favorites to export."
@@ -53,7 +54,7 @@
   },
   "timestamp": {
     "label_placeholder": "Label (optional)",
-    "time_placeholder": "Time (e.g. 1:23:45)"
+    "time_placeholder": "Time (e.g. 23:45)"
   },
   "login": {
     "welcome": "Welcome to GrooveMark",
