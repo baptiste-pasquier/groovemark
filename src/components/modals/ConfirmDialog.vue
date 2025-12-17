@@ -6,22 +6,15 @@ const store = useFavoritesStore()
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-200 ease-out"
-    enter-from-class="opacity-0"
-    enter-to-class="opacity-100"
-    leave-active-class="transition duration-150 ease-in"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
-  >
+  <Transition name="dialog-fade">
     <div
       v-if="store.confirmDialog.visible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
     >
       <div
-        class="mx-auto w-11/12 max-w-sm transform overflow-hidden rounded-xl bg-white p-6 text-center shadow-2xl transition-all"
+        class="dialog-panel mx-auto w-11/12 max-w-sm transform overflow-hidden rounded-xl bg-white p-6 text-center shadow-2xl"
         @click.stop
       >
         <div
