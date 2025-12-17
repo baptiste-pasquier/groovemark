@@ -78,27 +78,21 @@ function timestampLink(time: string) {
       </div>
     </div>
     <div v-if="favorite.timestamps.length" class="border-t border-gray-200 px-4 pt-3 pb-4">
-      <div
-        v-for="ts in favorite.timestamps"
-        :key="ts.time + ts.label"
-        class="group flex items-center justify-between rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
-      >
+      <div class="flex flex-wrap gap-2">
         <a
+          v-for="ts in favorite.timestamps"
+          :key="ts.time + ts.label"
           :href="timestampLink(ts.time)"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex grow items-center space-x-2"
+          class="group flex max-w-full items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-700 transition-colors hover:bg-gray-100"
         >
-          <Star v-if="ts.rated" class="h-4 w-4 shrink-0 fill-current text-yellow-400" />
-          <span class="truncate">{{ ts.label || 'Timestamp' }}</span>
-        </a>
-        <a
-          :href="timestampLink(ts.time)"
-          target="_blank"
-          class="flex shrink-0 items-center font-mono text-blue-500"
-        >
-          {{ ts.time }}
-          <ExternalLink class="ml-2 h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+          <Star v-if="ts.rated" class="mr-1.5 h-3.5 w-3.5 shrink-0 fill-current text-yellow-400" />
+          <span v-if="ts.label" class="mr-2 truncate">{{ ts.label }}</span>
+          <span class="font-mono text-blue-600">{{ ts.time }}</span>
+          <ExternalLink
+            class="ml-1.5 h-3 w-3 shrink-0 text-gray-300 transition-colors group-hover:text-blue-500"
+          />
         </a>
       </div>
     </div>
