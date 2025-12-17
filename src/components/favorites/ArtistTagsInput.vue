@@ -110,11 +110,7 @@ function handleClickOutside(ev: MouseEvent) {
   if (!wrapper.value) return
   if (!wrapper.value.contains(ev.target as Node)) {
     isFocused.value = false
-    if (input.value.trim()) {
-      showUnfinishedInputWarning.value = true
-    } else {
-      showUnfinishedInputWarning.value = false
-    }
+    showUnfinishedInputWarning.value = Boolean(input.value.trim())
   }
 }
 
