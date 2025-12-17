@@ -1,28 +1,46 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { AlertTriangle } from 'lucide-vue-next'
+
 const store = useFavoritesStore()
 </script>
+
 <template>
-  <div
-    v-if="store.confirmDialog.visible"
-    class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
-  >
-    <div class="mx-auto w-11/12 max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
-      <p class="mb-6 text-gray-800">{{ store.confirmDialog.message }}</p>
-      <div class="flex justify-end space-x-2">
-        <button
-          class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
-          @click="store.respondConfirm(false)"
+  <Transition name="dialog-fade">
+    <div
+      v-if="store.confirmDialog.visible"
+      class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="dialog-panel mx-auto w-11/12 max-w-sm transform overflow-hidden rounded-xl bg-white p-6 text-center shadow-2xl"
+        @click.stop
+      >
+        <div
+          class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100"
         >
-          Annuler
-        </button>
-        <button
-          class="rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
-          @click="store.respondConfirm(true)"
-        >
-          Supprimer
-        </button>
+          <AlertTriangle class="h-6 w-6 text-red-600" />
+        </div>
+        <h3 class="mb-2 text-lg leading-6 font-medium text-gray-900">
+          {{ $t('dialog.confirmation') }}
+        </h3>
+        <p class="mb-6 text-sm text-gray-500">{{ store.confirmDialog.message }}</p>
+        <div class="flex justify-end space-x-3">
+          <button
+            class="inline-flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm"
+            @click="store.respondConfirm(false)"
+          >
+            {{ $t('dialog.cancel') }}
+          </button>
+          <button
+            class="inline-flex w-full justify-center rounded-lg bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none sm:w-auto sm:text-sm"
+            @click="store.respondConfirm(true)"
+          >
+            {{ $t('dialog.delete') }}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>

@@ -2,19 +2,6 @@
 
 @theme {
   --font-inter: Inter, ui-sans-serif, system-ui;
-
-  --animate-fade-in-up: fade-in-up 0.3s ease-out forwards;
-
-  @keyframes fade-in-up {
-    0% {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 }
 
 @layer base {
@@ -22,8 +9,8 @@
     background-color: #fff;
   }
   /* Ensure all buttons show pointer cursor */
-  button:not(:disabled),
-  [role='button']:not(:disabled) {
+  button:enabled,
+  [role='button']:enabled {
     cursor: pointer;
   }
 }
@@ -33,9 +20,44 @@ body {
 }
 
 .modal-bg {
-  @apply bg-black/50;
+  @apply bg-black/50 backdrop-blur-sm;
 }
 
 .sidebar {
   @apply transition-transform duration-300 ease-in-out;
+}
+
+/* --- Simplified Dialog Transitions --- */
+
+/* 1. The Background Overlay */
+.dialog-enter-active,
+.dialog-leave-active,
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.dialog-enter-from,
+.dialog-leave-to,
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+/* 2. The Inner Panel (Slide & Fade) */
+.dialog-enter-active .dialog-panel,
+.dialog-leave-active .dialog-panel {
+  transition: all 0.2s ease-out;
+}
+
+/* Customize the exit easing slightly if you want strict 'ease-in' feel */
+.dialog-leave-active .dialog-panel {
+  transition-timing-function: ease-in;
+}
+
+/* The starting and ending state for the panel */
+.dialog-enter-from .dialog-panel,
+.dialog-leave-to .dialog-panel {
+  opacity: 0;
+  transform: translateY(20px);
 }

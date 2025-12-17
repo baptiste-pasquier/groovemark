@@ -70,5 +70,13 @@
     "logout": "Logout",
     "signed_in_as": "Signed in as {name}",
     "local_mode": "Local Mode"
+  },
+  "dialog": {
+    "info": "Information",
+    "alert": "Warning",
+    "confirmation": "Confirmation",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "delete": "Delete"
   }
 }
