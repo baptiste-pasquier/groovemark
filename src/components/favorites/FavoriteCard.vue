@@ -85,11 +85,11 @@ function timestampLink(time: string) {
           :href="timestampLink(ts.time)"
           target="_blank"
           rel="noopener noreferrer"
-          class="group flex max-w-full items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 transition-all hover:bg-blue-50 hover:text-blue-600 hover:ring-1 hover:ring-blue-200"
+          class="group flex max-w-full items-center rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 transition-all hover:bg-blue-50 hover:text-blue-600 hover:ring-1 hover:ring-blue-200"
         >
-          <Star v-if="ts.rated" class="mr-1.5 h-3 w-3 shrink-0 fill-current text-amber-400" />
-          <span v-if="ts.label" class="mr-1.5 truncate">{{ ts.label }}</span>
-          <span class="font-mono text-slate-500 group-hover:text-blue-600">{{ ts.time }}</span>
+          <Star v-if="ts.rated" class="mr-1.5 h-3.5 w-3.5 shrink-0 fill-current text-amber-400" />
+          <span v-if="ts.label" class="mr-1.5 truncate text-xs">{{ ts.label }}</span>
+          <span class="font-mono text-blue-600">{{ ts.time }}</span>
           <ExternalLink
             class="ml-1.5 h-3 w-3 shrink-0 text-slate-300 transition-colors group-hover:text-blue-400"
           />
