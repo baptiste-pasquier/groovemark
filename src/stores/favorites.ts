@@ -217,14 +217,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const artists = partial.artists
 
     if (!partial.id && favorites.value.some((f) => f.url === url)) {
-      await showAlert(i18n.global.t('messages.url_exists') as string, 'alert')
+      await showAlert(i18n.global.t('messages.url_exists'), 'alert')
       return false
     }
 
     // Validate timestamps
     for (const ts of partial.timestamps) {
       if (!timeFormatIsValid(ts.time)) {
-        await showAlert(i18n.global.t('messages.invalid_time_format') as string, 'alert')
+        await showAlert(i18n.global.t('messages.invalid_time_format'), 'alert')
         return false
       }
     }
@@ -291,13 +291,13 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return true
     } catch (error) {
       console.error('Error adding/updating favorite:', error)
-      await showAlert(i18n.global.t('messages.error_saving') as string, 'alert')
+      await showAlert(i18n.global.t('messages.error_saving'), 'alert')
       return false
     }
   }
 
   async function deleteFavorite(id: string) {
-    const confirmed = await showConfirm(i18n.global.t('messages.confirm_delete_favorite') as string)
+    const confirmed = await showConfirm(i18n.global.t('messages.confirm_delete_favorite'))
     if (!confirmed) return
 
     try {
@@ -308,7 +308,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       await persist()
     } catch (error) {
       console.error('Error deleting favorite:', error)
-      await showAlert(i18n.global.t('messages.error_deleting') as string, 'alert')
+      await showAlert(i18n.global.t('messages.error_deleting'), 'alert')
     }
   }
 
@@ -351,16 +351,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     if (added === 0) {
       if (skipped > 0) {
-        showAlert(i18n.global.t('import.finished_zero_added', { skipped }) as string, 'info')
+        showAlert(i18n.global.t('import.finished_zero_added', { skipped }), 'info')
       } else {
-        showAlert(i18n.global.t('import.none_or_invalid') as string, 'alert')
+        showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
       }
       return { added, skipped }
     }
     await persist()
     showAlert(
-      (i18n.global.t('import.added', { count: added }) as string) +
-        (skipped ? (i18n.global.t('import.with_skipped', { skipped }) as string) : '.'),
+      i18n.global.t('import.added', { count: added }) +
+        (skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'),
       'info',
     )
     return { added, skipped }
@@ -368,7 +368,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   function exportFavorites() {
     if (favorites.value.length === 0) {
-      showAlert(i18n.global.t('export.no_favorites') as string, 'alert')
+      showAlert(i18n.global.t('export.no_favorites'), 'alert')
       return
     }
     const jsonString = JSON.stringify(favorites.value, null, 2)
