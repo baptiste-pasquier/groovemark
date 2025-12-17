@@ -79,17 +79,15 @@ function toggleRated(row: TimestampRow) {
 
 function formatTimeInput(event: Event, row: TimestampRow) {
   const input = event.target as HTMLInputElement
-  const digits = input.value.replace(/\D/g, '')
-  const limited = digits.slice(0, 6)
+  const digits = input.value.replace(/\D/g, '').slice(0, 6)
 
-  let formatted = limited
-  if (limited.length > 4) {
-    formatted = `${limited.slice(0, limited.length - 4)}:${limited.slice(limited.length - 4, limited.length - 2)}:${limited.slice(limited.length - 2)}`
-  } else if (limited.length > 2) {
-    formatted = `${limited.slice(0, limited.length - 2)}:${limited.slice(limited.length - 2)}`
+  if (digits.length > 4) {
+    row.time = `${digits.slice(0, -4)}:${digits.slice(-4, -2)}:${digits.slice(-2)}`
+  } else if (digits.length > 2) {
+    row.time = `${digits.slice(0, -2)}:${digits.slice(-2)}`
+  } else {
+    row.time = digits
   }
-
-  row.time = formatted
 }
 
 async function save() {
