@@ -22,7 +22,7 @@ npm run type-check                   # vue-tsc --build
 
 # Linting and formatting
 npm run lint                         # ESLint with --fix
-npm run format                       # Prettier --write
+npm run format                       # Prettier . --write
 
 # Unit tests (Vitest, jsdom environment)
 npm run test:unit                    # Watch mode
@@ -178,12 +178,14 @@ src/
   services/            # PocketBase client and CRUD service
   stores/              # Pinia stores (auth, favorites)
   types/               # TypeScript interfaces
-  utils/               # Pure utility functions (URL, time parsing)
+  assets/              # Global CSS (Tailwind base)
+  utils/               # Pure utility functions (URL, favorite helpers)
 ```
 
 ## Copilot Instructions
 
 From `.github/copilot-instructions.md`:
 
-> Always use Context7 MCP tools to resolve library IDs and get library docs
-> automatically for code generation, setup, configuration, and API documentation.
+> Always use context7 when I need code generation, setup or configuration steps, or
+> library/API documentation. This means you should automatically use the Context7 MCP
+> tools to resolve library id and get library docs without me having to explicitly ask.
