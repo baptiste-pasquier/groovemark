@@ -4,8 +4,15 @@ Guidelines for AI coding agents working in the GrooveMark codebase.
 
 ## Project Overview
 
-Vue 3 SPA (TypeScript, Composition API) for bookmarking music sets with timestamps.
+Vue 3 SPA (TypeScript, Composition API) for bookmarking music sets with timestamps and recording live events with DJ lineups and ratings.
 Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
+
+Two main features accessed via tab navigation (no router):
+
+- **Favorites**: YouTube/SoundCloud mixes with timestamps
+- **Events**: Live parties/events with DJ lineups, venue, date, and per-DJ score (hearts/thumbs down)
+
+Artists from favorites and DJ names from events are unified into a single shared artist list with cross-tab filtering.
 
 ## Build / Lint / Test Commands
 
@@ -170,14 +177,15 @@ src/
     mocks/             # Test mocks (e.g., PocketBase mock)
   components/          # Vue components by feature domain
     auth/              # Authentication UI
+    events/            # Event cards, grid, search, add button
     favorites/         # Favorite cards, grid, search, add button
-    filters/           # Artist sidebar and list
-    layout/            # Header bar
-    modals/            # Dialogs (alert, confirm, favorite edit)
+    filters/           # Shared artist sidebar and list (cross-tab)
+    layout/            # Header bar with tab navigation
+    modals/            # Dialogs (alert, confirm, favorite edit, event edit)
   i18n/locales/        # en.json, fr.json
-  services/            # PocketBase client and CRUD service
-  stores/              # Pinia stores (auth, favorites)
-  types/               # TypeScript interfaces
+  services/            # PocketBase client and CRUD services (favorites, events)
+  stores/              # Pinia stores (auth, favorites, events)
+  types/               # TypeScript interfaces (favorite, event)
   assets/              # Global CSS (Tailwind base)
   utils/               # Pure utility functions (URL, favorite helpers)
 ```

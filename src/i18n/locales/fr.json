@@ -71,6 +71,35 @@
     "signed_in_as": "Connecté en tant que {name}",
     "local_mode": "Mode Local"
   },
+  "tabs": {
+    "favorites": "Favoris",
+    "events": "Soirées"
+  },
+  "events": {
+    "add_new": "Nouvelle soirée",
+    "search_placeholder": "Rechercher par événement, lieu ou DJ...",
+    "empty_no_events": "Vous n'avez enregistré aucune soirée. Ajoutez-en une pour commencer !",
+    "empty_no_results": "Aucune soirée ne correspond à vos critères de recherche.",
+    "confirm_delete": "Êtes-vous sûr de vouloir supprimer cette soirée ?",
+    "error_name_required": "Le nom de l'événement est requis.",
+    "error_saving": "Erreur lors de la sauvegarde de la soirée. Veuillez réessayer.",
+    "error_deleting": "Erreur lors de la suppression de la soirée. Veuillez réessayer."
+  },
+  "event_modal": {
+    "title_add": "Ajouter une soirée",
+    "title_edit": "Éditer la soirée",
+    "event_name": "Nom de l'événement",
+    "event_name_placeholder": "Ex : Warehouse Party",
+    "venue": "Lieu",
+    "venue_placeholder": "Ex : Rex Club, Paris",
+    "date": "Date",
+    "djs": "DJs",
+    "add_dj": "+ Ajouter un DJ",
+    "dj_name_placeholder": "Nom du DJ",
+    "dj_time_placeholder": "Heure (ex : 23:30)",
+    "save": "Sauvegarder",
+    "cancel": "Annuler"
+  },
   "dialog": {
     "info": "Information",
     "alert": "Attention",

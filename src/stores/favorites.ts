@@ -6,6 +6,7 @@ import { getYoutubeVideoId, normalizeUrl, fetchMetadata } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
 import { favoritesService } from '../services/favorites'
 import { useAuthStore } from './auth'
+import { useEventsStore } from './events'
 
 interface ConfirmDialogState {
   message: string
@@ -133,8 +134,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   const allArtists = computed(() => {
+    const eventsStore = useEventsStore()
     const set = new Set<string>()
     favorites.value.forEach((f) => (f.artists || []).forEach((a) => set.add(a)))
+    eventsStore.events.forEach((ev) => ev.djs.forEach((dj) => set.add(dj.name)))
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   })
 
@@ -145,6 +148,26 @@ export const useFavoritesStore = defineStore('favorites', () => {
         counts[a] = (counts[a] || 0) + 1
       })
     })
+    return counts
+  })
+
+  const eventsCountByArtist = computed(() => {
+    const eventsStore = useEventsStore()
+    const counts: Record<string, number> = {}
+    eventsStore.events.forEach((ev) => {
+      ev.djs.forEach((dj) => {
+        counts[dj.name] = (counts[dj.name] || 0) + 1
+      })
+    })
+    return counts
+  })
+
+  const totalCountByArtist = computed(() => {
+    const counts: Record<string, number> = {}
+    for (const artist of allArtists.value) {
+      counts[artist] =
+        (favoritesCountByArtist.value[artist] || 0) + (eventsCountByArtist.value[artist] || 0)
+    }
     return counts
   })
 
@@ -412,5 +435,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     initializeFavorites,
     reset,
     favoritesCountByArtist,
+    eventsCountByArtist,
+    totalCountByArtist,
   }
 })

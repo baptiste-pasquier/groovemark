@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useFavoritesStore } from '../../stores/favorites'
+import { useEventsStore } from '../../stores/events'
 
 const { t } = useI18n()
 const store = useFavoritesStore()
+const eventsStore = useEventsStore()
 
 const emit = defineEmits<{ (e: 'select'): void }>()
+
+const totalItems = computed(() => store.favorites.length + eventsStore.events.length)
 
 function setFilter(a: string) {
   store.setFilter(a)
@@ -27,7 +32,7 @@ function setFilter(a: string) {
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
           :class="{ 'bg-blue-100 text-blue-700': store.currentFilter === 'all' }"
         >
-          {{ store.favorites.length }}
+          {{ totalItems }}
         </span>
       </button>
     </li>
@@ -43,7 +48,7 @@ function setFilter(a: string) {
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
           :class="{ 'bg-blue-100 text-blue-700': store.currentFilter === artist }"
         >
-          {{ store.favoritesCountByArtist[artist] || 0 }}
+          {{ store.totalCountByArtist[artist] || 0 }}
         </span>
       </button>
     </li>

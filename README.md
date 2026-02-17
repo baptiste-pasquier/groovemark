@@ -1,6 +1,6 @@
 # GrooveMark <!-- omit from toc -->
 
-GrooveMark is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
+GrooveMark is a Vue 3 application for saving your favorite music sets with precise timestamps and recording live events with DJ lineups and ratings, powered by Pocketbase for data storage.
 
 - [Features](#features)
 - [Documentation](#documentation)
@@ -29,12 +29,14 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
 ## Features
 
 - **Authentication**: Sign in with Google SSO or continue in local mode (no account needed)
-- Save favorite YouTube and SoundCloud mixes
-- Add timestamps to mark important parts of your mixes
-- Filter by artists
-- Search functionality
+- **Favorites**: Save YouTube and SoundCloud mixes with precise timestamps
+- **Events**: Record live events/parties with DJ lineups, venue, date, and per-DJ ratings (hearts/thumbs down)
+- **Unified artist system**: Artists from favorites and DJs from events share a single filterable list with combined counts
+- Tab-based navigation between Favorites and Events views
+- Filter by artist/DJ across both tabs
+- Search functionality (by title, artist, venue, DJ name)
 - Import/Export favorites as JSON
-- **Cloud Sync**: When using Google SSO, favorites sync across devices via PocketBase
+- **Cloud Sync**: When using Google SSO, data syncs across devices via PocketBase
 - **Offline Support**: Local mode stores data in browser localStorage
 - Pocketbase integration with localStorage fallback for offline support
 - Docker deployment ready with CI/CD support
@@ -45,7 +47,7 @@ For detailed documentation, see the [`docs/`](./docs) folder:
 
 - **[Authentication Setup](./docs/AUTHENTICATION.md)** - Guide for setting up Google SSO and understanding local mode
 - **[Docker Deployment Guide](./docs/DOCKER.md)** - Comprehensive guide for Docker deployment, production setup, troubleshooting, and CI/CD
-- **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Database schema and collection configuration details
+- **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Database schema and collection configuration details (favorites + events)
 
 ## Docker Deployment
 
@@ -195,17 +197,22 @@ Download Pocketbase from [pocketbase.io/docs](https://pocketbase.io/docs/) for y
 
 By default, Pocketbase runs on `http://localhost:8090`.
 
-### 3. Configure the Collection
+### 3. Configure the Collections
 
 1. Open the Pocketbase admin UI at `http://localhost:8090/_/`
-2. Create a new collection named `favorites`
-3. Add the following fields:
+2. Create a collection named `favorites` with the following fields:
    - `url` (URL, required)
    - `title` (Text, required)
    - `artists` (JSON, optional) - for storing array of artist names
    - `type` (Text, required) - either "youtube" or "soundcloud"
    - `thumbnail` (URL, optional)
    - `timestamps` (JSON, optional) - for storing array of timestamp objects
+3. Create a collection named `events` with the following fields:
+   - `name` (Text, required) - event name
+   - `venue` (Text, optional) - venue/location
+   - `date` (Text, optional) - event date (YYYY-MM-DD)
+   - `djs` (JSON, optional) - array of DJ objects with name, score, and time
+   - `owner` (Relation to users, optional) - owner of the record
 
 ### 4. Configure API Rules (Optional)
 

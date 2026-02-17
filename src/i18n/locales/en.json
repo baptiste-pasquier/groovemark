@@ -71,6 +71,35 @@
     "signed_in_as": "Signed in as {name}",
     "local_mode": "Local Mode"
   },
+  "tabs": {
+    "favorites": "Favorites",
+    "events": "Events"
+  },
+  "events": {
+    "add_new": "New event",
+    "search_placeholder": "Search by event, venue or DJ...",
+    "empty_no_events": "You haven't recorded any events yet. Add one to get started!",
+    "empty_no_results": "No events match your search criteria.",
+    "confirm_delete": "Are you sure you want to delete this event?",
+    "error_name_required": "The event name is required.",
+    "error_saving": "Error saving event. Please try again.",
+    "error_deleting": "Error deleting event. Please try again."
+  },
+  "event_modal": {
+    "title_add": "Add an event",
+    "title_edit": "Edit event",
+    "event_name": "Event name",
+    "event_name_placeholder": "E.g. Warehouse Party",
+    "venue": "Venue",
+    "venue_placeholder": "E.g. Fabric, London",
+    "date": "Date",
+    "djs": "DJs",
+    "add_dj": "+ Add a DJ",
+    "dj_name_placeholder": "DJ name",
+    "dj_time_placeholder": "Time (e.g. 23:30)",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
   "dialog": {
     "info": "Information",
     "alert": "Warning",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { useEventsStore } from '../../stores/events'
 import { useAuthStore } from '../../stores/auth'
 import {
   CalendarArrowDown,
@@ -12,12 +13,15 @@ import {
   Check,
   TriangleAlert,
   LogOut,
+  Music,
+  PartyPopper,
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES } from '../../i18n'
 import { onMounted, computed, ref } from 'vue'
 
 const store = useFavoritesStore()
+const eventsStore = useEventsStore()
 const authStore = useAuthStore()
 
 const { t, locale } = useI18n()
@@ -71,14 +75,25 @@ onMounted(() => {
   }
 })
 
+const props = defineProps<{ activeTab: 'favorites' | 'events' }>()
+
 const emit = defineEmits<{
   (e: 'openFilters'): void
   (e: 'importClick', evt: Event): void
+  (e: 'update:activeTab', tab: 'favorites' | 'events'): void
 }>()
 
 function toggleSort() {
-  store.toggleSort()
+  if (props.activeTab === 'events') {
+    eventsStore.toggleSort()
+  } else {
+    store.toggleSort()
+  }
 }
+
+const currentSortOrder = computed(() => {
+  return props.activeTab === 'events' ? eventsStore.sortOrder : store.sortOrder
+})
 
 function openFilters() {
   emit('openFilters')
@@ -95,6 +110,33 @@ function openFilters() {
       </div>
     </div>
     <div class="mt-4 flex flex-col items-center gap-3 sm:mt-0 sm:items-end">
+      <!-- Tabs -->
+      <div class="flex rounded-lg border border-gray-300 bg-gray-100 p-1">
+        <button
+          class="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+          :class="
+            props.activeTab === 'favorites'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          "
+          @click="emit('update:activeTab', 'favorites')"
+        >
+          <Music class="h-4 w-4" />
+          {{ t('tabs.favorites') }}
+        </button>
+        <button
+          class="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+          :class="
+            props.activeTab === 'events'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          "
+          @click="emit('update:activeTab', 'events')"
+        >
+          <PartyPopper class="h-4 w-4" />
+          {{ t('tabs.events') }}
+        </button>
+      </div>
       <div class="flex items-center gap-2 text-sm font-medium">
         <span
           v-if="authStore.authMode === 'local'"
@@ -118,13 +160,13 @@ function openFilters() {
           class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="toggleSort"
           :title="
-            store.sortOrder === 'newest'
+            currentSortOrder === 'newest'
               ? t('app.sort_toggle_title_oldest')
               : t('app.sort_toggle_title_newest')
           "
         >
           <component
-            :is="store.sortOrder === 'newest' ? CalendarArrowDown : CalendarArrowUp"
+            :is="currentSortOrder === 'newest' ? CalendarArrowDown : CalendarArrowUp"
             class="h-6 w-6 text-gray-700"
           />
         </button>
