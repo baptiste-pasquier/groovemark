@@ -47,7 +47,7 @@ Local mode requires no additional setup. Users can simply click "Continue in Loc
 
 Before setting up Google SSO, you need:
 
-- A running PocketBase instance (see main [README.md](../README.md))
+- A running PocketBase instance (see [PocketBase Setup](./POCKETBASE_SETUP.md))
 - A Google Cloud Platform account
 - Access to the Google Cloud Console
 
