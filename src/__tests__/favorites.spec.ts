@@ -24,6 +24,8 @@ function createFavorite(id: string, url: string): Favorite {
 function createUser(id: string): RecordModel {
   return {
     id,
+    collectionId: 'users',
+    collectionName: 'users',
     name: `User ${id}`,
     email: `${id}@example.com`,
   }
