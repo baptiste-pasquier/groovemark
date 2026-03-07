@@ -260,11 +260,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       }
     }
 
-    if (!usesCloudRepository && cacheRepository) {
-      await cacheRepository.replaceAll(favorites.value)
-    } else {
-      await persistCacheSnapshot()
-    }
+    await persistCacheSnapshot()
 
     if (added === 0) {
       if (skipped > 0) {
