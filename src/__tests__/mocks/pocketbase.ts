@@ -47,7 +47,9 @@ export const mockPocketbase = {
 }
 
 vi.mock('pocketbase', () => ({
-  default: vi.fn(() => mockPocketbase),
+  default: vi.fn(function MockPocketBase() {
+    return mockPocketbase
+  }),
 }))
 
 export function resetPocketbaseMocks() {
