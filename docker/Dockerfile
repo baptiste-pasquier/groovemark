@@ -2,7 +2,7 @@
 
 # Stage 1: Build the application
 # [OPTIMIZATION] Pin builder to native architecture to avoid QEMU slowness
-FROM --platform=$BUILDPLATFORM node:22-slim AS builder
+FROM --platform=$BUILDPLATFORM node:24-slim AS builder
 
 # Build argument for Pocketbase URL
 # This can be overridden at build time using --build-arg VITE_POCKETBASE_URL=<url>
