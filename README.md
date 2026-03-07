@@ -48,9 +48,9 @@ Backend-as-a-Service (BaaS) architecture.
 
 | Category          | Stack                                                                                                                                 |
 | :---------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
-| **Core Frontend** | [Vue 3](https://vuejs.org/) (Composition API), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vite.dev/) 7             |
-| **State & Utils** | [Pinia](https://pinia.vuejs.org/) v3, [VueUse](https://vueuse.org/), [Vue I18n](https://vue-i18n.intlify.dev/)                        |
-| **UI & Styling**  | [Tailwind CSS](https://tailwindcss.com/) v4, [Lucide Vue](https://lucide.dev/)                                                        |
+| **Core Frontend** | [Vue 3](https://vuejs.org/) (Composition API), [TypeScript](https://www.typescriptlang.org/), [Vite v7](https://vite.dev/)            |
+| **State & Utils** | [Pinia v3](https://pinia.vuejs.org/), [VueUse](https://vueuse.org/), [Vue I18n](https://vue-i18n.intlify.dev/)                        |
+| **UI & Styling**  | [Tailwind CSS v4](https://tailwindcss.com/), [Lucide Vue](https://lucide.dev/)                                                        |
 | **Backend & Ops** | [PocketBase](https://pocketbase.io/), [Docker](https://www.docker.com/)                                                               |
 | **Testing & QA**  | [Vitest](https://vitest.dev/), [Playwright](https://playwright.dev/), [ESLint](https://eslint.org/), [Prettier](https://prettier.io/) |
 
