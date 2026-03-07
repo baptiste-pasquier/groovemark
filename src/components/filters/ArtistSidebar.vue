@@ -15,7 +15,7 @@ const emit = defineEmits<{ (e: 'close'): void }>()
   >
     <div class="flex h-full flex-col p-4">
       <div class="mb-4 flex shrink-0 items-center justify-between">
-        <h3 class="text-xl font-bold">Filtrer par artiste</h3>
+        <h3 class="text-xl font-bold">{{ $t('app.filter_by_artist') }}</h3>
         <button class="p-1 text-2xl leading-none" @click="emit('close')">&times;</button>
       </div>
       <ArtistList class="grow" @select="emit('close')" />

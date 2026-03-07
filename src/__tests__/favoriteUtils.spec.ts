@@ -46,4 +46,13 @@ describe('favorite utils', () => {
     const link = buildTimestampLink(fav, ts)
     expect(link).toContain('#t=1:23')
   })
+
+  it('rejects unsafe timestamp links', () => {
+    const fav = mockFavorite({
+      url: 'javascript:alert(1)',
+    })
+    const ts: Timestamp = { label: 'intro', time: '1:23', rated: false }
+    const link = buildTimestampLink(fav, ts)
+    expect(link).toBeNull()
+  })
 })

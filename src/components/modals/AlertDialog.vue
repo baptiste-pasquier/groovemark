@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import { AlertCircle, Info } from 'lucide-vue-next'
 
-const store = useFavoritesStore()
+const favoritesUiStore = useFavoritesUiStore()
 </script>
 
 <template>
   <Transition name="dialog-fade">
     <div
-      v-if="store.alertDialog.visible"
+      v-if="favoritesUiStore.alertDialog.visible"
       class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
@@ -19,23 +19,28 @@ const store = useFavoritesStore()
       >
         <div
           class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-          :class="store.alertDialog.type === 'alert' ? 'bg-red-100' : 'bg-blue-100'"
+          :class="favoritesUiStore.alertDialog.type === 'alert' ? 'bg-red-100' : 'bg-blue-100'"
         >
-          <AlertCircle v-if="store.alertDialog.type === 'alert'" class="h-6 w-6 text-red-600" />
+          <AlertCircle
+            v-if="favoritesUiStore.alertDialog.type === 'alert'"
+            class="h-6 w-6 text-red-600"
+          />
           <Info v-else class="h-6 w-6 text-blue-600" />
         </div>
         <h3 class="mb-2 text-lg leading-6 font-medium text-gray-900">
-          {{ store.alertDialog.type === 'alert' ? $t('dialog.alert') : $t('dialog.info') }}
+          {{
+            favoritesUiStore.alertDialog.type === 'alert' ? $t('dialog.alert') : $t('dialog.info')
+          }}
         </h3>
-        <p class="mb-6 text-sm text-gray-500">{{ store.alertDialog.message }}</p>
+        <p class="mb-6 text-sm text-gray-500">{{ favoritesUiStore.alertDialog.message }}</p>
         <button
           class="inline-flex w-full justify-center rounded-lg px-4 py-2 text-base font-medium text-white shadow-sm focus:ring-2 focus:ring-offset-2 focus:outline-none sm:text-sm"
           :class="
-            store.alertDialog.type === 'alert'
+            favoritesUiStore.alertDialog.type === 'alert'
               ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
               : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
           "
-          @click="store.closeAlert()"
+          @click="favoritesUiStore.closeAlert()"
         >
           {{ $t('dialog.ok') }}
         </button>

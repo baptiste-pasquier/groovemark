@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import { AlertTriangle } from 'lucide-vue-next'
 
-const store = useFavoritesStore()
+const favoritesUiStore = useFavoritesUiStore()
 </script>
 
 <template>
   <Transition name="dialog-fade">
     <div
-      v-if="store.confirmDialog.visible"
+      v-if="favoritesUiStore.confirmDialog.visible"
       class="modal-bg fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
@@ -25,17 +25,17 @@ const store = useFavoritesStore()
         <h3 class="mb-2 text-lg leading-6 font-medium text-gray-900">
           {{ $t('dialog.confirmation') }}
         </h3>
-        <p class="mb-6 text-sm text-gray-500">{{ store.confirmDialog.message }}</p>
+        <p class="mb-6 text-sm text-gray-500">{{ favoritesUiStore.confirmDialog.message }}</p>
         <div class="flex justify-end space-x-3">
           <button
             class="inline-flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm"
-            @click="store.respondConfirm(false)"
+            @click="favoritesUiStore.respondConfirm(false)"
           >
             {{ $t('dialog.cancel') }}
           </button>
           <button
             class="inline-flex w-full justify-center rounded-lg bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none sm:w-auto sm:text-sm"
-            @click="store.respondConfirm(true)"
+            @click="favoritesUiStore.respondConfirm(true)"
           >
             {{ $t('dialog.delete') }}
           </button>

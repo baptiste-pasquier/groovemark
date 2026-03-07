@@ -28,6 +28,12 @@ GrooveMark supports two authentication modes:
 
 Local mode requires no additional setup. Users can simply click "Continue in Local Mode" on the login page, and all data will be stored in the browser's localStorage.
 
+**Storage behavior:**
+
+- Local mode favorites are stored in `groovemark:favorites:local`
+- Authenticated Google sessions use `groovemark:favorites:google:<userId>` as their offline cache
+- Local mode and Google mode no longer share the same browser cache
+
 **Limitations of Local Mode:**
 
 - Data is only available on the device/browser where it was created
@@ -107,30 +113,17 @@ Before setting up Google SSO, you need:
 
 5. **Update Favorites Collection Rules**
 
-   Since we now have authentication, update the `favorites` collection API Rules to tie records to users:
-
-   **Option 1: User-specific favorites (Recommended)**
+   Since authenticated sessions use PocketBase as the primary repository, the `favorites` collection should be tied to users:
 
    First, add an `owner` field to the `favorites` collection:
    - Type: Relation
    - Collection: users
    - Required: Yes
 
-   Then update the API Rules:
-   - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **Create Rule**: `@request.auth.id != ""`
-   - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+   Then apply the user-scoped API rules documented in
+   [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings).
 
-   **Option 2: Shared favorites (Development only)**
-
-   Keep the current rules that just check authentication:
-   - **List/Search Rule**: `@request.auth.id != ""`
-   - **View Rule**: `@request.auth.id != ""`
-   - **Create Rule**: `@request.auth.id != ""`
-   - **Update Rule**: `@request.auth.id != ""`
-   - **Delete Rule**: `@request.auth.id != ""`
+   Shared authenticated favorites are no longer recommended because the client now assumes per-user isolation for both cloud records and offline cache.
 
 ### Step 3: Update Environment Variables
 
@@ -208,18 +201,21 @@ npm run build
 
 **Solution**:
 
-- Check that the `favorites` collection API rules allow authenticated users
+- Check that the `favorites` collection uses the user-scoped API rules from
+  [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings)
 - Verify user is actually authenticated by checking `pb.authStore.isValid`
 - Check browser console for any error messages
-- Ensure the favorites collection exists in PocketBase
+- Ensure the favorites collection exists in PocketBase and includes the `owner` relation field
+
+If PocketBase is unavailable, the app should continue with the authenticated device cache for the signed-in user.
 
 ### Data Lost When Switching Between Modes
 
 **Solution**:
 
-- Local mode data stays in localStorage
-- Google mode data stays in PocketBase
-- These are separate storage locations by design
+- Local mode data stays in `groovemark:favorites:local`
+- Google mode data stays in PocketBase and is mirrored to `groovemark:favorites:google:<userId>` for offline fallback
+- These are separate storage locations by design and are intentionally not merged automatically
 - To migrate data, export from one mode and import in the other
 
 ## Security Best Practices

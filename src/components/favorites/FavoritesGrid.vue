@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import { useI18n } from 'vue-i18n'
 import FavoriteCard from './FavoriteCard.vue'
 
-const store = useFavoritesStore()
+const favoritesStore = useFavoritesStore()
+const favoritesUiStore = useFavoritesUiStore()
 const { t } = useI18n()
 
 const emit = defineEmits<{ (e: 'edit', id: string): void }>()
@@ -11,8 +13,12 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
 
 <template>
   <div>
-    <div v-if="!store.filteredFavorites.length" class="mt-8 text-center text-gray-500">
-      {{ store.favorites.length === 0 ? t('grid.empty_no_favorites') : t('grid.empty_no_results') }}
+    <div v-if="!favoritesUiStore.filteredFavorites.length" class="mt-8 text-center text-gray-500">
+      {{
+        favoritesStore.favorites.length === 0
+          ? t('grid.empty_no_favorites')
+          : t('grid.empty_no_results')
+      }}
     </div>
     <TransitionGroup
       v-else
@@ -22,11 +28,11 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
       class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       <FavoriteCard
-        v-for="fav in store.filteredFavorites"
+        v-for="fav in favoritesUiStore.filteredFavorites"
         :key="fav.id"
         :favorite="fav"
         @edit="emit('edit', fav.id)"
-        @delete="store.deleteFavorite(fav.id)"
+        @delete="favoritesStore.deleteFavorite(fav.id)"
       />
     </TransitionGroup>
   </div>

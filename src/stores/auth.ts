@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import pb from '../services/pocketbase'
 import type { RecordModel } from 'pocketbase'
-
-export type AuthMode = 'google' | 'local' | null
+import type { AuthMode } from '../types/auth'
+import { clearStoredAuthMode, getStoredAuthMode, setStoredAuthMode } from '../services/storage'
 
 export const useAuthStore = defineStore('auth', () => {
   const authMode = ref<AuthMode>(null)
@@ -11,11 +11,13 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<RecordModel | null>(null)
   const isInitialized = ref(false)
 
-  const AUTH_MODE_KEY = 'groovemark_auth_mode'
-
   // Check if user is authenticated (either Google or local mode)
   const isLoggedIn = computed(() => {
     return authMode.value !== null
+  })
+
+  const userId = computed(() => {
+    return user.value?.id ?? null
   })
 
   // Initialize authentication state from storage
@@ -29,12 +31,12 @@ export const useAuthStore = defineStore('auth', () => {
         authMode.value = 'google'
         isAuthenticated.value = true
         user.value = pb.authStore.model
-        localStorage.setItem(AUTH_MODE_KEY, 'google') // Ensure consistency
+        setStoredAuthMode('google')
         return
       }
 
       // If no valid session, check if user explicitly chose local mode.
-      const storedMode = localStorage.getItem(AUTH_MODE_KEY) as AuthMode
+      const storedMode = getStoredAuthMode()
       if (storedMode === 'local') {
         authMode.value = 'local'
         isAuthenticated.value = false
@@ -45,7 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
       // This can happen if `storedMode` was 'google' but the session expired.
       // In that case, we should clean up the stale setting.
       if (storedMode === 'google') {
-        localStorage.removeItem(AUTH_MODE_KEY)
+        clearStoredAuthMode()
       }
 
       // Default to no authentication.
@@ -70,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
         authMode.value = 'google'
         isAuthenticated.value = true
         user.value = authData.record
-        localStorage.setItem(AUTH_MODE_KEY, 'google')
+        setStoredAuthMode('google')
         return true
       }
       return false
@@ -85,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
     authMode.value = 'local'
     isAuthenticated.value = false
     user.value = null
-    localStorage.setItem(AUTH_MODE_KEY, 'local')
+    setStoredAuthMode('local')
   }
 
   // Sign out
@@ -97,7 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
       authMode.value = null
       isAuthenticated.value = false
       user.value = null
-      localStorage.removeItem(AUTH_MODE_KEY)
+      clearStoredAuthMode()
     } catch (error) {
       console.error('Error signing out:', error)
     }
@@ -107,6 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
     authMode,
     isAuthenticated,
     user,
+    userId,
     isLoggedIn,
     isInitialized,
     initialize,

@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import type { Favorite } from '../../types/favorite'
 import { buildTimestampLink } from '../../utils/favorite'
+import { isSafeHttpUrl } from '../../utils/url'
 import { SquarePen, Trash2, Star, ExternalLink } from 'lucide-vue-next'
 
 const props = defineProps<{ favorite: Favorite }>()
 const emit = defineEmits<{ (e: 'edit', id: string): void; (e: 'delete', id: string): void }>()
 
 function openLink() {
-  window.open(props.favorite.url, '_blank')
+  if (!isSafeHttpUrl(props.favorite.url)) {
+    return
+  }
+
+  window.open(props.favorite.url, '_blank', 'noopener,noreferrer')
 }
 
 function timestampLink(time: string) {
-  return buildTimestampLink(props.favorite, { time })
+  return buildTimestampLink(props.favorite, { time }) ?? '#'
 }
 </script>
 
@@ -95,6 +100,7 @@ function timestampLink(time: string) {
         <a
           :href="timestampLink(ts.time)"
           target="_blank"
+          rel="noopener noreferrer"
           class="flex shrink-0 items-center font-mono text-blue-500"
         >
           {{ ts.time }}

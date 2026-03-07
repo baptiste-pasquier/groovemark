@@ -4,7 +4,9 @@
     "all_artists": "All artists",
     "artists": "Artists",
     "export_json": "Export JSON",
+    "filter_by_artist": "Filter by artist",
     "import_json": "Import JSON",
+    "loading": "Loading GrooveMark...",
     "language": "Language",
     "search_placeholder": "Search by title or artist...",
     "settings": "Settings",
@@ -31,6 +33,7 @@
     "none_or_invalid": "No favorites in the file or invalid structure.",
     "with_skipped": ", {skipped} already present (ignored).",
     "error_invalid_array": "The JSON file is not a valid array.",
+    "error_invalid_json": "The JSON file is invalid.",
     "error_invalid_structure": "Invalid structure",
     "error_prefix": "Error during import: "
   },
