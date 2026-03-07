@@ -115,19 +115,13 @@ Before setting up Google SSO, you need:
 
    Since authenticated sessions use PocketBase as the primary repository, the `favorites` collection should be tied to users:
 
-   **User-specific favorites (Recommended)**
-
    First, add an `owner` field to the `favorites` collection:
    - Type: Relation
    - Collection: users
    - Required: Yes
 
-   Then update the API Rules:
-   - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **Create Rule**: `@request.auth.id != ""`
-   - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-   - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+   Then apply the user-scoped API rules documented in
+   [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings).
 
    Shared authenticated favorites are no longer recommended because the client now assumes per-user isolation for both cloud records and offline cache.
 
@@ -207,7 +201,8 @@ npm run build
 
 **Solution**:
 
-- Check that the `favorites` collection API rules allow authenticated users and restrict reads to `owner = @request.auth.id`
+- Check that the `favorites` collection uses the user-scoped API rules from
+  [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings)
 - Verify user is actually authenticated by checking `pb.authStore.isValid`
 - Check browser console for any error messages
 - Ensure the favorites collection exists in PocketBase and includes the `owner` relation field

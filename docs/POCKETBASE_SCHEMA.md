@@ -78,7 +78,7 @@ Use user-scoped rules in both development and production so the client only ever
 
 - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
-- **Create Rule**: `@request.auth.id != ""`
+- **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id`
 - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
