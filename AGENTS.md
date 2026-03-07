@@ -7,6 +7,24 @@ Guidelines for AI coding agents working in the GrooveMark codebase.
 Vue 3 SPA (TypeScript, Composition API) for bookmarking music sets with timestamps.
 Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
 
+### Current Architecture
+
+- App bootstrap is centralized:
+  - `useAppStore` resolves auth, backend availability, and boot state
+  - `initializeLocale()` runs from `src/main.ts` before mount
+- State is split by responsibility:
+  - `useFavoritesStore` owns favorites domain data and persistence flows
+  - `useFavoritesUiStore` owns search, sort, filters, and dialog state
+  - `useAuthStore` owns auth mode and PocketBase session state
+- Favorites persistence is repository-based:
+  - `PocketBaseFavoritesRepository` for authenticated online sessions
+  - `LocalFavoritesRepository` for local mode and authenticated offline cache
+  - `selectFavoritesRepository()` chooses the active repository from auth mode and backend availability
+- localStorage keys are intentionally scoped:
+  - `groovemark:favorites:local`
+  - `groovemark:favorites:google:<userId>`
+  - Do not reintroduce a shared `favorites` key
+
 ## Build / Lint / Test Commands
 
 ```bash
@@ -145,17 +163,25 @@ const allArtists = computed(() => {
 - Wrap async operations in `try/catch`; log with `console.error`.
 - Return safe defaults on failure (empty arrays, `null`).
 - Use `instanceof Error` guard before accessing `.message`.
-- Use the store's `showAlert()` / `showConfirm()` for user-facing errors.
+- Use `useFavoritesUiStore().showAlert()` / `showConfirm()` for user-facing errors.
 - Empty `catch {}` is acceptable only for non-critical operations (e.g., localStorage parsing).
 - Use `finally` blocks for cleanup (e.g., `isLoading = false`).
 
 ### Pinia Stores
 
 - Use Setup Store syntax: `defineStore('name', () => { ... })`.
-- State via `ref()` or `reactive()` with `toRefs()`.
+- State via `ref()` by default; use `reactive()` only when it materially simplifies grouped state.
 - Computed properties via `computed()`.
-- Reset state via `Object.assign(state, initialState())` factory pattern.
+- Setup stores should expose an explicit `$reset()` when they need reset behavior.
 - Cross-store access by calling `useOtherStore()` inside the store function.
+
+#### Store Responsibilities
+
+- `useAppStore`: bootstrapping only (`booting | unauthenticated | ready`, backend availability)
+- `useFavoritesStore`: favorites CRUD, repository selection, import/export, cache sync
+- `useFavoritesUiStore`: filtered lists, sort/filter/search state, alert/confirm dialogs
+- Do not move dialog state back into `useFavoritesStore`
+- Do not put locale initialization inside view components; keep it in services/bootstrap
 
 ### Exports
 
@@ -175,12 +201,22 @@ src/
     layout/            # Header bar
     modals/            # Dialogs (alert, confirm, favorite edit)
   i18n/locales/        # en.json, fr.json
-  services/            # PocketBase client and CRUD service
-  stores/              # Pinia stores (auth, favorites)
-  types/               # TypeScript interfaces
+  services/            # PocketBase client, repositories, storage/locale/import helpers
+  stores/              # Pinia stores (app, auth, favorites, favoritesUi)
+  types/               # TypeScript interfaces and shared app/auth aliases
   assets/              # Global CSS (Tailwind base)
   utils/               # Pure utility functions (URL, favorite helpers)
 ```
+
+### Storage and PocketBase Rules
+
+- The `favorites` collection should be treated as user-owned data.
+- Client assumptions rely on an `owner` relation field and user-scoped API rules:
+  - `@request.auth.id != "" && owner = @request.auth.id` for list/view/update/delete
+- Authenticated offline fallback uses the user-scoped local cache, not local-mode storage.
+- If updating import/export or migration behavior, preserve separation between:
+  - local mode favorites
+  - authenticated user cache
 
 ## Copilot Instructions
 

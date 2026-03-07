@@ -4,7 +4,9 @@
     "all_artists": "Tous les artistes",
     "artists": "Artistes",
     "export_json": "Exporter JSON",
+    "filter_by_artist": "Filtrer par artiste",
     "import_json": "Importer JSON",
+    "loading": "Chargement de GrooveMark...",
     "language": "Langue",
     "search_placeholder": "Rechercher par titre ou artiste...",
     "settings": "Paramètres",
@@ -31,6 +33,7 @@
     "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
     "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
     "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
+    "error_invalid_json": "Le fichier JSON est invalide.",
     "error_invalid_structure": "Structure invalide",
     "error_prefix": "Erreur lors de l'importation : "
   },

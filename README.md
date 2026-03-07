@@ -1,8 +1,9 @@
 # GrooveMark <!-- omit from toc -->
 
-GrooveMark is a Vue 3 application for saving your favorite music sets with precise timestamps, now powered by Pocketbase for data storage.
+GrooveMark is a Vue 3 application for saving your favorite music sets with precise timestamps, powered by PocketBase with local offline fallback.
 
 - [Features](#features)
+- [Architecture Notes](#architecture-notes)
 - [Documentation](#documentation)
 - [Docker Deployment](#docker-deployment)
   - [Quick Start with Docker Compose](#quick-start-with-docker-compose)
@@ -17,7 +18,7 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
   - [3. Configure the Collection](#3-configure-the-collection)
   - [4. Configure API Rules (Optional)](#4-configure-api-rules-optional)
   - [5. Environment Configuration](#5-environment-configuration)
-  - [Fallback to localStorage](#fallback-to-localstorage)
+  - [Offline Cache and Fallback](#offline-cache-and-fallback)
 - [Customize configuration](#customize-configuration)
 - [Project Setup](#project-setup)
   - [Compile and Hot-Reload for Development](#compile-and-hot-reload-for-development)
@@ -36,8 +37,23 @@ GrooveMark is a Vue 3 application for saving your favorite music sets with preci
 - Import/Export favorites as JSON
 - **Cloud Sync**: When using Google SSO, favorites sync across devices via PocketBase
 - **Offline Support**: Local mode stores data in browser localStorage
-- Pocketbase integration with localStorage fallback for offline support
+- **Scoped Device Cache**: authenticated users keep a per-user offline cache instead of a shared device cache
 - Docker deployment ready with CI/CD support
+
+## Architecture Notes
+
+- **Bootstrap flow**: the app resolves locale, auth state, and favorites readiness before rendering the main UI
+- **App states**: the main shell explicitly transitions through `booting`, `unauthenticated`, and `ready`
+- **Persistence split**:
+  - PocketBase is the source of truth for authenticated sessions when available
+  - localStorage is the source of truth for local mode
+  - authenticated offline fallback uses a user-scoped cache
+- **Storage keys**:
+  - `groovemark_auth_mode`
+  - `groovemark_locale`
+  - `groovemark:favorites:local`
+  - `groovemark:favorites:google:<userId>`
+- **Import flow**: JSON parsing and validation happen before favorites are written, and invalid files surface a UI alert instead of mutating state
 
 ## Documentation
 
@@ -180,7 +196,7 @@ TypeScript cannot handle type information for `.vue` imports by default, so we r
 
 ## Pocketbase Setup
 
-This application uses [Pocketbase](https://pocketbase.io/) as a backend for storing favorites.
+This application uses [PocketBase](https://pocketbase.io/) as a backend for storing favorites.
 
 ### 1. Install Pocketbase
 
@@ -233,9 +249,14 @@ Default configuration:
 VITE_POCKETBASE_URL=http://localhost:8090
 ```
 
-### Fallback to localStorage
+### Offline Cache and Fallback
 
-If Pocketbase is not available, the application automatically falls back to using localStorage for data persistence. This provides offline support and ensures the app works even without a backend connection.
+The app uses two local persistence modes:
+
+- **Local mode**: favorites are stored in `groovemark:favorites:local`
+- **Authenticated cache**: if PocketBase is unavailable, the app falls back to `groovemark:favorites:google:<userId>`
+
+This avoids cross-user leakage on shared devices and keeps local-mode data isolated from authenticated sessions.
 
 ## Customize configuration
 
@@ -262,7 +283,7 @@ npm run build
 ### Run Unit Tests with [Vitest](https://vitest.dev/)
 
 ```sh
-npm run test:unit
+npm run test:unit -- run
 ```
 
 ### Run End-to-End Tests with [Playwright](https://playwright.dev)

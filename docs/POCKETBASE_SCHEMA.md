@@ -15,6 +15,7 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
 | type       | Text            | Yes      | Platform type: either "youtube" or "soundcloud"               |
 | thumbnail  | URL             | No       | URL to the thumbnail image                                    |
 | timestamps | JSON            | No       | Array of timestamp objects with label, time, and rated fields |
+| owner      | Relation(users) | Yes      | Authenticated user who owns the favorite                      |
 | created    | DateTime (auto) | Yes      | Auto-generated creation timestamp                             |
 | updated    | DateTime (auto) | Yes      | Auto-generated last update timestamp                          |
 
@@ -53,6 +54,7 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
   "artists": ["DJ Example", "Artist Two"],
   "type": "youtube",
   "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  "owner": "users_record_id",
   "timestamps": [
     {
       "label": "Intro",
@@ -70,32 +72,36 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
 }
 ```
 
-### Collection Settings (Development)
+### Collection Settings
 
-For development purposes, you can use the following API Rules to allow access:
+Use user-scoped rules in both development and production so the client only ever sees the current user's favorites:
 
-- **List/Search Rule**: `@request.auth.id != ""`
-- **View Rule**: `@request.auth.id != ""`
+- **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **Create Rule**: `@request.auth.id != ""`
-- **Update Rule**: `@request.auth.id != ""`
-- **Delete Rule**: `@request.auth.id != ""`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
 ### Collection Settings (Production)
 
 For production, implement proper authentication and authorization:
 
 - Enable user authentication
-- Update rules to restrict access to user's own records
-- Consider using `@request.auth.id = owner` pattern if you add an owner field
+- Keep rules restricted to the authenticated user's own records
 - Enable HTTPS
 - Configure CORS appropriately
 
 ### Migration from localStorage
 
-If you have existing data in localStorage (key: `favorites`), you can:
+If you have existing data in localStorage, you can:
 
 1. Export your favorites using the "Export JSON" button in the app
 2. Start Pocketbase and create the collection
 3. Use the "Import JSON" button to import your favorites
 
-The application will automatically sync with Pocketbase once it's available.
+Current browser keys are:
+
+- `groovemark:favorites:local`
+- `groovemark:favorites:google:<userId>`
+
+The app also contains a legacy migration path for the old `favorites` key when entering local mode.

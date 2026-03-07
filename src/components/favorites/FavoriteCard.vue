@@ -7,7 +7,7 @@ const props = defineProps<{ favorite: Favorite }>()
 const emit = defineEmits<{ (e: 'edit', id: string): void; (e: 'delete', id: string): void }>()
 
 function openLink() {
-  window.open(props.favorite.url, '_blank')
+  window.open(props.favorite.url, '_blank', 'noopener,noreferrer')
 }
 
 function timestampLink(time: string) {
@@ -95,6 +95,7 @@ function timestampLink(time: string) {
         <a
           :href="timestampLink(ts.time)"
           target="_blank"
+          rel="noopener noreferrer"
           class="flex shrink-0 items-center font-mono text-blue-500"
         >
           {{ ts.time }}

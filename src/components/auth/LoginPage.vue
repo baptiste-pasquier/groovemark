@@ -1,33 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { useAppStore } from '../../stores/app'
 import { useI18n } from 'vue-i18n'
 import { LoaderCircle, AlertCircle } from 'lucide-vue-next'
-import pb from '../../services/pocketbase'
 
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const { t } = useI18n()
 const isLoading = ref(false)
 const errorMessage = ref('')
-const isPbAvailable = ref(true)
-
-onMounted(async () => {
-  try {
-    await pb.health.check()
-    isPbAvailable.value = true
-  } catch (error) {
-    console.error('PocketBase health check failed:', error)
-    isPbAvailable.value = false
-    errorMessage.value = t('login.server_unavailable')
-  }
-})
 
 async function handleGoogleSignIn() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    await authStore.signInWithGoogle()
+    const didSignIn = await authStore.signInWithGoogle()
+    if (!didSignIn) {
+      errorMessage.value = t('login.error_google_signin')
+      return
+    }
+
+    await appStore.handleAuthenticatedSession()
   } catch (error) {
     console.error('Google sign-in error:', error)
     errorMessage.value = error instanceof Error ? error.message : t('login.error_google_signin')
@@ -36,8 +31,9 @@ async function handleGoogleSignIn() {
   }
 }
 
-function handleLocalMode() {
+async function handleLocalMode() {
   authStore.continueInLocalMode()
+  await appStore.handleAuthenticatedSession()
 }
 </script>
 
@@ -54,7 +50,7 @@ function handleLocalMode() {
       <!-- Sign in with Google Button -->
       <button
         @click="handleGoogleSignIn"
-        :disabled="isLoading || !isPbAvailable"
+        :disabled="isLoading || !appStore.backendAvailable"
         class="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-md transition duration-300 hover:bg-gray-300 hover:shadow-lg focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg v-if="!isLoading" class="h-5 w-5" viewBox="0 0 24 24">
@@ -81,11 +77,13 @@ function handleLocalMode() {
 
       <!-- Error Message -->
       <div
-        v-if="errorMessage"
+        v-if="errorMessage || !appStore.backendAvailable"
         class="mb-6 flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 p-4"
       >
         <AlertCircle class="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
-        <p class="text-sm text-red-200">{{ errorMessage }}</p>
+        <p class="text-sm text-red-200">
+          {{ errorMessage || t('login.server_unavailable') }}
+        </p>
       </div>
 
       <!-- Divider -->

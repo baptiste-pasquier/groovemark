@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import type { Timestamp } from '../../types/favorite'
 import ArtistTagsInput from '../favorites/ArtistTagsInput.vue'
 import { fetchMetadata, normalizeUrl } from '../../utils/url'
@@ -9,7 +10,8 @@ import { Star, AlertCircle, Link, Music, Users, Tag, Clock } from 'lucide-vue-ne
 
 const props = defineProps<{ modelValue: boolean; editId?: string | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
-const store = useFavoritesStore()
+const favoritesStore = useFavoritesStore()
+const favoritesUiStore = useFavoritesUiStore()
 const { t } = useI18n()
 
 interface TimestampRow extends Timestamp {
@@ -24,6 +26,7 @@ const timestampRows = ref<TimestampRow[]>([])
 const metadataLoading = ref(false)
 const metadataError = ref('')
 const lastMetadataUrl = ref('')
+const thumbnail = ref('')
 
 function reset() {
   id.value = ''
@@ -35,6 +38,7 @@ function reset() {
   metadataLoading.value = false
   metadataError.value = ''
   lastMetadataUrl.value = ''
+  thumbnail.value = ''
 }
 
 function createEmptyTimestampRow(): TimestampRow {
@@ -46,7 +50,7 @@ watch(
   (open) => {
     if (open) {
       if (props.editId) {
-        const fav = store.favorites.find((f) => f.id === props.editId)
+        const fav = favoritesStore.favorites.find((f) => f.id === props.editId)
         if (fav) {
           id.value = fav.id
           url.value = fav.url
@@ -55,6 +59,7 @@ watch(
           timestampRows.value = fav.timestamps.map((t) => ({ ...t, _id: crypto.randomUUID() }))
           lastMetadataUrl.value = fav.url
           metadataError.value = ''
+          thumbnail.value = fav.thumbnail
         }
       } else {
         reset()
@@ -92,12 +97,13 @@ function formatTimeInput(event: Event, row: TimestampRow) {
 
 async function save() {
   if (!url.value.trim() || !title.value.trim()) return
-  const success = await store.addOrUpdateFavorite({
+  const success = await favoritesStore.addOrUpdateFavorite({
     id: id.value || undefined,
     url: url.value,
     title: title.value,
     artists: [...artists.value],
     timestamps: timestampRows.value.map(({ label, time, rated }) => ({ label, time, rated })),
+    thumbnail: thumbnail.value,
   })
   if (success) {
     emit('update:modelValue', false)
@@ -125,6 +131,7 @@ async function onUrlBlur() {
     if (meta) {
       if (!title.value && meta.title) title.value = meta.title
       if (!artists.value.length && meta.artist) artists.value = [meta.artist]
+      if (meta.thumbnail) thumbnail.value = meta.thumbnail
       lastMetadataUrl.value = normalized
     } else {
       metadataError.value = t('modal.metadata_error')
@@ -192,7 +199,7 @@ function close() {
               <Users class="absolute top-3 left-3 z-10 h-5 w-5 text-gray-400" />
               <ArtistTagsInput
                 v-model="artists"
-                :suggestions="store.allArtists"
+                :suggestions="favoritesUiStore.allArtists"
                 :placeholder="t('modal.artists_placeholder')"
                 class="!pl-10"
               />
