@@ -1,5 +1,14 @@
 import pb from '../services/pocketbase'
 
+export function isSafeHttpUrl(inputUrl: string): boolean {
+  try {
+    const url = new URL(inputUrl)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function getYoutubeVideoId(url: string): string | null {
   const regex =
     /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
@@ -35,6 +44,10 @@ export async function normalizeUrl(inputUrl: string): Promise<string> {
     if (youtubeId) return `https://www.youtube.com/watch?v=${youtubeId}`
 
     const url = new URL(inputUrl)
+    if (!isSafeHttpUrl(inputUrl)) {
+      return inputUrl.trim()
+    }
+
     if (url.hostname === 'on.soundcloud.com') {
       const expandedUrl = await getSoundCloudUrl(inputUrl)
       return `${expandedUrl.origin}${expandedUrl.pathname}`

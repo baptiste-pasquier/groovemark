@@ -39,4 +39,34 @@ describe('Favorite Import', () => {
     favoritesUiStore.closeAlert()
     await importPromise
   })
+
+  it('skips imported favorites with unsafe URL schemes', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'malicious',
+        url: 'javascript:alert("xss")',
+        title: 'Bad Favorite',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+
+    expect(favoritesStore.favorites).toEqual([])
+    expect(favoritesUiStore.alertDialog.visible).toBe(true)
+    expect(favoritesUiStore.alertDialog.message).toContain('0 added')
+
+    favoritesUiStore.closeAlert()
+    await importPromise
+  })
 })

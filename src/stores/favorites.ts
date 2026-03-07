@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
-import { getYoutubeVideoId, normalizeUrl } from '../utils/url'
+import { getYoutubeVideoId, isSafeHttpUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
 import type {
   FavoriteRecordInput,
@@ -222,7 +222,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
     let skipped = 0
 
     for (const favorite of data) {
-      if (existingUrls.has(favorite.url)) {
+      const normalizedUrl = await normalizeUrl(favorite.url)
+
+      if (!isSafeHttpUrl(normalizedUrl)) {
+        skipped++
+        continue
+      }
+
+      if (existingUrls.has(normalizedUrl)) {
         skipped++
         continue
       }
@@ -230,7 +237,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       try {
         if (usesCloudRepository && activeRepository) {
           const createdFavorite = await activeRepository.create({
-            url: favorite.url,
+            url: normalizedUrl,
             title: favorite.title,
             artists: favorite.artists || [],
             type: favorite.type,
@@ -241,10 +248,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
         } else {
           favorites.value.push({
             ...favorite,
+            url: normalizedUrl,
             created: favorite.created || new Date().toISOString(),
           })
         }
-        existingUrls.add(favorite.url)
+        existingUrls.add(normalizedUrl)
         added++
       } catch (error) {
         console.error('Error importing favorite:', error)
