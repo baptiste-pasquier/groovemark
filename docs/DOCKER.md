@@ -84,7 +84,7 @@ The app uses a multi-stage build:
 ### Pocketbase Image (Dockerfile.pocketbase)
 
 - Base: `alpine:latest`
-- Downloads Pocketbase v0.22.20 (configurable)
+- Downloads Pocketbase v0.34.2 (configurable)
 - Exposes port 8090
 - Data stored in `/pb/pb_data` volume
 
