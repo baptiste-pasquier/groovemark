@@ -42,4 +42,36 @@ describe('FavoriteCard', () => {
     const timestampLinks = wrapper.findAll('a')
     expect(timestampLinks[1].attributes('rel')).toBe('noopener noreferrer')
   })
+
+  it('does not open unsafe favorite urls', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    const wrapper = mount(FavoriteCard, {
+      props: {
+        favorite: {
+          ...favorite,
+          url: 'javascript:alert(1)',
+        },
+      },
+    })
+
+    await wrapper.find('.card-link').trigger('click')
+
+    expect(openSpy).not.toHaveBeenCalled()
+  })
+
+  it('renders a safe fallback href for unsafe timestamp urls', () => {
+    const wrapper = mount(FavoriteCard, {
+      props: {
+        favorite: {
+          ...favorite,
+          url: 'javascript:alert(1)',
+        },
+      },
+    })
+
+    const timestampLinks = wrapper.findAll('a')
+    expect(timestampLinks[0].attributes('href')).toBe('#')
+    expect(timestampLinks[1].attributes('href')).toBe('#')
+  })
 })

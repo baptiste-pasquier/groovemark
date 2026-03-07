@@ -1,5 +1,5 @@
 import type { Favorite, Timestamp } from '../types/favorite'
-import { getYoutubeVideoId } from './url'
+import { getYoutubeVideoId, isSafeHttpUrl } from './url'
 
 // Validate time formats like M:SS, MM:SS, H:MM:SS, HH:MM:SS, up to 3-digit hours.
 export function timeFormatIsValid(time: string): boolean {
@@ -20,7 +20,11 @@ export function parseTimeToSeconds(time: string): number {
 }
 
 // Build a link to a specific timestamp for a favorite based on platform.
-export function buildTimestampLink(fav: Favorite, ts: Timestamp | { time: string }): string {
+export function buildTimestampLink(fav: Favorite, ts: Timestamp | { time: string }): string | null {
+  if (!isSafeHttpUrl(fav.url)) {
+    return null
+  }
+
   const seconds = parseTimeToSeconds(ts.time)
   if (fav.type === 'youtube') {
     const videoId = getYoutubeVideoId(fav.url)
