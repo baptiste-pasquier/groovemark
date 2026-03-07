@@ -4,7 +4,7 @@ This guide covers local setup, day-to-day commands, and editor tooling for Groov
 
 ## Prerequisites
 
-- Node.js `^20.19.0 || >=22.12.0`
+- Node.js `^24.0.0`
 - npm
 - PocketBase if you want to test authenticated sync locally
 - Docker optionally, if you prefer running PocketBase in a container

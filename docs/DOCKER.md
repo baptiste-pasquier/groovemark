@@ -71,7 +71,7 @@ The app uses a multi-stage build:
 
 **Stage 1 - Builder:**
 
-- Base: `node:22-slim`
+- Base: `node:24-slim`
 - Installs dependencies with npm
 - Builds the Vue application
 
