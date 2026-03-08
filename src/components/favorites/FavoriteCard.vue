@@ -21,12 +21,12 @@ function timestampLink(time: string) {
 </script>
 
 <template>
-  <div class="flex flex-col rounded-xl bg-white shadow-lg">
+  <div class="flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-lg">
     <div class="card-link relative cursor-pointer" @click="openLink">
       <img
         :src="favorite.thumbnail"
         alt="Thumbnail"
-        class="h-40 w-full rounded-t-xl object-cover"
+        class="h-40 w-full object-cover xl:h-32"
         @error="
           (e: any) => (e.target.src = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature')
         "
@@ -58,9 +58,9 @@ function timestampLink(time: string) {
         </svg>
       </div>
     </div>
-    <div class="grow p-4">
+    <div class="grow p-4 xl:px-5 xl:py-4">
       <div class="flex items-start justify-between">
-        <div>
+        <div class="min-w-0 pr-3">
           <h3 class="mb-1 text-lg font-bold text-gray-800">{{ favorite.title }}</h3>
           <p v-if="favorite.artists.length" class="text-sm text-gray-500">
             {{ favorite.artists.join(', ') }}
@@ -82,7 +82,7 @@ function timestampLink(time: string) {
         </div>
       </div>
     </div>
-    <div v-if="favorite.timestamps.length" class="border-t border-gray-200 px-4 pt-3 pb-4">
+    <div v-if="favorite.timestamps.length" class="border-t border-gray-200 px-4 pt-3 pb-4 xl:px-5">
       <div
         v-for="ts in favorite.timestamps"
         :key="ts.time + ts.label"

@@ -25,7 +25,7 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
       tag="div"
       name="list"
       id="favorites-grid"
-      class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
     >
       <FavoriteCard
         v-for="fav in favoritesUiStore.filteredFavorites"
