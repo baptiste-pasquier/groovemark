@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
-import { getYoutubeVideoId, isSafeHttpUrl, normalizeUrl } from '../utils/url'
+import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
 import type {
   FavoriteRecordInput,
@@ -98,7 +98,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     draft: FavoriteDraft,
     currentFavorite?: Favorite,
   ): FavoriteRecordInput {
-    const type: Favorite['type'] = draft.url.includes('soundcloud.com') ? 'soundcloud' : 'youtube'
+    const type: Favorite['type'] = isSoundCloudUrl(draft.url) ? 'soundcloud' : 'youtube'
     const normalizedThumbnail = draft.thumbnail?.trim() || ''
     const hasUrlChanged = currentFavorite ? currentFavorite.url !== draft.url : false
     const hasFreshThumbnail =

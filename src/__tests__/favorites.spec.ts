@@ -180,4 +180,26 @@ describe('Favorites Store', () => {
       'https://i.ytimg.com/vi/newVideo02B/hqdefault.jpg',
     )
   })
+
+  it('does not classify lookalike SoundCloud hosts as SoundCloud favorites', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+
+    const success = await favoritesStore.addOrUpdateFavorite({
+      url: 'https://evil-soundcloud.com/artist/track?utm_source=test',
+      title: 'Lookalike host',
+      artists: ['Artist'],
+      timestamps: [],
+      thumbnail: '',
+    })
+
+    expect(success).toBe(true)
+    expect(favoritesStore.favorites[0]?.type).toBe('youtube')
+    expect(favoritesStore.favorites[0]?.url).toBe(
+      'https://evil-soundcloud.com/artist/track?utm_source=test',
+    )
+  })
 })

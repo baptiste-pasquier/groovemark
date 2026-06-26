@@ -1,9 +1,34 @@
 import pb from '../services/pocketbase'
 
+const SOUNDCLOUD_HOST = 'soundcloud.com'
+const SOUNDCLOUD_SHORT_HOST = 'on.soundcloud.com'
+
+function isExactHostnameOrSubdomain(hostname: string, baseHostname: string): boolean {
+  const normalizedHostname = hostname.toLowerCase()
+  const normalizedBaseHostname = baseHostname.toLowerCase()
+
+  return (
+    normalizedHostname === normalizedBaseHostname ||
+    normalizedHostname.endsWith(`.${normalizedBaseHostname}`)
+  )
+}
+
 export function isSafeHttpUrl(inputUrl: string): boolean {
   try {
     const url = new URL(inputUrl)
     return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function isSoundCloudUrl(inputUrl: string): boolean {
+  try {
+    const url = new URL(inputUrl)
+    return (
+      url.hostname === SOUNDCLOUD_SHORT_HOST ||
+      isExactHostnameOrSubdomain(url.hostname, SOUNDCLOUD_HOST)
+    )
   } catch {
     return false
   }
@@ -48,12 +73,12 @@ export async function normalizeUrl(inputUrl: string): Promise<string> {
       return inputUrl.trim()
     }
 
-    if (url.hostname === 'on.soundcloud.com') {
+    if (url.hostname === SOUNDCLOUD_SHORT_HOST) {
       const expandedUrl = await getSoundCloudUrl(inputUrl)
       return `${expandedUrl.origin}${expandedUrl.pathname}`
     }
 
-    if (url.hostname.endsWith('soundcloud.com')) {
+    if (isExactHostnameOrSubdomain(url.hostname, SOUNDCLOUD_HOST)) {
       return `${url.origin}${url.pathname}`
     }
   } catch (error) {
