@@ -31,6 +31,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  outputDir: 'test-results',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -49,20 +50,32 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /demo\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
     },
     {
       name: 'firefox',
+      testIgnore: /demo\.spec\.ts/,
       use: {
         ...devices['Desktop Firefox'],
       },
     },
     {
       name: 'webkit',
+      testIgnore: /demo\.spec\.ts/,
       use: {
         ...devices['Desktop Safari'],
+      },
+    },
+    {
+      name: 'demo',
+      testMatch: /demo\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 820 },
+        headless: true,
       },
     },
 
@@ -94,10 +107,6 @@ export default defineConfig({
     //   },
     // },
   ],
-
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  // outputDir: 'test-results/',
-
   /* Run your local dev server before starting the tests */
   webServer: {
     /**

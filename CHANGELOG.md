@@ -7,6 +7,7 @@ All notable changes to this project should be documented in this file.
 ### Added
 
 - Added repository guidance to keep `README.md`, `AGENTS.md`, and `CHANGELOG.md` maintained.
+- Added a committed README demo GIF workflow driven by Playwright screenshots and a repo-local `docs/demo.gif` asset.
 
 ### Fixed
 

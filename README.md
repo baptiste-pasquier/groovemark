@@ -10,6 +10,10 @@
   </a>
 </p>
 
+<p align="center">
+  <img src="docs/demo.gif" alt="GrooveMark demo preview" />
+</p>
+
 GrooveMark is a Vue 3 music bookmarking application for saving your favorite sets with
 precise timestamps, powered by PocketBase with a local offline fallback.
 
@@ -68,6 +72,8 @@ Backend-as-a-Service (BaaS) architecture.
   storage keys, and import behavior
 - **[Responsive Layout Notes](./docs/RESPONSIVE_LAYOUT.md)** - Layout tokens, shell width
   formulas, and breakpoint reasoning for the favorites view
+- **[Demo Preview](./docs/DEMO_PREVIEW.md)** - README demo GIF details and regeneration
+  workflow
 - **[Changelog](./CHANGELOG.md)** - Notable project changes and documentation updates
 - **[PocketBase Setup](./docs/POCKETBASE_SETUP.md)** - Backend installation, collection
   setup, rules, and environment configuration

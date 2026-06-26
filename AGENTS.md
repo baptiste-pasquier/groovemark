@@ -57,6 +57,7 @@ npx vitest run -t "test name"                      # Run a single test by name
 # E2E tests (Playwright)
 npm run test:e2e                     # Run all E2E tests
 npx playwright test e2e/vue.spec.ts  # Run a single E2E test file
+npm run test:demo                    # Regenerate the committed README demo GIF
 ```
 
 ### CI Pipeline (what runs on PR)
