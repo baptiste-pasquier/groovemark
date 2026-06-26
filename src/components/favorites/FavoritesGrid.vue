@@ -20,10 +20,8 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
           : t('grid.empty_no_results')
       }}
     </div>
-    <TransitionGroup
+    <div
       v-else
-      tag="div"
-      name="list"
       id="favorites-grid"
       class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
@@ -34,24 +32,6 @@ const emit = defineEmits<{ (e: 'edit', id: string): void }>()
         @edit="emit('edit', fav.id)"
         @delete="favoritesStore.deleteFavorite(fav.id)"
       />
-    </TransitionGroup>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.list-move,
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-.list-leave-active {
-  position: absolute;
-}
-</style>
