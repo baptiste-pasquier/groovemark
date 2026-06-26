@@ -85,7 +85,7 @@ The app uses a multi-stage build:
 ### Pocketbase Image (Dockerfile.pocketbase)
 
 - Base: `alpine:latest`
-- Downloads Pocketbase v0.34.2 (configurable)
+- Downloads Pocketbase v0.39.4 by default (configurable via `PB_VERSION`)
 - Exposes port 8090
 - Data stored in `/pb/pb_data` volume
 
@@ -163,6 +163,8 @@ docker run --rm -v groovemark_pocketbase_data:/data -v $(pwd):/backup alpine tar
 # Restore volume
 docker run --rm -v groovemark_pocketbase_data:/data -v $(pwd):/backup alpine tar xzf /backup/pocketbase-backup.tar.gz -C /
 ```
+
+Back up the PocketBase volume before upgrading the server image to a newer `PB_VERSION`.
 
 ## Production Deployment
 
