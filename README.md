@@ -4,6 +4,12 @@
 
 # GrooveMark <!-- omit from toc -->
 
+<p align="center">
+  <a href="https://baptiste-pasquier.github.io/groovemark/">
+    <img src="https://img.shields.io/badge/Live%20Demo-GrooveMark-blue?style=for-the-badge&logo=github" alt="Live Demo" />
+  </a>
+</p>
+
 GrooveMark is a Vue 3 music bookmarking application for saving your favorite sets with
 precise timestamps, powered by PocketBase with a local offline fallback.
 
