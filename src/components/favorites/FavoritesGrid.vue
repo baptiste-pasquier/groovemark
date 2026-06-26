@@ -69,11 +69,7 @@ watch(sentinel, (el) => {
           : t('grid.empty_no_results')
       }}
     </div>
-    <div
-      v-else
-      id="favorites-grid"
-      class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
+    <div v-else id="favorites-grid" class="favorites-grid">
       <FavoriteCard
         v-for="fav in visibleFavorites"
         :key="fav.id"

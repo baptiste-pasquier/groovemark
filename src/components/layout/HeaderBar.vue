@@ -63,7 +63,7 @@ function openFilters() {
 </script>
 
 <template>
-  <header class="mb-8 flex flex-col items-center justify-between sm:flex-row">
+  <header class="favorites-header">
     <div class="flex items-center gap-4">
       <img src="/icon.svg" alt="GrooveMark Logo" class="h-16 w-16" />
       <div>
@@ -107,7 +107,7 @@ function openFilters() {
         </button>
         <button
           id="filter-menu-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none lg:hidden"
+          class="favorites-desktop-hidden rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="openFilters"
         >
           <Filter class="h-6 w-6 text-gray-700" />
