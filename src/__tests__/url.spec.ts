@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import './mocks/pocketbase'
-import { resetPocketbaseMocks } from './mocks/pocketbase'
+import { mockPocketbase, resetPocketbaseMocks } from './mocks/pocketbase'
 import { isSoundCloudUrl, normalizeUrl } from '../utils/url'
 
 describe('URL utilities', () => {
@@ -29,5 +29,14 @@ describe('URL utilities', () => {
     await expect(
       normalizeUrl('https://soundcloud.com.evil.example/artist/track?utm_source=test'),
     ).resolves.toBe('https://soundcloud.com.evil.example/artist/track?utm_source=test')
+  })
+
+  it('keeps official short links as SoundCloud when expansion fails', async () => {
+    mockPocketbase.send.mockRejectedValueOnce(new Error('expand failed'))
+
+    expect(isSoundCloudUrl('https://on.soundcloud.com/abc123')).toBe(true)
+    await expect(normalizeUrl('https://on.soundcloud.com/abc123?utm_source=test')).resolves.toBe(
+      'https://on.soundcloud.com/abc123',
+    )
   })
 })

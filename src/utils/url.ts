@@ -25,7 +25,10 @@ export function isSafeHttpUrl(inputUrl: string): boolean {
 export function isSoundCloudUrl(inputUrl: string): boolean {
   try {
     const url = new URL(inputUrl)
-    return isExactHostnameOrSubdomain(url.hostname, SOUNDCLOUD_HOST)
+    return (
+      url.hostname === SOUNDCLOUD_SHORT_HOST ||
+      isExactHostnameOrSubdomain(url.hostname, SOUNDCLOUD_HOST)
+    )
   } catch {
     return false
   }
