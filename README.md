@@ -60,6 +60,7 @@ Backend-as-a-Service (BaaS) architecture.
   commands
 - **[Architecture Notes](./docs/ARCHITECTURE.md)** - Bootstrap flow, persistence model,
   storage keys, and import behavior
+- **[Changelog](./CHANGELOG.md)** - Notable project changes and documentation updates
 - **[PocketBase Setup](./docs/POCKETBASE_SETUP.md)** - Backend installation, collection
   setup, rules, and environment configuration
 - **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Favorites collection schema and

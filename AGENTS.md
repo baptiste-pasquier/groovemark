@@ -218,10 +218,11 @@ src/
   - local mode favorites
   - authenticated user cache
 
-## Copilot Instructions
+## Coding Guidance
 
-From `.github/copilot-instructions.md`:
+- Always use Context7 when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
 
-> Always use context7 when I need code generation, setup or configuration steps, or
-> library/API documentation. This means you should automatically use the Context7 MCP
-> tools to resolve library id and get library docs without me having to explicitly ask.
+## Documentation Maintenance
+
+- Update `README.md` and `AGENTS.md` whenever changes impact setup, workflows, architecture, or contributor guidance.
+- Keep `CHANGELOG.md` up to date with notable project changes.
