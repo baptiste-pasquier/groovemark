@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { useFavoritesStore } from '../../stores/favorites'
-import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import { useI18n } from 'vue-i18n'
 import FavoriteCard from './FavoriteCard.vue'
+import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 
 const BATCH_SIZE = 20
 
@@ -24,7 +24,11 @@ const visibleFavorites = computed(() =>
 const hasMore = computed(() => displayCount.value < favoritesUiStore.filteredFavorites.length)
 
 watch(
-  () => favoritesUiStore.filteredFavorites,
+  [
+    () => favoritesUiStore.searchTerm,
+    () => favoritesUiStore.currentFilter,
+    () => favoritesUiStore.sortOrder,
+  ],
   () => {
     displayCount.value = BATCH_SIZE
   },
