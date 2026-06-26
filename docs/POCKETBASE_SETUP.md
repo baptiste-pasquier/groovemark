@@ -25,6 +25,9 @@ cd docker
 docker-compose up pocketbase -d
 ```
 
+The Docker setup pins PocketBase `v0.39.4` by default. Back up `pb_data` before upgrading an
+existing instance to a newer server release.
+
 ## 3. Configure the `favorites` Collection
 
 1. Open the PocketBase admin UI at `http://localhost:8090/_/`

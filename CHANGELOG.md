@@ -13,3 +13,4 @@ All notable changes to this project should be documented in this file.
 - Upgraded the Playwright lockfile resolution to fix GitHub Actions failures while installing Playwright browsers.
 - Removed favorites grid enter/move/leave animations to avoid iPhone crashes and reload loops when filtering or searching large lists.
 - Added progressive rendering (batches of 20) and lazy image loading to prevent iPhone crash with 120+ favorites during search/filter.
+- Upgraded the PocketBase JavaScript SDK to `0.27.0` and the Docker-pinned PocketBase server to `v0.39.4`.
