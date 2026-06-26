@@ -218,6 +218,11 @@ src/
   - local mode favorites
   - authenticated user cache
 
+## Docker
+
+- Version pins for Docker images (e.g., PocketBase version) live in the Dockerfile `ARG` defaults, not in the GitHub Actions workflow.
+- Do not duplicate version numbers in `docker-build.yml` `build-args` -- the Dockerfile is the single source of truth.
+
 ## Coding Guidance
 
 - Always use Context7 when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
