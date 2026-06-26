@@ -62,13 +62,11 @@ async function handleImport(e: Event) {
 
   <LoginPage v-else-if="appStore.status === 'unauthenticated'" />
 
-  <div v-else class="container mx-auto p-4 sm:p-6 md:p-8">
+  <div v-else class="app-shell">
     <HeaderBar @openFilters="showSidebar = true" @importClick="$event && handleImport($event)" />
 
-    <div class="flex flex-col lg:flex-row lg:gap-8">
-      <aside
-        class="sticky top-4 hidden h-[calc(100vh-2rem)] w-72 shrink-0 flex-col gap-6 rounded-2xl bg-gray-50 p-6 shadow-sm lg:flex"
-      >
+    <div class="favorites-layout">
+      <aside class="favorites-sidebar-desktop">
         <FavoriteSearchBar />
         <AddFavoriteButton @click="addFavorite" />
         <div class="flex flex-1 flex-col overflow-hidden">
@@ -79,8 +77,8 @@ async function handleImport(e: Event) {
         </div>
       </aside>
 
-      <main class="min-w-0 flex-1">
-        <div class="mb-6 space-y-4 lg:hidden">
+      <main class="favorites-main">
+        <div class="favorites-mobile-controls">
           <FavoriteSearchBar />
           <AddFavoriteButton @click="addFavorite" />
         </div>
