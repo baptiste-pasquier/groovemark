@@ -26,6 +26,7 @@ function timestampLink(time: string) {
       <img
         :src="favorite.thumbnail"
         alt="Thumbnail"
+        loading="lazy"
         class="h-40 w-full rounded-t-xl object-cover"
         @error="
           (e: any) => (e.target.src = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature')

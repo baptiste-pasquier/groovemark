@@ -11,3 +11,4 @@ All notable changes to this project should be documented in this file.
 ### Fixed
 
 - Removed favorites grid enter/move/leave animations to avoid iPhone crashes and reload loops when filtering or searching large lists.
+- Added progressive rendering (batches of 20) and lazy image loading to prevent iPhone crash with 120+ favorites during search/filter.
