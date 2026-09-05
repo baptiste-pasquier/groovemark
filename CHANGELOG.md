@@ -8,6 +8,7 @@ All notable changes to this project should be documented in this file.
 
 - Added repository guidance to keep `README.md`, `AGENTS.md`, and `CHANGELOG.md` maintained.
 - Added a committed README demo GIF workflow driven by Playwright screenshots and a repo-local `docs/demo.gif` asset.
+- Restructured `docs/` into a Diátaxis + journal taxonomy (`explanation/`, `how-to/`, `reference/`, `conventions/`, `journal/`) with an enforced routing rule, and added `scripts/check_docs.py` as a pre-commit and CI gate.
 
 ### Fixed
 

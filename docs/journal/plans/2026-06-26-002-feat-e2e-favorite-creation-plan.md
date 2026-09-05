@@ -2,7 +2,8 @@
 title: 'feat: Add E2E tests for favorite creation with YouTube and SoundCloud'
 date: 2026-06-26
 type: feat
-origin: docs/brainstorms/2026-06-26-e2e-favorite-creation-requirements.md
+origin: docs/journal/ideation/2026-06-26-e2e-favorite-creation-requirements.md
+status: shipped
 ---
 
 # feat: Add E2E tests for favorite creation with YouTube and SoundCloud
@@ -15,7 +16,7 @@ Add Playwright E2E tests that exercise the full favorite creation round-trip —
 
 ## Problem Frame
 
-The add-favorite dialog is the core user flow and currently has zero E2E coverage. Regressions in URL normalization, noembed.com integration, timestamp handling, or the save-to-localStorage path can ship undetected. (see origin: `docs/brainstorms/2026-06-26-e2e-favorite-creation-requirements.md`)
+The add-favorite dialog is the core user flow and currently has zero E2E coverage. Regressions in URL normalization, noembed.com integration, timestamp handling, or the save-to-localStorage path can ship undetected. (see origin: `docs/journal/ideation/2026-06-26-e2e-favorite-creation-requirements.md`)
 
 ---
 

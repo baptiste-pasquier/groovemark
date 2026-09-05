@@ -1,3 +1,11 @@
+---
+title: Authentication setup
+type: how-to
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-20
+---
+
 # Authentication Setup Guide <!-- omit from toc -->
 
 GrooveMark supports two authentication modes:
@@ -47,7 +55,7 @@ Local mode requires no additional setup. Users can simply click "Continue in Loc
 
 Before setting up Google SSO, you need:
 
-- A running PocketBase instance (see [PocketBase Setup](./POCKETBASE_SETUP.md))
+- A running PocketBase instance (see [PocketBase Setup](./pocketbase-setup.md))
 - A Google Cloud Platform account
 - Access to the Google Cloud Console
 
@@ -121,7 +129,7 @@ Before setting up Google SSO, you need:
    - Required: Yes
 
    Then apply the user-scoped API rules documented in
-   [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings).
+   [Pocketbase Schema](../reference/pocketbase-schema.md#collection-settings).
 
    Shared authenticated favorites are no longer recommended because the client now assumes per-user isolation for both cloud records and offline cache.
 
@@ -202,7 +210,7 @@ npm run build
 **Solution**:
 
 - Check that the `favorites` collection uses the user-scoped API rules from
-  [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md#collection-settings)
+  [Pocketbase Schema](../reference/pocketbase-schema.md#collection-settings)
 - Verify user is actually authenticated by checking `pb.authStore.isValid`
 - Check browser console for any error messages
 - Ensure the favorites collection exists in PocketBase and includes the `owner` relation field

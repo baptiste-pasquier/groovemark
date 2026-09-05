@@ -66,22 +66,26 @@ Backend-as-a-Service (BaaS) architecture.
 
 ## Documentation
 
-- **[Development Guide](./docs/DEVELOPMENT.md)** - Local setup, IDE notes, and development
-  commands
-- **[Architecture Notes](./docs/ARCHITECTURE.md)** - Bootstrap flow, persistence model,
-  storage keys, and import behavior
-- **[Responsive Layout Notes](./docs/RESPONSIVE_LAYOUT.md)** - Layout tokens, shell width
-  formulas, and breakpoint reasoning for the favorites view
-- **[Demo Preview](./docs/DEMO_PREVIEW.md)** - README demo GIF details and regeneration
-  workflow
+Start at **[docs/README.md](./docs/README.md)** for the full map and the rule for where a
+new doc belongs.
+
+- **[Development Guide](./docs/how-to/development.md)** - Local setup, IDE notes, and
+  development commands
+- **[Architecture Notes](./docs/explanation/architecture.md)** - Bootstrap flow, persistence
+  model, and import behavior
+- **[Responsive Layout Notes](./docs/reference/responsive-layout.md)** - Layout tokens, shell
+  width formulas, and breakpoint reasoning for the favorites view
+- **[Demo Preview](./docs/how-to/demo-preview.md)** - README demo GIF details and
+  regeneration workflow
 - **[Changelog](./CHANGELOG.md)** - Notable project changes and documentation updates
-- **[PocketBase Setup](./docs/POCKETBASE_SETUP.md)** - Backend installation, collection
-  setup, rules, and environment configuration
-- **[Pocketbase Schema](./docs/POCKETBASE_SCHEMA.md)** - Favorites collection schema and
-  migration notes
-- **[Authentication Setup](./docs/AUTHENTICATION.md)** - Google SSO and local mode guide
-- **[Docker Deployment](./docs/DOCKER.md)** - Docker Compose, production deployment,
-  troubleshooting, and CI/CD
+- **[PocketBase Setup](./docs/how-to/pocketbase-setup.md)** - Backend installation,
+  collection setup, rules, and environment configuration
+- **[Pocketbase Schema](./docs/reference/pocketbase-schema.md)** - Favorites collection
+  schema and migration notes
+- **[Authentication Setup](./docs/how-to/authentication-setup.md)** - Google SSO and local
+  mode guide
+- **[Docker Deployment](./docs/how-to/docker-deployment.md)** - Docker Compose, production
+  deployment, troubleshooting, and CI/CD
 
 ## Quick Start
 
@@ -102,5 +106,5 @@ npm install
 npm run dev
 ```
 
-See [Development Guide](./docs/DEVELOPMENT.md) for the full workflow and
-[PocketBase Setup](./docs/POCKETBASE_SETUP.md) for authenticated mode.
+See [Development Guide](./docs/how-to/development.md) for the full workflow and
+[PocketBase Setup](./docs/how-to/pocketbase-setup.md) for authenticated mode.

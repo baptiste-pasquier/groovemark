@@ -1,3 +1,11 @@
+---
+title: PocketBase collection schema
+type: reference
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-15
+---
+
 # Pocketbase Collection Schema
 
 ## Collection: favorites
@@ -99,9 +107,14 @@ If you have existing data in localStorage, you can:
 2. Start Pocketbase and create the collection
 3. Use the "Import JSON" button to import your favorites
 
-Current browser keys are:
+## Storage Keys
 
+Current browser storage keys:
+
+- `groovemark_auth_mode`
+- `groovemark_locale`
 - `groovemark:favorites:local`
 - `groovemark:favorites:google:<userId>`
 
-The app also contains a legacy migration path for the old `favorites` key when entering local mode.
+The app also contains a legacy migration path for the old `favorites` key when entering
+local mode.

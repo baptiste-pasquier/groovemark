@@ -1,7 +1,7 @@
 # E2E Tests: Favorite Creation with SoundCloud & YouTube
 
 **Date:** 2026-06-26
-**Status:** Ready for planning
+**Status:** Shipped (see `docs/journal/plans/2026-06-26-002-feat-e2e-favorite-creation-plan.md`)
 
 ## Problem
 

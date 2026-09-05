@@ -1,7 +1,7 @@
 # GitHub Pages Demo Deployment
 
 **Date:** 2026-06-26
-**Status:** Ready for planning
+**Status:** Shipped (see `docs/journal/plans/2026-06-26-001-feat-github-pages-deploy-plan.md`)
 
 ## Desired Outcome
 

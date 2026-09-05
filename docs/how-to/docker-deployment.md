@@ -1,3 +1,11 @@
+---
+title: Docker deployment guide
+type: how-to
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-20
+---
+
 # Docker Deployment Guide
 
 This guide provides detailed instructions for deploying GrooveMark using Docker and Docker Compose.
@@ -59,9 +67,9 @@ This will:
 On first run, visit <http://localhost:8090/_/> to:
 
 1. Create an admin account
-2. Configure the `favorites` collection (see [POCKETBASE_SETUP.md](./POCKETBASE_SETUP.md))
-3. Review the schema details in [POCKETBASE_SCHEMA.md](./POCKETBASE_SCHEMA.md)
-4. Set up authentication if needed (see [AUTHENTICATION.md](./AUTHENTICATION.md))
+2. Configure the `favorites` collection (see [PocketBase Setup](./pocketbase-setup.md))
+3. Review the schema details in [Pocketbase Schema](../reference/pocketbase-schema.md)
+4. Set up authentication if needed (see [Authentication Setup](./authentication-setup.md))
 
 ## Docker Images
 
