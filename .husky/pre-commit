@@ -1,5 +1,8 @@
+set -e
+
 npx lint-staged
 
 if git diff --cached --name-only | grep -q '^docs/'; then
   npm run check:docs
 fi
+
