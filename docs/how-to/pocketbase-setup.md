@@ -1,3 +1,11 @@
+---
+title: PocketBase setup
+type: how-to
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-20
+---
+
 # PocketBase Setup
 
 This application uses [PocketBase](https://pocketbase.io/) as the backend for
@@ -44,7 +52,7 @@ existing instance to a newer server release.
 PocketBase will also manage auto-generated fields such as `id`, `created`, and
 `updated`.
 
-See [Pocketbase Schema](./POCKETBASE_SCHEMA.md) for the full schema and example payloads.
+See [Pocketbase Schema](../reference/pocketbase-schema.md) for the full schema and example payloads.
 
 ## 4. Configure API Rules
 
@@ -82,11 +90,11 @@ The app uses separate local persistence modes:
 - **Authenticated fallback** stores the signed-in user's offline cache in
   `groovemark:favorites:google:<userId>`
 
-The app also contains a legacy migration path for the old `favorites` key when entering
-local mode.
+See [PocketBase Schema](../reference/pocketbase-schema.md#storage-keys) for the full list of
+storage keys and the legacy migration note.
 
 ## 7. Authentication Integration
 
 If you want Google SSO, continue with
-[Authentication Setup](./AUTHENTICATION.md). That guide covers OAuth provider
+[Authentication Setup](./authentication-setup.md). That guide covers OAuth provider
 configuration and the `users` collection flow.

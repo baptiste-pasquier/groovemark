@@ -1,7 +1,15 @@
+---
+title: Architecture notes
+type: explanation
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-15
+---
+
 # Architecture Notes
 
 This document captures the application-level behavior that complements the high-level
-architecture overview in the main [README](../README.md).
+architecture overview in the main [README](../../README.md).
 
 ## Bootstrap Flow
 
@@ -32,15 +40,8 @@ This avoids mixing anonymous favorites with authenticated user data.
 
 ## Storage Keys
 
-Current browser storage keys:
-
-- `groovemark_auth_mode`
-- `groovemark_locale`
-- `groovemark:favorites:local`
-- `groovemark:favorites:google:<userId>`
-
-The app also contains a legacy migration path for the old `favorites` key when entering
-local mode.
+See [PocketBase Schema](../reference/pocketbase-schema.md#storage-keys) for the current
+list of browser storage keys and the legacy migration note.
 
 ## Import Flow
 

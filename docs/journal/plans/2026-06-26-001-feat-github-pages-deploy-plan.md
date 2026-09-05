@@ -2,8 +2,8 @@
 title: 'feat: Deploy demo to GitHub Pages'
 date: 2026-06-26
 type: feat
-origin: docs/brainstorms/2026-06-26-github-pages-deploy-requirements.md
-status: ready
+origin: docs/journal/ideation/2026-06-26-github-pages-deploy-requirements.md
+status: shipped
 ---
 
 # feat: Deploy demo to GitHub Pages
@@ -16,7 +16,7 @@ Add a GitHub Actions workflow that builds and deploys GrooveMark to GitHub Pages
 
 ## Problem Frame
 
-GrooveMark has no public demo. Sharing the app requires either running it locally or deploying the full Docker stack with PocketBase. A static GitHub Pages deployment would let anyone try the app instantly in local-only mode (see origin: `docs/brainstorms/2026-06-26-github-pages-deploy-requirements.md`).
+GrooveMark has no public demo. Sharing the app requires either running it locally or deploying the full Docker stack with PocketBase. A static GitHub Pages deployment would let anyone try the app instantly in local-only mode (see origin: `docs/journal/ideation/2026-06-26-github-pages-deploy-requirements.md`).
 
 ---
 
@@ -110,4 +110,4 @@ The workflow needs `permissions: pages: write, id-token: write, contents: read` 
 ## Sources & Research
 
 - Existing workflows: `ci.yml`, `playwright.yml`, `docker-build.yml` for action versions and Node setup patterns
-- Origin: `docs/brainstorms/2026-06-26-github-pages-deploy-requirements.md`
+- Origin: `docs/journal/ideation/2026-06-26-github-pages-deploy-requirements.md`

@@ -24,8 +24,7 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
   - Layout sizing tokens live in `src/assets/tailwind.css`
   - Semantic layout classes such as `.app-shell`, `.favorites-header`, and `.favorites-grid`
     are the source of truth for the favorites view
-  - Avoid reintroducing raw arbitrary breakpoint/width values in Vue templates when adjusting
-    the favorites layout
+  - See `docs/conventions/frontend-layout.md` before changing layout tokens or templates
 - localStorage keys are intentionally scoped:
   - `groovemark:favorites:local`
   - `groovemark:favorites:google:<userId>`
@@ -234,7 +233,80 @@ src/
 
 - Always use Context7 when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
 
-## Documentation Maintenance
+## Documentation
 
-- Update `README.md` and `AGENTS.md` whenever changes impact setup, workflows, architecture, or contributor guidance.
-- Keep `CHANGELOG.md` up to date with notable project changes.
+`docs/` has one topology and one routing rule. **Read [`docs/README.md`](docs/README.md)
+before creating or substantially extending anything under `docs/`.** Full rules:
+[`docs/conventions/documentation.md`](docs/conventions/documentation.md).
+
+### Where a paragraph goes
+
+Two axes. **Lifecycle first**: `docs/explanation/`, `docs/how-to/`, `docs/reference/`, and
+`docs/conventions/` are _maintained_ and are the sources of truth; `docs/journal/` is
+_append-only_, dated, and **never cited as truth**. Then, for maintained text, the
+[Diátaxis](https://diataxis.fr/compass/) compass -- run it on **the paragraph**, not on the
+file you have open.
+
+| The content…          | …serves the reader…              | …belongs in                                   |
+| --------------------- | -------------------------------- | --------------------------------------------- |
+| informs **action**    | **applying** a skill (working)   | `docs/how-to/`                                |
+| informs **action**    | **acquiring** a skill (studying) | a tutorial -- we have none, so `docs/how-to/` |
+| informs **cognition** | **applying** a skill (working)   | `docs/reference/`                             |
+| informs **cognition** | **acquiring** a skill (studying) | `docs/explanation/`                           |
+
+Four extensions, for text that is not about the product:
+
+| The paragraph…                                   | belongs in                |
+| ------------------------------------------------ | ------------------------- |
+| tells a future writer or agent what to do        | `docs/conventions/`       |
+| recounts what was tried, failed, or was measured | `docs/journal/solutions/` |
+| records a choice between options                 | `docs/journal/decisions/` |
+| names something not built yet                    | a GitHub issue            |
+
+A maintained doc states the rule **once** and links the journal entry for the evidence. It
+does not retell the story.
+
+### Rules that are enforced
+
+`scripts/check_docs.py` runs in the Husky pre-commit hook (when a staged file is under
+`docs/`) and as its own step in CI (`npm run check:docs`). It needs only a `python3`
+interpreter -- no pip dependency. These fail:
+
+- **Never narrate a past attempt, failure, or measured symptom in `docs/reference/`,
+  `docs/conventions/` or `docs/how-to/`.** Write a `docs/journal/solutions/` entry and leave
+  the distilled rule with a link. `docs/explanation/` **may** narrate, so the gate **warns**
+  there rather than failing. `docs/journal/` is exempt.
+- **Never add a backlog, TODO or "future work" section under `docs/`.** Unbuilt work lives in
+  the issue tracker and nowhere else -- `gh issue list --label backlog` to read it,
+  `gh issue create --label backlog` to add an item, and **link the issue** from the doc
+  rather than describing the missing work. A `TODO` comment in a source file is fine, and a
+  doc may point at one.
+- **Every maintained doc carries frontmatter** with `title`, `type` (equal to its folder
+  name), `audience`, `status`, `stale_after`, and appears in `docs/README.md`. A passed
+  `stale_after` **warns** rather than fails.
+- **Every `docs/conventions/` file opens with a `Scope:` line** naming the artifact it
+  governs.
+- **Every relative link and every `#fragment` resolves.**
+- **Filenames are kebab-case**, and a `docs/journal/decisions/` entry is
+  `NNNN-with-dashes.md`.
+
+### Rules that are reviewed, not gated
+
+- **Before implementing a fix or a non-obvious behaviour change, check
+  `docs/journal/solutions/`** for an entry in the relevant area.
+- **Record a lasting architectural choice as an ADR** under `docs/journal/decisions/`. An
+  accepted decision is never edited -- a change adds a new entry marking the old superseded.
+- **Documentation prose**: lead with the conclusion; one claim per paragraph; no filler or
+  hedging; prefer a table to enumerative prose.
+
+### What to update when
+
+| You changed                                                 | Update                                |
+| ----------------------------------------------------------- | ------------------------------------- |
+| the PocketBase schema or API rules                          | `docs/reference/pocketbase-schema.md` |
+| app bootstrap, persistence, or state-store responsibilities | `docs/explanation/architecture.md`    |
+| the favorites layout tokens or breakpoints                  | `docs/reference/responsive-layout.md` |
+| local dev, Docker, or auth setup steps                      | the matching `docs/how-to/*.md`       |
+| user-facing behaviour, setup, local workflow                | `README.md`                           |
+| what an agent must always know                              | this file                             |
+| notable project changes                                     | `CHANGELOG.md`                        |

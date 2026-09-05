@@ -1,8 +1,16 @@
+---
+title: Demo preview
+type: how-to
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-20
+---
+
 # Demo Preview
 
-![GrooveMark demo preview](./demo.gif)
+![GrooveMark demo preview](../demo.gif)
 
-The repository includes a committed GIF preview at [`docs/demo.gif`](./demo.gif).
+The repository includes a committed GIF preview at [`docs/demo.gif`](../demo.gif).
 
 Regenerate it locally with:
 

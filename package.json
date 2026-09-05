@@ -13,6 +13,7 @@
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "test:demo": "node scripts/generateDemoGif.mjs",
+    "check:docs": "python3 scripts/check_docs.py",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",

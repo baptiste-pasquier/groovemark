@@ -1,3 +1,11 @@
+---
+title: Responsive layout tokens
+type: reference
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-10
+---
+
 # Responsive Layout Notes
 
 This document explains the desktop and tablet layout sizing used by GrooveMark's
@@ -5,7 +13,7 @@ favorites view.
 
 ## Source Of Truth
 
-Layout tokens live in [src/assets/tailwind.css](../src/assets/tailwind.css).
+Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
 
 ```css
 @theme {
@@ -181,11 +189,5 @@ These classes translate the tokens into layout behavior:
 
 ## Editing Guidance
 
-If the layout changes, prefer this order:
-
-1. Change the token in `@theme`
-2. Recompute the shell width formulas if needed
-3. Keep component templates using semantic classes instead of arbitrary values
-
-Avoid reintroducing raw values like `min-[87rem]` or `max-w-[108.5rem]` directly in Vue
-templates unless the layout system is being redesigned.
+See [Frontend Layout Conventions](../conventions/frontend-layout.md) for the rule on
+changing these tokens.

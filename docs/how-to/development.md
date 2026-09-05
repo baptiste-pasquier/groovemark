@@ -1,3 +1,11 @@
+---
+title: Development guide
+type: how-to
+audience: [human, agent]
+status: stable
+stale_after: 2026-12-20
+---
+
 # Development Guide
 
 This guide covers local setup, day-to-day commands, and editor tooling for GrooveMark.
@@ -40,7 +48,7 @@ cd docker
 docker-compose up pocketbase -d
 ```
 
-See [PocketBase Setup](./POCKETBASE_SETUP.md) for collection and auth configuration.
+See [PocketBase Setup](./pocketbase-setup.md) for collection and auth configuration.
 
 ## Build and Type Check
 
