@@ -1,0 +1,11 @@
+# Every compound-engineering artifact folder (solutions, plans, ideation,
+# explainers, specs, personas, pulse-reports, ...) lives under docs/journal/.
+#
+# That keeps the append-only, dated records on one side of the taxonomy and the
+# four maintained Diataxis folders on the other - see docs/README.md. Without
+# this, CE would create up to nine folders at the root of docs/ and the
+# maintained/dated boundary would disappear.
+#
+# A configured root is the sole location CE reads and writes; it never falls back
+# to docs/. Set only here, never in config.local.yaml.
+docs_root: docs/journal
