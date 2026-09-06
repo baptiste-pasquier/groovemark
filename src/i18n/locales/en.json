@@ -32,6 +32,7 @@
     "finished_zero_added": "Import finished. 0 added, {skipped} already present.",
     "none_or_invalid": "No favorites in the file or invalid structure.",
     "with_skipped": ", {skipped} already present (ignored).",
+    "with_failed": "{failed} failed to import, try again later.",
     "error_invalid_array": "The JSON file is not a valid array.",
     "error_invalid_json": "The JSON file is invalid.",
     "error_invalid_structure": "Invalid structure",

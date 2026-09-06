@@ -32,6 +32,7 @@
     "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
     "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
     "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
+    "with_failed": "{failed} échec(s) lors de l'import, réessayez plus tard.",
     "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
     "error_invalid_json": "Le fichier JSON est invalide.",
     "error_invalid_structure": "Structure invalide",

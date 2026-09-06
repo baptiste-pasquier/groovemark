@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { resetLocalStorageMock } from './mocks/localStorage'
-import { resetPocketbaseMocks } from './mocks/pocketbase'
+import { pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
 
 // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
 // pass by accident if the mapping reads the collection's own `created` field instead
@@ -195,5 +195,73 @@ describe('Favorite Import', () => {
       'https://www.youtube.com/watch?v=importNew1B',
       'https://www.youtube.com/watch?v=importOld1A',
     ])
+  })
+
+  it('retries a create rejected by the server rate limiter instead of counting it as a duplicate', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    pocketbaseCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-rate-limited',
+        url: 'https://youtube.com/watch?v=rateLimited1',
+        title: 'Rate Limited Favorite',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(favoritesStore.favorites).toHaveLength(1)
+    expect(favoritesUiStore.alertDialog.message).toContain('1 added')
+    expect(favoritesUiStore.alertDialog.message).not.toContain('already present')
+  })
+
+  it('reports a non-recoverable create failure as failed, never as an already-present duplicate', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    pocketbaseCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-failing',
+        url: 'https://youtube.com/watch?v=alwaysFails1',
+        title: 'Failing Favorite',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(favoritesStore.favorites).toHaveLength(0)
+    expect(favoritesUiStore.alertDialog.message).not.toContain('already present')
+    expect(favoritesUiStore.alertDialog.message).toMatch(/failed/i)
   })
 })

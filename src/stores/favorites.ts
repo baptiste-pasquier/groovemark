@@ -9,7 +9,10 @@ import type {
   FavoritesRepository,
   RepositoryMode,
 } from '../services/favoritesRepository'
-import { selectFavoritesRepository } from '../services/favoritesRepository'
+import {
+  FavoritesRepositoryError,
+  selectFavoritesRepository,
+} from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -30,6 +33,37 @@ interface FavoriteDraft {
 }
 
 const DEFAULT_THUMBNAIL = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature'
+const RATE_LIMIT_STATUS = 429
+const MAX_CREATE_ATTEMPTS = 3
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+function isRateLimitedError(error: unknown): boolean {
+  if (!(error instanceof FavoritesRepositoryError)) return false
+  const cause = error.cause
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    'status' in cause &&
+    (cause as { status: unknown }).status === RATE_LIMIT_STATUS
+  )
+}
+
+async function createFavoriteWithRetry(
+  repository: FavoritesRepository,
+  input: FavoriteRecordInput,
+  attempt = 1,
+): Promise<Favorite> {
+  try {
+    return await repository.create(input)
+  } catch (error) {
+    if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
+    await wait(300 * attempt)
+    return createFavoriteWithRetry(repository, input, attempt + 1)
+  }
+}
 
 export const useFavoritesStore = defineStore('favorites', () => {
   const favorites = ref<Favorite[]>([])
@@ -220,6 +254,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const usesCloudRepository = repositoryMode.value === 'google-cloud'
     let added = 0
     let skipped = 0
+    let failed = 0
 
     for (const favorite of data) {
       const normalizedUrl = await normalizeUrl(favorite.url)
@@ -236,7 +271,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
       try {
         if (usesCloudRepository && activeRepository) {
-          const createdFavorite = await activeRepository.create({
+          const createdFavorite = await createFavoriteWithRetry(activeRepository, {
             url: normalizedUrl,
             title: favorite.title,
             artists: favorite.artists || [],
@@ -257,31 +292,36 @@ export const useFavoritesStore = defineStore('favorites', () => {
         added++
       } catch (error) {
         console.error('Error importing favorite:', error)
-        skipped++
+        failed++
       }
     }
 
     await persistCacheSnapshot()
 
     if (added === 0) {
-      if (skipped > 0) {
-        await favoritesUiStore.showAlert(
-          i18n.global.t('import.finished_zero_added', { skipped }),
-          'info',
-        )
-      } else {
+      if (skipped === 0 && failed === 0) {
         await favoritesUiStore.showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
+        return { added, skipped, failed }
       }
-      return { added, skipped }
+
+      const messageParts = [
+        skipped > 0
+          ? i18n.global.t('import.finished_zero_added', { skipped })
+          : i18n.global.t('import.added', { count: added }) + '.',
+      ]
+      if (failed) messageParts.push(i18n.global.t('import.with_failed', { failed }))
+
+      await favoritesUiStore.showAlert(messageParts.join(' '), failed ? 'alert' : 'info')
+      return { added, skipped, failed }
     }
 
-    await favoritesUiStore.showAlert(
-      i18n.global.t('import.added', { count: added }) +
-        (skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'),
-      'info',
-    )
+    let message = i18n.global.t('import.added', { count: added })
+    message += skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'
+    if (failed) message += ' ' + i18n.global.t('import.with_failed', { failed })
 
-    return { added, skipped }
+    await favoritesUiStore.showAlert(message, failed ? 'alert' : 'info')
+
+    return { added, skipped, failed }
   }
 
   async function importFromFile(file: File) {
