@@ -4,8 +4,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
+import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
+import type { FavoriteRecordInput } from '../services/favoritesRepository'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
-import { pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
 import type { Favorite } from '../types/favorite'
 
 function createFavorite(id: string, url: string): Favorite {
@@ -61,7 +63,9 @@ describe('Favorites Store', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    pocketbaseCollectionApi.getFullList.mockResolvedValue([cloudFavorite] as never)
+    pocketbaseCollectionApi.getFullList.mockResolvedValue([
+      { ...cloudFavorite, created_at: cloudFavorite.created },
+    ] as never)
 
     const favoritesStore = useFavoritesStore()
 
@@ -201,5 +205,68 @@ describe('Favorites Store', () => {
     expect(favoritesStore.favorites[0]?.url).toBe(
       'https://evil-soundcloud.com/artist/track?utm_source=test',
     )
+  })
+})
+
+describe('PocketBaseFavoritesRepository', () => {
+  // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
+  // pass by accident if the mapping reads the collection's own `created` field instead
+  // of `created_at`.
+  const inputCreated = '2020-05-15T10:30:00.000Z'
+
+  beforeEach(() => {
+    resetPocketbaseMocks()
+    mockPocketbase.authStore.model = { id: 'user-1' }
+  })
+
+  const repository = new PocketBaseFavoritesRepository()
+
+  function recordInput(overrides: Partial<FavoriteRecordInput> = {}): FavoriteRecordInput {
+    return {
+      url: 'https://youtube.com/watch?v=abc',
+      title: 'Test favorite',
+      artists: [],
+      type: 'youtube',
+      thumbnail: '',
+      timestamps: [],
+      ...overrides,
+    }
+  }
+
+  it('sends the input creation date as created_at and returns it on Favorite.created', async () => {
+    const result = await repository.create(recordInput({ created: inputCreated }))
+
+    expect(pocketbaseCollectionApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({ created_at: inputCreated }),
+    )
+    expect(result.created).toBe(inputCreated)
+  })
+
+  it('defaults created_at to the current time when no creation date is supplied', async () => {
+    const before = Date.now()
+
+    const result = await repository.create(recordInput())
+
+    const after = Date.now()
+    const createdTime = new Date(result.created ?? '').getTime()
+    expect(createdTime).toBeGreaterThanOrEqual(before)
+    expect(createdTime).toBeLessThanOrEqual(after)
+  })
+
+  it('never sends created_at when updating a favorite', async () => {
+    await repository.update('record-1', recordInput({ created: inputCreated }))
+
+    const sentPayload = pocketbaseCollectionApi.update.mock.calls[0]?.[1]
+    expect(sentPayload).not.toHaveProperty('created_at')
+  })
+
+  it('maps a listed record created_at onto Favorite.created', async () => {
+    pocketbaseCollectionApi.getFullList.mockResolvedValue([
+      { ...recordInput(), id: 'record-1', created_at: inputCreated },
+    ] as never)
+
+    const [favorite] = await repository.list()
+
+    expect(favorite?.created).toBe(inputCreated)
   })
 })

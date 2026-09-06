@@ -13,6 +13,7 @@ export interface FavoriteRecordInput {
   type: Favorite['type']
   thumbnail: string
   timestamps: Favorite['timestamps']
+  created?: string
 }
 
 export class FavoritesRepositoryError extends Error {
