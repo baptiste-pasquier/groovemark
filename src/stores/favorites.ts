@@ -207,6 +207,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
+  async function blockIfReadOnly(favoritesUiStore: ReturnType<typeof useFavoritesUiStore>) {
+    if (!isReadOnly.value) return false
+    await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
+    return true
+  }
+
   function getImportErrorMessage(error: FavoriteImportError) {
     switch (error.code) {
       case 'invalid_array':
@@ -222,10 +228,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function addOrUpdateFavorite(draft: FavoriteDraft) {
     const favoritesUiStore = useFavoritesUiStore()
 
-    if (isReadOnly.value) {
-      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
-      return false
-    }
+    if (await blockIfReadOnly(favoritesUiStore)) return false
 
     const normalizedUrl = await normalizeUrl(draft.url.trim())
     const duplicateFavorite = favorites.value.find(
@@ -282,10 +285,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function deleteFavorite(id: string) {
     const favoritesUiStore = useFavoritesUiStore()
 
-    if (isReadOnly.value) {
-      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
-      return
-    }
+    if (await blockIfReadOnly(favoritesUiStore)) return
 
     const confirmed = await favoritesUiStore.showConfirm(
       i18n.global.t('messages.confirm_delete_favorite'),
@@ -309,9 +309,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function importFavorites(data: Favorite[]) {
     const favoritesUiStore = useFavoritesUiStore()
 
-    if (isReadOnly.value) {
-      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
-      return { added: 0, skipped: data.length }
+    if (await blockIfReadOnly(favoritesUiStore)) {
+      return { added: 0, skipped: data.length, failed: 0 }
     }
 
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))

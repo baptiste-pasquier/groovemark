@@ -44,7 +44,15 @@ const importingLabel = computed(() => {
   if (progress.total === null) return t('app.importing_preparing')
   return t('app.importing', { processed: progress.processed, total: progress.total })
 })
-const isOfflineReadOnly = computed(() => favoritesStore.repositoryMode === 'google-cache')
+
+// Single source of truth for the import control's disabled state and styling,
+// so the label class and the input's disabled binding can never drift apart.
+const importControlState = computed<'importing' | 'readonly' | 'enabled'>(() => {
+  if (favoritesStore.importProgress) return 'importing'
+  if (favoritesStore.isReadOnly) return 'readonly'
+  return 'enabled'
+})
+const isImportDisabled = computed(() => importControlState.value !== 'enabled')
 
 function setAndPersistLocale(l: string) {
   locale.value = l
@@ -98,7 +106,7 @@ function openFilters() {
           {{ t('auth.local_mode') }}
         </span>
         <span
-          v-else-if="isOfflineReadOnly"
+          v-else-if="favoritesStore.isReadOnly"
           class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
           :title="t('login.offline_read_only_info')"
         >
@@ -186,13 +194,11 @@ function openFilters() {
             <label
               for="import-json"
               class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
-              :class="
-                favoritesStore.importProgress
-                  ? 'cursor-not-allowed opacity-60'
-                  : isOfflineReadOnly
-                    ? 'pointer-events-none opacity-50'
-                    : 'cursor-pointer'
-              "
+              :class="{
+                'cursor-not-allowed opacity-60': importControlState === 'importing',
+                'pointer-events-none opacity-50': importControlState === 'readonly',
+                'cursor-pointer': importControlState === 'enabled',
+              }"
             >
               <LoaderCircle v-if="favoritesStore.importProgress" class="h-4 w-4 animate-spin" />
               <Upload v-else class="h-4 w-4" />
@@ -203,7 +209,7 @@ function openFilters() {
               id="import-json"
               class="hidden"
               accept=".json"
-              :disabled="!!favoritesStore.importProgress || isOfflineReadOnly"
+              :disabled="isImportDisabled"
               @change="
                 (e) => {
                   emit('importClick', e)

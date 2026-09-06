@@ -149,7 +149,7 @@ describe('Favorites Store', () => {
     ])
     await flushPromises()
     favoritesUiStore.closeAlert()
-    expect(await importPromise).toEqual({ added: 0, skipped: 1 })
+    expect(await importPromise).toEqual({ added: 0, skipped: 1, failed: 0 })
 
     expect(favoritesStore.favorites).toEqual([cachedFavorite])
     expect(getLocalStorageState()['groovemark:favorites:google:user-1']).toBe(
