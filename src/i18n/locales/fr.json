@@ -42,7 +42,8 @@
     "invalid_time_format": "Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.",
     "url_exists": "Cette URL existe déjà dans vos favoris.",
     "error_saving": "Erreur lors de la sauvegarde du favori. Veuillez réessayer.",
-    "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer."
+    "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer.",
+    "error_session_init": "Un problème est survenu lors du démarrage de votre session. Veuillez réessayer."
   },
   "modal": {
     "add_timestamp": "+ Ajouter un timestamp",

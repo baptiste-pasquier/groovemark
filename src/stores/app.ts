@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import i18n from '../i18n'
 import type { AppStatus } from '../types/app'
 import { useAuthStore } from './auth'
 import { useFavoritesStore } from './favorites'
@@ -24,31 +25,46 @@ export const useAppStore = defineStore('app', () => {
     if (isBootstrapped.value) return
 
     status.value = 'booting'
-    await authStore.initialize()
-    await refreshBackendAvailability()
 
-    if (authStore.isLoggedIn) {
-      await favoritesStore.initializeForCurrentSession({
-        backendAvailable: backendAvailable.value,
-      })
-      status.value = 'ready'
-    } else {
-      favoritesStore.$reset()
-      favoritesUiStore.$reset()
-      status.value = 'unauthenticated'
+    try {
+      await authStore.initialize()
+      await refreshBackendAvailability()
+
+      if (authStore.isLoggedIn) {
+        await favoritesStore.initializeForCurrentSession({
+          backendAvailable: backendAvailable.value,
+        })
+        status.value = 'ready'
+      } else {
+        handleSignedOut()
+      }
+    } catch (error) {
+      await recoverFromSessionError('Error bootstrapping app:', error)
+    } finally {
+      isBootstrapped.value = true
     }
-
-    isBootstrapped.value = true
   }
 
   async function handleAuthenticatedSession() {
     status.value = 'booting'
-    await refreshBackendAvailability()
-    await favoritesStore.initializeForCurrentSession({
-      backendAvailable: backendAvailable.value,
-      force: true,
-    })
-    status.value = 'ready'
+
+    try {
+      await refreshBackendAvailability()
+      await favoritesStore.initializeForCurrentSession({
+        backendAvailable: backendAvailable.value,
+        force: true,
+      })
+      status.value = 'ready'
+    } catch (error) {
+      await recoverFromSessionError('Error initializing authenticated session:', error)
+    }
+  }
+
+  async function recoverFromSessionError(logMessage: string, error: unknown) {
+    console.error(logMessage, error)
+    await authStore.signOut()
+    handleSignedOut()
+    void favoritesUiStore.showAlert(i18n.global.t('messages.error_session_init'), 'alert')
   }
 
   function handleSignedOut() {

@@ -21,3 +21,4 @@ All notable changes to this project should be documented in this file.
 - Restricted GitHub Actions workflows to explicit read-only repository permissions.
 - Hardened SoundCloud URL detection so lookalike hosts are no longer treated as trusted SoundCloud links.
 - Fixed an SSRF in the `/api/expand-soundcloud` PocketBase hook: the host check compared a string prefix instead of the parsed hostname, so a userinfo (`https://on.soundcloud.com@internal-host/...`) or subdomain-suffix (`https://on.soundcloud.com.attacker.test/`) URL could make the server fetch an arbitrary internal or external host.
+- Fixed the app getting stuck on the loading spinner forever after a failed sign-in or bootstrap: `useAppStore`'s `bootstrap()` and `handleAuthenticatedSession()` now recover to the login screen (and clear any partial auth session) instead of leaving `status` stuck at `'booting'`.

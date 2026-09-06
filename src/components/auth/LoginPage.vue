@@ -32,8 +32,14 @@ async function handleGoogleSignIn() {
 }
 
 async function handleLocalMode() {
-  authStore.continueInLocalMode()
-  await appStore.handleAuthenticatedSession()
+  isLoading.value = true
+
+  try {
+    authStore.continueInLocalMode()
+    await appStore.handleAuthenticatedSession()
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 

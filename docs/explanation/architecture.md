@@ -28,6 +28,11 @@ The main shell explicitly transitions through three states:
 This keeps startup behavior predictable and separates login flow from the main
 application view.
 
+A failure during bootstrap or authenticated-session initialization recovers to
+`unauthenticated` rather than leaving the shell stuck on `booting`: `useAppStore` clears the
+auth session and favorites state and surfaces an alert, then the user lands back on the
+login screen instead of a permanent loading spinner.
+
 ## Persistence Model
 
 The persistence strategy is intentionally split by auth mode:

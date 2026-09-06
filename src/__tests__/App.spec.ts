@@ -5,6 +5,9 @@ import { createPinia } from 'pinia'
 import App from '../App.vue'
 import i18n from '../i18n'
 import { useAppStore } from '../stores/app'
+import { useAuthStore } from '../stores/auth'
+import { useFavoritesStore } from '../stores/favorites'
+import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { resetPocketbaseMocks } from './mocks/pocketbase'
 import { resetLocalStorageMock } from './mocks/localStorage'
 
@@ -40,5 +43,55 @@ describe('App', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Welcome to GrooveMark')
+  })
+})
+
+describe('useAppStore', () => {
+  beforeEach(() => {
+    resetPocketbaseMocks()
+    resetLocalStorageMock()
+    i18n.global.locale.value = 'en'
+  })
+
+  it('recovers to unauthenticated and clears the auth session when initializing an authenticated session fails', async () => {
+    const pinia = createPinia()
+    const appStore = useAppStore(pinia)
+    const authStore = useAuthStore(pinia)
+    const favoritesStore = useFavoritesStore(pinia)
+    const favoritesUiStore = useFavoritesUiStore(pinia)
+
+    await authStore.signInWithGoogle()
+    vi.spyOn(favoritesStore, 'initializeForCurrentSession').mockRejectedValue(
+      new Error('Google favorites require a user id.'),
+    )
+
+    await expect(appStore.handleAuthenticatedSession()).resolves.toBeUndefined()
+
+    expect(appStore.status).toBe('unauthenticated')
+    expect(authStore.authMode).toBe(null)
+    expect(favoritesUiStore.alertDialog.visible).toBe(true)
+    expect(favoritesUiStore.alertDialog.message).toBe(
+      'There was a problem starting your session. Please try again.',
+    )
+  })
+
+  it('recovers to unauthenticated when bootstrapping an already logged-in session fails', async () => {
+    const pinia = createPinia()
+    const appStore = useAppStore(pinia)
+    const authStore = useAuthStore(pinia)
+    const favoritesStore = useFavoritesStore(pinia)
+    const favoritesUiStore = useFavoritesUiStore(pinia)
+
+    authStore.continueInLocalMode()
+    vi.spyOn(favoritesStore, 'initializeForCurrentSession').mockRejectedValue(
+      new Error('Google favorites require a user id.'),
+    )
+
+    await expect(appStore.bootstrap()).resolves.toBeUndefined()
+
+    expect(appStore.status).toBe('unauthenticated')
+    expect(appStore.isBootstrapped).toBe(true)
+    expect(authStore.authMode).toBe(null)
+    expect(favoritesUiStore.alertDialog.visible).toBe(true)
   })
 })

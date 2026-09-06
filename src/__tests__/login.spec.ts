@@ -40,4 +40,35 @@ describe('LoginPage', () => {
     expect(handleAuthenticatedSessionSpy).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('Failed to sign in with Google. Please try again.')
   })
+
+  it('disables the local mode button while a session is being initialized, preventing a double-click race', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const appStore = useAppStore()
+    let resolveSession: (() => void) | undefined
+    const handleAuthenticatedSessionSpy = vi
+      .spyOn(appStore, 'handleAuthenticatedSession')
+      .mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSession = resolve
+          }),
+      )
+
+    const wrapper = mount(LoginPage, {
+      global: {
+        plugins: [pinia, i18n],
+      },
+    })
+
+    const localModeButton = wrapper.findAll('button')[1]
+    await localModeButton.trigger('click')
+    await localModeButton.trigger('click')
+
+    expect(handleAuthenticatedSessionSpy).toHaveBeenCalledTimes(1)
+
+    resolveSession?.()
+    await flushPromises()
+  })
 })
