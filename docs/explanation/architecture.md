@@ -52,3 +52,11 @@ list of browser storage keys and the legacy migration note.
 
 JSON parsing and validation happen before favorites are written. Invalid files surface a
 UI alert instead of mutating state.
+
+In cloud mode, records are created sequentially through the repository behind a shared
+`ImportRateLimiter` (in `useFavoritesStore`). A create rejected by the backend's rate limit
+is retried with escalating backoff; a successful create resets the limiter back to full
+speed for the rest of the batch, rather than every following item paying the same delay.
+`useFavoritesStore.importProgress` exposes a live `{ processed, total }` count (`total` is
+`null` while the file is still being parsed) so the UI can show the import is still running
+instead of appearing to hang, and disables the import control for the same window.

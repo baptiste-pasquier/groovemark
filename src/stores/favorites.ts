@@ -62,7 +62,6 @@ class ImportRateLimiter {
   async pace() {
     const waitMs = this.nextRequestAt - Date.now()
     if (waitMs > 0) await wait(waitMs)
-    this.nextRequestAt = Date.now() + this.minGapMs
   }
 
   onRateLimited() {
@@ -77,6 +76,7 @@ class ImportRateLimiter {
   // full speed instead of paying the escalated delay for the rest of the batch.
   onSuccess() {
     this.minGapMs = 0
+    this.nextRequestAt = Date.now()
   }
 }
 
@@ -114,7 +114,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const isLoading = ref(false)
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
-  const importProgress = ref<{ processed: number; total: number } | null>(null)
+  const importProgress = ref<{ processed: number; total: number | null } | null>(null)
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -373,6 +373,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function importFromFile(file: File) {
     const favoritesUiStore = useFavoritesUiStore()
 
+    // Mark busy before the file is even parsed, so the import control stays
+    // disabled for the whole operation instead of leaving a gap a second
+    // file selection could slip through during the async read.
+    importProgress.value = { processed: 0, total: null }
+
     try {
       const favoritesToImport = await parseFavoritesImportFile(file)
       return await importFavorites(favoritesToImport)
@@ -386,6 +391,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
       }
 
       throw error
+    } finally {
+      importProgress.value = null
     }
   }
 

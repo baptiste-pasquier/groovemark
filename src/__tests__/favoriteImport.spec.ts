@@ -321,4 +321,95 @@ describe('Favorite Import', () => {
 
     expect(favoritesStore.importProgress).toBeNull()
   })
+
+  it('goes back to full speed immediately after a rate-limited item recovers', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    const callTimes: number[] = []
+    pocketbaseCollectionApi.create.mockImplementation((data) => {
+      callTimes.push(Date.now())
+      // Only the very first call (item 1's first attempt) is rate-limited;
+      // every retry and every later item succeeds straight away.
+      if (callTimes.length === 1) {
+        return Promise.reject({ status: 429, response: {} })
+      }
+      return Promise.resolve({
+        id: `mock-${callTimes.length}`,
+        created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        ...data,
+      })
+    })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-speed-1',
+        url: 'https://youtube.com/watch?v=speed1',
+        title: 'Speed Favorite 1',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'import-speed-2',
+        url: 'https://youtube.com/watch?v=speed2',
+        title: 'Speed Favorite 2',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    // item 1: attempt 1 (429) then attempt 2 (retry, succeeds) -> calls 1 and 2.
+    // item 2 should follow immediately once the limiter has reset, not after
+    // another ~1s wait for a delay it already believes it cleared.
+    expect(callTimes).toHaveLength(3)
+    expect(callTimes[2] - callTimes[1]).toBeLessThan(200)
+  }, 10000)
+
+  it('marks the import busy before the file is parsed, closing the window for a second concurrent import', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+
+    let resolveFileText: ((text: string) => void) | undefined
+    const slowFile = {
+      text: () =>
+        new Promise<string>((resolve) => {
+          resolveFileText = resolve
+        }),
+    } as unknown as File
+
+    expect(favoritesStore.importProgress).toBeNull()
+
+    const importPromise = favoritesStore.importFromFile(slowFile)
+    await flushPromises()
+
+    // The file hasn't finished reading yet, but the control must already be busy.
+    expect(favoritesStore.importProgress).not.toBeNull()
+
+    resolveFileText?.('[]')
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(favoritesStore.importProgress).toBeNull()
+  })
 })

@@ -7,6 +7,7 @@
     "filter_by_artist": "Filter by artist",
     "import_json": "Import JSON",
     "importing": "Importing... ({processed}/{total})",
+    "importing_preparing": "Importing...",
     "loading": "Loading GrooveMark...",
     "language": "Language",
     "search_placeholder": "Search by title or artist...",

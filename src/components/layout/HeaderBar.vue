@@ -38,6 +38,13 @@ const authDisplayName = computed(() => {
   return t('auth.local_mode')
 })
 
+const importingLabel = computed(() => {
+  const progress = favoritesStore.importProgress
+  if (!progress) return ''
+  if (progress.total === null) return t('app.importing_preparing')
+  return t('app.importing', { processed: progress.processed, total: progress.total })
+})
+
 function setAndPersistLocale(l: string) {
   locale.value = l
   updateLocale(l)
@@ -79,12 +86,7 @@ function openFilters() {
           class="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700"
         >
           <LoaderCircle class="h-4 w-4 animate-spin" />
-          {{
-            t('app.importing', {
-              processed: favoritesStore.importProgress.processed,
-              total: favoritesStore.importProgress.total,
-            })
-          }}
+          {{ importingLabel }}
         </span>
         <span
           v-if="authStore.authMode === 'local'"
@@ -181,14 +183,7 @@ function openFilters() {
             >
               <LoaderCircle v-if="favoritesStore.importProgress" class="h-4 w-4 animate-spin" />
               <Upload v-else class="h-4 w-4" />
-              {{
-                favoritesStore.importProgress
-                  ? t('app.importing', {
-                      processed: favoritesStore.importProgress.processed,
-                      total: favoritesStore.importProgress.total,
-                    })
-                  : t('app.import_json')
-              }}
+              {{ favoritesStore.importProgress ? importingLabel : t('app.import_json') }}
             </label>
             <input
               type="file"
