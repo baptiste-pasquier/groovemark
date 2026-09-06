@@ -18,9 +18,10 @@ operating system.
 
 ## 2. Start PocketBase
 
-Place the `pocketbase` executable in the repository root and run:
+Place the `pocketbase` executable in `pocketbase/` and run:
 
 ```sh
+cd pocketbase
 ./pocketbase serve
 ```
 
@@ -33,8 +34,8 @@ cd docker
 docker-compose up pocketbase -d
 ```
 
-The Docker setup pins PocketBase `v0.39.4` by default. Back up `pb_data` before upgrading an
-existing instance to a newer server release.
+The Docker setup pins PocketBase `v0.39.4` by default. Back up `pocketbase/pb_data` before
+upgrading an existing instance to a newer server release.
 
 ## 3. Configure the `favorites` Collection
 

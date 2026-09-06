@@ -38,7 +38,6 @@ playwright-report/
 .env
 
 # Pocketbase
-pb
-pocketbase
+pocketbase/pocketbase
 pb_data/
 pb_migrations/

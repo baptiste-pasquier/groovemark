@@ -97,6 +97,7 @@ Before setting up Google SSO, you need:
 1. **Start PocketBase**
 
    ```bash
+   cd pocketbase
    ./pocketbase serve
    ```
 
