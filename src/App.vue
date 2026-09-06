@@ -68,7 +68,7 @@ async function handleImport(e: Event) {
     <div class="favorites-layout">
       <aside class="favorites-sidebar-desktop">
         <FavoriteSearchBar />
-        <AddFavoriteButton @click="addFavorite" />
+        <AddFavoriteButton :disabled="favoritesStore.isReadOnly" @click="addFavorite" />
         <div class="flex flex-1 flex-col overflow-hidden">
           <h3 class="mb-3 text-xs font-bold tracking-wider text-gray-500 uppercase">
             {{ $t('app.artists') }}
@@ -80,7 +80,7 @@ async function handleImport(e: Event) {
       <main class="favorites-main">
         <div class="favorites-mobile-controls">
           <FavoriteSearchBar />
-          <AddFavoriteButton @click="addFavorite" />
+          <AddFavoriteButton :disabled="favoritesStore.isReadOnly" @click="addFavorite" />
         </div>
 
         <FavoritesGrid @edit="editFavorite" />

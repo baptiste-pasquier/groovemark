@@ -37,6 +37,8 @@ const authDisplayName = computed(() => {
   return t('auth.local_mode')
 })
 
+const isOfflineReadOnly = computed(() => favoritesStore.repositoryMode === 'google-cache')
+
 function setAndPersistLocale(l: string) {
   locale.value = l
   updateLocale(l)
@@ -80,6 +82,14 @@ function openFilters() {
         >
           <TriangleAlert class="h-4 w-4" />
           {{ t('auth.local_mode') }}
+        </span>
+        <span
+          v-else-if="isOfflineReadOnly"
+          class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
+          :title="t('login.offline_read_only_info')"
+        >
+          <TriangleAlert class="h-4 w-4" />
+          {{ t('auth.offline_read_only') }}
         </span>
         <span
           v-else
@@ -161,7 +171,8 @@ function openFilters() {
             <div class="my-1 border-t border-gray-100"></div>
             <label
               for="import-json"
-              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
+              :class="isOfflineReadOnly ? 'pointer-events-none opacity-50' : 'cursor-pointer'"
             >
               <Upload class="h-4 w-4" />
               {{ t('app.import_json') }}
@@ -171,6 +182,7 @@ function openFilters() {
               id="import-json"
               class="hidden"
               accept=".json"
+              :disabled="isOfflineReadOnly"
               @change="
                 (e) => {
                   emit('importClick', e)

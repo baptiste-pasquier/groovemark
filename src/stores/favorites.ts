@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
@@ -36,6 +36,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const isLoading = ref(false)
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
+  const isReadOnly = computed(() => repositoryMode.value === 'google-cache')
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -141,6 +142,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function addOrUpdateFavorite(draft: FavoriteDraft) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (isReadOnly.value) {
+      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
+      return false
+    }
+
     const normalizedUrl = await normalizeUrl(draft.url.trim())
     const duplicateFavorite = favorites.value.find(
       (favorite) => favorite.url === normalizedUrl && favorite.id !== draft.id,
@@ -195,6 +202,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function deleteFavorite(id: string) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (isReadOnly.value) {
+      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
+      return
+    }
+
     const confirmed = await favoritesUiStore.showConfirm(
       i18n.global.t('messages.confirm_delete_favorite'),
     )
@@ -216,6 +229,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function importFavorites(data: Favorite[]) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (isReadOnly.value) {
+      await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
+      return { added: 0, skipped: data.length }
+    }
+
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
     const usesCloudRepository = repositoryMode.value === 'google-cloud'
     let added = 0
@@ -336,6 +355,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading,
     repositoryMode,
     initialized,
+    isReadOnly,
     initializeForCurrentSession,
     addOrUpdateFavorite,
     deleteFavorite,
