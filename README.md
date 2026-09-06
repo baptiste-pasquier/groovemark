@@ -50,7 +50,9 @@ Backend-as-a-Service (BaaS) architecture.
   - **API**: REST API for data synchronization.
 - **Offline Capability**: The application switches between PocketBase (online) and
   `localStorage` (offline or local mode), ensuring the app remains functional without an
-  internet connection.
+  internet connection. For an authenticated session with the backend unavailable, favorites
+  are read-only (view/export only) until the connection is restored, so no changes can be
+  made that would never reach PocketBase.
 - **Deployment**: The entire stack is containerized using Docker, with Nginx serving the
   frontend and PocketBase running in a separate container.
 

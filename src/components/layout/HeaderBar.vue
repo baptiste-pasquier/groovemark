@@ -44,6 +44,7 @@ const importingLabel = computed(() => {
   if (progress.total === null) return t('app.importing_preparing')
   return t('app.importing', { processed: progress.processed, total: progress.total })
 })
+const isOfflineReadOnly = computed(() => favoritesStore.repositoryMode === 'google-cache')
 
 function setAndPersistLocale(l: string) {
   locale.value = l
@@ -95,6 +96,14 @@ function openFilters() {
         >
           <TriangleAlert class="h-4 w-4" />
           {{ t('auth.local_mode') }}
+        </span>
+        <span
+          v-else-if="isOfflineReadOnly"
+          class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
+          :title="t('login.offline_read_only_info')"
+        >
+          <TriangleAlert class="h-4 w-4" />
+          {{ t('auth.offline_read_only') }}
         </span>
         <span
           v-else
@@ -178,7 +187,11 @@ function openFilters() {
               for="import-json"
               class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
               :class="
-                favoritesStore.importProgress ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                favoritesStore.importProgress
+                  ? 'cursor-not-allowed opacity-60'
+                  : isOfflineReadOnly
+                    ? 'pointer-events-none opacity-50'
+                    : 'cursor-pointer'
               "
             >
               <LoaderCircle v-if="favoritesStore.importProgress" class="h-4 w-4 animate-spin" />
@@ -190,7 +203,7 @@ function openFilters() {
               id="import-json"
               class="hidden"
               accept=".json"
-              :disabled="!!favoritesStore.importProgress"
+              :disabled="!!favoritesStore.importProgress || isOfflineReadOnly"
               @change="
                 (e) => {
                   emit('importClick', e)

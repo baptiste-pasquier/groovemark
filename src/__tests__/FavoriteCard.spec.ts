@@ -60,6 +60,18 @@ describe('FavoriteCard', () => {
     expect(openSpy).not.toHaveBeenCalled()
   })
 
+  it('disables edit and delete when read-only', () => {
+    const wrapper = mount(FavoriteCard, {
+      props: { favorite, readOnly: true },
+    })
+
+    const editButton = wrapper.find('button:nth-of-type(1)')
+    const deleteButton = wrapper.find('button:nth-of-type(2)')
+
+    expect(editButton.attributes('disabled')).toBeDefined()
+    expect(deleteButton.attributes('disabled')).toBeDefined()
+  })
+
   it('renders a safe fallback href for unsafe timestamp urls', () => {
     const wrapper = mount(FavoriteCard, {
       props: {

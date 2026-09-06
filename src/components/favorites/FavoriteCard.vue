@@ -4,7 +4,7 @@ import { buildTimestampLink } from '../../utils/favorite'
 import { isSafeHttpUrl } from '../../utils/url'
 import { SquarePen, Trash2, Star, ExternalLink } from 'lucide-vue-next'
 
-const props = defineProps<{ favorite: Favorite }>()
+const props = defineProps<{ favorite: Favorite; readOnly?: boolean }>()
 const emit = defineEmits<{ (e: 'edit', id: string): void; (e: 'delete', id: string): void }>()
 
 function openLink() {
@@ -69,13 +69,15 @@ function timestampLink(time: string) {
         </div>
         <div class="ml-2 flex shrink-0 items-center space-x-3">
           <button
-            class="rounded text-gray-400 transition-colors hover:text-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none"
+            class="rounded text-gray-400 transition-colors hover:text-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-gray-400"
+            :disabled="readOnly"
             @click.stop="emit('edit', favorite.id)"
           >
             <SquarePen class="h-5 w-5" />
           </button>
           <button
-            class="rounded text-gray-400 transition-colors hover:text-red-500 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
+            class="rounded text-gray-400 transition-colors hover:text-red-500 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-gray-400"
+            :disabled="readOnly"
             @click.stop="emit('delete', favorite.id)"
           >
             <Trash2 class="h-5 w-5" />

@@ -52,7 +52,13 @@ function mountGrid() {
   return mount(FavoritesGrid, {
     global: {
       plugins: [i18n],
-      stubs: { FavoriteCard: { template: '<div class="favorite-card" />', props: ['favorite'] } },
+      stubs: {
+        FavoriteCard: {
+          name: 'FavoriteCard',
+          template: '<div class="favorite-card" />',
+          props: ['favorite', 'readOnly'],
+        },
+      },
     },
   })
 }
@@ -205,6 +211,29 @@ describe('FavoritesGrid', () => {
     wrapper.unmount()
 
     expect(disconnectMock).toHaveBeenCalled()
+  })
+
+  it('marks FavoriteCard read-only while the offline cache is read-only', () => {
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.favorites = createFavorites(2)
+    favoritesStore.repositoryMode = 'google-cache'
+
+    const wrapper = mountGrid()
+
+    const cards = wrapper.findAllComponents({ name: 'FavoriteCard' })
+    expect(cards).toHaveLength(2)
+    cards.forEach((card) => expect(card.props('readOnly')).toBe(true))
+  })
+
+  it('does not mark FavoriteCard read-only in a normal mode', () => {
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.favorites = createFavorites(2)
+
+    const wrapper = mountGrid()
+
+    const cards = wrapper.findAllComponents({ name: 'FavoriteCard' })
+    expect(cards).toHaveLength(2)
+    cards.forEach((card) => expect(card.props('readOnly')).toBe(false))
   })
 
   it('shows empty state when no favorites exist', () => {
