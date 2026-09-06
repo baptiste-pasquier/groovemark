@@ -20,3 +20,4 @@ All notable changes to this project should be documented in this file.
 - Upgraded the Docker-pinned PocketBase server to `v0.40.2` and removed the duplicated `PB_VERSION` override in `docker-compose.yml` so the Dockerfile stays the single source of truth.
 - Restricted GitHub Actions workflows to explicit read-only repository permissions.
 - Hardened SoundCloud URL detection so lookalike hosts are no longer treated as trusted SoundCloud links.
+- Fixed an SSRF in the `/api/expand-soundcloud` PocketBase hook: the host check compared a string prefix instead of the parsed hostname, so a userinfo (`https://on.soundcloud.com@internal-host/...`) or subdomain-suffix (`https://on.soundcloud.com.attacker.test/`) URL could make the server fetch an arbitrary internal or external host.

@@ -12,18 +12,23 @@ routerAdd(
     }
 
     // 2. Validation spécifique du domaine (Protection SSRF)
-    // Nous vérifions simplement le préfixe de la chaîne.
-    // Cela empêche l'injection d'autres domaines (y compris IP internes).
+    // On parse l'URL et on compare le hostname exact plutôt que de vérifier un
+    // simple préfixe de chaîne, qui peut être contourné via un userinfo
+    // (https://on.soundcloud.com@evil) ou un sous-domaine (https://on.soundcloud.com.evil).
     const allowedHostname = 'on.soundcloud.com'
 
-    // Vérification: doit commencer par 'http://on.soundcloud.com' ou 'https://on.soundcloud.com'
+    let parsedUrl
+    try {
+      parsedUrl = c.request.url.parse(shortUrl)
+    } catch {
+      throw new BadRequestError('Invalid URL parameter.')
+    }
+
     if (
-      !(
-        shortUrl.startsWith(`http://${allowedHostname}`) ||
-        shortUrl.startsWith(`https://${allowedHostname}`)
-      )
+      (parsedUrl.scheme !== 'http' && parsedUrl.scheme !== 'https') ||
+      parsedUrl.hostname() !== allowedHostname
     ) {
-      throw new BadRequestError(`Only URLs starting with https://${allowedHostname} are allowed.`)
+      throw new BadRequestError(`Only URLs on ${allowedHostname} are allowed.`)
     }
 
     try {
