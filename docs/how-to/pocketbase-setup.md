@@ -50,6 +50,8 @@ The migrations in `pocketbase/pb_migrations/` create the `favorites` collection 
 - `thumbnail` (URL, optional)
 - `timestamps` (JSON, optional)
 - `owner` (Relation to `users`, required)
+- `created_at` (Date, required) -- the favorite's creation date, preserved on import; unlike
+  `created`/`updated` below, it is client-settable and not auto-generated
 
 PocketBase also manages auto-generated fields such as `id`, `created`, and
 `updated`.
