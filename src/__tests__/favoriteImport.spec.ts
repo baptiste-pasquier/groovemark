@@ -1,12 +1,30 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import type { RecordModel } from 'pocketbase'
 import i18n from '../i18n'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { resetLocalStorageMock } from './mocks/localStorage'
 import { resetPocketbaseMocks } from './mocks/pocketbase'
+
+// Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
+// pass by accident if the mapping reads the collection's own `created` field instead
+// of `created_at`.
+const IMPORTED_CREATED_AT = '2020-05-15T10:30:00.000Z'
+const OTHER_IMPORTED_CREATED_AT = '2019-03-02T08:00:00.000Z'
+
+function createUser(id: string): RecordModel {
+  return {
+    id,
+    collectionId: 'users',
+    collectionName: 'users',
+    name: `User ${id}`,
+    email: `${id}@example.com`,
+  }
+}
 
 describe('Favorite Import', () => {
   beforeEach(() => {
@@ -68,5 +86,114 @@ describe('Favorite Import', () => {
 
     favoritesUiStore.closeAlert()
     await importPromise
+  })
+
+  it('preserves the original creation date when importing in cloud mode (AE1)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-1',
+        url: 'https://youtube.com/watch?v=cloudimport1',
+        title: 'Imported Favorite',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+        created: IMPORTED_CREATED_AT,
+      },
+    ])
+
+    await flushPromises()
+
+    expect(favoritesStore.favorites[0]?.created).toBe(IMPORTED_CREATED_AT)
+
+    favoritesUiStore.closeAlert()
+    await importPromise
+  })
+
+  it('defaults to the import time when the imported entry has no creation date in cloud mode (AE2)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    const before = Date.now()
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-2',
+        url: 'https://youtube.com/watch?v=cloudimport2',
+        title: 'Imported Favorite Without Date',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    const after = Date.now()
+
+    const createdTime = new Date(favoritesStore.favorites[0]?.created ?? '').getTime()
+    expect(createdTime).toBeGreaterThanOrEqual(before)
+    expect(createdTime).toBeLessThanOrEqual(after)
+
+    favoritesUiStore.closeAlert()
+    await importPromise
+  })
+
+  it('sorts imported cloud favorites by their preserved dates, not import order (AE3)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-newer',
+        url: 'https://youtube.com/watch?v=importNew1B',
+        title: 'Newer Import',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+        created: IMPORTED_CREATED_AT,
+      },
+      {
+        id: 'import-older',
+        url: 'https://youtube.com/watch?v=importOld1A',
+        title: 'Older Import',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+        created: OTHER_IMPORTED_CREATED_AT,
+      },
+    ])
+
+    await flushPromises()
+
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(favoritesUiStore.filteredFavorites.map((favorite) => favorite.url)).toEqual([
+      'https://www.youtube.com/watch?v=importNew1B',
+      'https://www.youtube.com/watch?v=importOld1A',
+    ])
   })
 })

@@ -14,18 +14,19 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
 
 ### Fields
 
-| Field Name | Type            | Required | Description                                                   |
-| ---------- | --------------- | -------- | ------------------------------------------------------------- |
-| id         | Text (auto)     | Yes      | Auto-generated unique identifier                              |
-| url        | URL             | Yes      | URL of the YouTube or SoundCloud mix                          |
-| title      | Text            | Yes      | Title of the mix/set                                          |
-| artists    | JSON            | No       | Array of artist names, e.g., `["Artist 1", "Artist 2"]`       |
-| type       | Text            | Yes      | Platform type: either "youtube" or "soundcloud"               |
-| thumbnail  | URL             | No       | URL to the thumbnail image                                    |
-| timestamps | JSON            | No       | Array of timestamp objects with label, time, and rated fields |
-| owner      | Relation(users) | Yes      | Authenticated user who owns the favorite                      |
-| created    | DateTime (auto) | Yes      | Auto-generated creation timestamp                             |
-| updated    | DateTime (auto) | Yes      | Auto-generated last update timestamp                          |
+| Field Name | Type            | Required | Description                                                                                              |
+| ---------- | --------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| id         | Text (auto)     | Yes      | Auto-generated unique identifier                                                                         |
+| url        | URL             | Yes      | URL of the YouTube or SoundCloud mix                                                                     |
+| title      | Text            | Yes      | Title of the mix/set                                                                                     |
+| artists    | JSON            | No       | Array of artist names, e.g., `["Artist 1", "Artist 2"]`                                                  |
+| type       | Text            | Yes      | Platform type: either "youtube" or "soundcloud"                                                          |
+| thumbnail  | URL             | No       | URL to the thumbnail image                                                                               |
+| timestamps | JSON            | No       | Array of timestamp objects with label, time, and rated fields                                            |
+| owner      | Relation(users) | Yes      | Authenticated user who owns the favorite                                                                 |
+| created_at | Date            | Yes      | Client-settable creation date, preserved on import -- the source of truth for a favorite's creation date |
+| created    | DateTime (auto) | Yes      | Auto-generated creation timestamp (audit only, not client-settable)                                      |
+| updated    | DateTime (auto) | Yes      | Auto-generated last update timestamp                                                                     |
 
 ### JSON Field Structures
 
@@ -75,6 +76,7 @@ This collection stores user favorites (music mixes/sets from YouTube and SoundCl
       "rated": true
     }
   ],
+  "created_at": "2024-01-01 12:00:00.000Z",
   "created": "2024-01-01 12:00:00.000Z",
   "updated": "2024-01-01 12:00:00.000Z"
 }

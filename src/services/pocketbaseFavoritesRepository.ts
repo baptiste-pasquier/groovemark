@@ -9,6 +9,7 @@ interface PocketbaseFavorite extends Favorite {
   collectionId?: string
   collectionName?: string
   created?: string
+  created_at?: string
   updated?: string
   owner?: string
 }
@@ -27,7 +28,7 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         type: record.type,
         thumbnail: record.thumbnail,
         timestamps: record.timestamps || [],
-        created: record.created,
+        created: record.created_at,
       }))
     } catch (error) {
       console.error('Error fetching favorites from PocketBase:', error)
@@ -44,7 +45,13 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
   async create(favorite: FavoriteRecordInput): Promise<Favorite> {
     try {
       const record = await pb.collection(COLLECTION_NAME).create<PocketbaseFavorite>({
-        ...favorite,
+        url: favorite.url,
+        title: favorite.title,
+        artists: favorite.artists,
+        type: favorite.type,
+        thumbnail: favorite.thumbnail,
+        timestamps: favorite.timestamps,
+        created_at: favorite.created || new Date().toISOString(),
         owner: pb.authStore.model?.id,
       })
 
@@ -56,7 +63,7 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         type: record.type,
         thumbnail: record.thumbnail,
         timestamps: record.timestamps || [],
-        created: record.created,
+        created: record.created_at,
       }
     } catch (error) {
       console.error('Error creating favorite in PocketBase:', error)
@@ -72,7 +79,14 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
 
   async update(id: string, favorite: FavoriteRecordInput): Promise<Favorite> {
     try {
-      const record = await pb.collection(COLLECTION_NAME).update<PocketbaseFavorite>(id, favorite)
+      const record = await pb.collection(COLLECTION_NAME).update<PocketbaseFavorite>(id, {
+        url: favorite.url,
+        title: favorite.title,
+        artists: favorite.artists,
+        type: favorite.type,
+        thumbnail: favorite.thumbnail,
+        timestamps: favorite.timestamps,
+      })
       return {
         id: record.id,
         url: record.url,
@@ -81,7 +95,7 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         type: record.type,
         thumbnail: record.thumbnail,
         timestamps: record.timestamps || [],
-        created: record.created,
+        created: record.created_at,
       }
     } catch (error) {
       console.error('Error updating favorite in PocketBase:', error)
