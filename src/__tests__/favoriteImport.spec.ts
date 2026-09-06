@@ -265,4 +265,60 @@ describe('Favorite Import', () => {
     expect(favoritesUiStore.alertDialog.message).not.toContain('already present')
     expect(favoritesUiStore.alertDialog.message).toMatch(/failed/i)
   })
+
+  it('reports import progress while running and clears it when the import finishes', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    let resolveFirstCreate: (() => void) | undefined
+    pocketbaseCollectionApi.create.mockImplementationOnce(
+      (data) =>
+        new Promise((resolve) => {
+          resolveFirstCreate = () =>
+            resolve({
+              id: 'mock-progress',
+              created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+              ...data,
+            })
+        }),
+    )
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'import-progress-1',
+        url: 'https://youtube.com/watch?v=progress1',
+        title: 'Progress Favorite 1',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'import-progress-2',
+        url: 'https://youtube.com/watch?v=progress2',
+        title: 'Progress Favorite 2',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+
+    expect(favoritesStore.importProgress).toEqual({ processed: 0, total: 2 })
+
+    resolveFirstCreate?.()
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(favoritesStore.importProgress).toBeNull()
+  })
 })

@@ -10,6 +10,7 @@ All notable changes to this project should be documented in this file.
 - Added a committed README demo GIF workflow driven by Playwright screenshots and a repo-local `docs/demo.gif` asset.
 - Restructured `docs/` into a Diátaxis + journal taxonomy (`explanation/`, `how-to/`, `reference/`, `conventions/`, `journal/`) with an enforced routing rule, and added `scripts/check_docs.py` as a pre-commit and CI gate.
 - Versioned PocketBase migrations (`pocketbase/pb_migrations/`) and baked them into the PocketBase Docker image, so the schema applies automatically in dev and production instead of requiring manual admin-UI setup.
+- Added a header badge showing live "Importing... (X/Y)" progress while a backup import is running, since rate-limit retries can make a large import take a while with no other visible feedback. The import control is disabled for the duration.
 
 ### Fixed
 

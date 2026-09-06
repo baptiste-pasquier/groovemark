@@ -114,6 +114,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const isLoading = ref(false)
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
+  const importProgress = ref<{ processed: number; total: number } | null>(null)
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -301,48 +302,57 @@ export const useFavoritesStore = defineStore('favorites', () => {
     let skipped = 0
     let failed = 0
 
-    for (const favorite of data) {
-      const normalizedUrl = await normalizeUrl(favorite.url)
+    importProgress.value = { processed: 0, total: data.length }
 
-      if (!isSafeHttpUrl(normalizedUrl)) {
-        skipped++
-        continue
-      }
+    try {
+      for (const favorite of data) {
+        const normalizedUrl = await normalizeUrl(favorite.url)
 
-      if (existingUrls.has(normalizedUrl)) {
-        skipped++
-        continue
-      }
-
-      try {
-        if (usesCloudRepository && activeRepository) {
-          const createdFavorite = await createFavoriteWithRetry(
-            activeRepository,
-            {
-              url: normalizedUrl,
-              title: favorite.title,
-              artists: favorite.artists || [],
-              type: favorite.type,
-              thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
-              timestamps: favorite.timestamps || [],
-              created: favorite.created,
-            },
-            rateLimiter,
-          )
-          favorites.value.push(createdFavorite)
-        } else {
-          favorites.value.push({
-            ...favorite,
-            url: normalizedUrl,
-            created: favorite.created || new Date().toISOString(),
-          })
+        if (!isSafeHttpUrl(normalizedUrl)) {
+          skipped++
+          importProgress.value.processed++
+          continue
         }
-        existingUrls.add(normalizedUrl)
-        added++
-      } catch (error) {
-        console.error('Error importing favorite:', error)
-        failed++
+
+        if (existingUrls.has(normalizedUrl)) {
+          skipped++
+          importProgress.value.processed++
+          continue
+        }
+
+        try {
+          if (usesCloudRepository && activeRepository) {
+            const createdFavorite = await createFavoriteWithRetry(
+              activeRepository,
+              {
+                url: normalizedUrl,
+                title: favorite.title,
+                artists: favorite.artists || [],
+                type: favorite.type,
+                thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
+                timestamps: favorite.timestamps || [],
+                created: favorite.created,
+              },
+              rateLimiter,
+            )
+            favorites.value.push(createdFavorite)
+          } else {
+            favorites.value.push({
+              ...favorite,
+              url: normalizedUrl,
+              created: favorite.created || new Date().toISOString(),
+            })
+          }
+          existingUrls.add(normalizedUrl)
+          added++
+        } catch (error) {
+          console.error('Error importing favorite:', error)
+          failed++
+        }
+        importProgress.value.processed++
       }
+    } finally {
+      importProgress.value = null
     }
 
     await persistCacheSnapshot()
@@ -402,6 +412,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading.value = false
     repositoryMode.value = 'local'
     initialized.value = false
+    importProgress.value = null
     activeRepository = null
     cacheRepository = null
     sessionKey = ''
@@ -412,6 +423,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading,
     repositoryMode,
     initialized,
+    importProgress,
     initializeForCurrentSession,
     addOrUpdateFavorite,
     deleteFavorite,

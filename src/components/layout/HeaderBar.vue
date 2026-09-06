@@ -15,6 +15,7 @@ import {
   Check,
   TriangleAlert,
   LogOut,
+  LoaderCircle,
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES } from '../../i18n'
@@ -73,6 +74,18 @@ function openFilters() {
     </div>
     <div class="mt-4 flex flex-col items-center gap-3 sm:mt-0 sm:items-end">
       <div class="flex items-center gap-2 text-sm font-medium">
+        <span
+          v-if="favoritesStore.importProgress"
+          class="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700"
+        >
+          <LoaderCircle class="h-4 w-4 animate-spin" />
+          {{
+            t('app.importing', {
+              processed: favoritesStore.importProgress.processed,
+              total: favoritesStore.importProgress.total,
+            })
+          }}
+        </span>
         <span
           v-if="authStore.authMode === 'local'"
           class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700"
@@ -161,16 +174,28 @@ function openFilters() {
             <div class="my-1 border-t border-gray-100"></div>
             <label
               for="import-json"
-              class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
+              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
+              :class="
+                favoritesStore.importProgress ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+              "
             >
-              <Upload class="h-4 w-4" />
-              {{ t('app.import_json') }}
+              <LoaderCircle v-if="favoritesStore.importProgress" class="h-4 w-4 animate-spin" />
+              <Upload v-else class="h-4 w-4" />
+              {{
+                favoritesStore.importProgress
+                  ? t('app.importing', {
+                      processed: favoritesStore.importProgress.processed,
+                      total: favoritesStore.importProgress.total,
+                    })
+                  : t('app.import_json')
+              }}
             </label>
             <input
               type="file"
               id="import-json"
               class="hidden"
               accept=".json"
+              :disabled="!!favoritesStore.importProgress"
               @change="
                 (e) => {
                   emit('importClick', e)
