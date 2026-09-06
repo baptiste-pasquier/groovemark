@@ -25,6 +25,8 @@ cd pocketbase
 ./pocketbase serve
 ```
 
+Run it from the `pocketbase/` directory as shown -- PocketBase resolves `pb_migrations` relative to its working directory, and this is the invocation that keeps it reading the same `pocketbase/pb_migrations/` directory the Docker build copies from.
+
 By default, PocketBase runs on `http://localhost:8090`.
 
 If you prefer Docker:
@@ -37,27 +39,35 @@ docker-compose up pocketbase -d
 The Docker setup pins PocketBase `v0.39.4` by default. Back up `pocketbase/pb_data` before
 upgrading an existing instance to a newer server release.
 
-## 3. Configure the `favorites` Collection
+## 3. The `favorites` Collection
 
-1. Open the PocketBase admin UI at `http://localhost:8090/_/`
-2. Create a new collection named `favorites`
-3. Add the following fields:
-   - `url` (URL, required)
-   - `title` (Text, required)
-   - `artists` (JSON, optional)
-   - `type` (Text, required, either `youtube` or `soundcloud`)
-   - `thumbnail` (URL, optional)
-   - `timestamps` (JSON, optional)
-   - `owner` (Relation to `users`, required)
+The migrations in `pocketbase/pb_migrations/` create the `favorites` collection and its API rules automatically the first time PocketBase starts -- no admin UI setup step is required. The collection has the following fields:
 
-PocketBase will also manage auto-generated fields such as `id`, `created`, and
+- `url` (URL, required)
+- `title` (Text, required)
+- `artists` (JSON, optional)
+- `type` (Text, required, either `youtube` or `soundcloud`)
+- `thumbnail` (URL, optional)
+- `timestamps` (JSON, optional)
+- `owner` (Relation to `users`, required)
+
+PocketBase also manages auto-generated fields such as `id`, `created`, and
 `updated`.
 
 See [Pocketbase Schema](../reference/pocketbase-schema.md) for the full schema and example payloads.
 
-## 4. Configure API Rules
+### Adding a new migration
 
-Use user-scoped rules so authenticated users only read and write their own favorites:
+To change the schema:
+
+1. Start PocketBase locally as shown in step 2 above (`cd pocketbase && ./pocketbase serve`).
+2. Make the change through the admin UI, or run `./pocketbase migrate collections` to snapshot the current schema into a new migration file. Either way, PocketBase writes the generated file into `pocketbase/pb_migrations/`.
+3. Commit the generated migration file.
+4. Rebuild the Docker image (dev) or merge to `main`/`develop` to trigger the CI build and redeploy (production) to ship it -- see [Docker Deployment](./docker-deployment.md#pocketbase-image-dockerfilepocketbase).
+
+## 4. API Rules
+
+The migrations set these user-scoped rules so authenticated users only read and write their own favorites -- no manual configuration is required:
 
 - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`

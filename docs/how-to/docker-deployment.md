@@ -64,12 +64,13 @@ This will:
 
 ### 4. Configure Pocketbase
 
-On first run, visit <http://localhost:8090/_/> to:
+Pocketbase's migrations (baked into the image, see [Docker Images](#docker-images)) create the `favorites` collection automatically on first run -- no manual setup step is required. On first run, visit <http://localhost:8090/_/> to:
 
 1. Create an admin account
-2. Configure the `favorites` collection (see [PocketBase Setup](./pocketbase-setup.md))
-3. Review the schema details in [Pocketbase Schema](../reference/pocketbase-schema.md)
-4. Set up authentication if needed (see [Authentication Setup](./authentication-setup.md))
+2. Review the schema details in [Pocketbase Schema](../reference/pocketbase-schema.md)
+3. Set up authentication if needed (see [Authentication Setup](./authentication-setup.md))
+
+See [PocketBase Setup](./pocketbase-setup.md) for the workflow to add a new migration.
 
 ## Docker Images
 
@@ -94,8 +95,13 @@ The app uses a multi-stage build:
 
 - Base: `alpine:latest`
 - Downloads Pocketbase v0.39.4 by default (configurable via `PB_VERSION`)
+- Copies `pocketbase/pb_migrations/` into the image at build time; Pocketbase applies these migrations automatically on container start
 - Exposes port 8090
 - Data stored in `/pb/pb_data` volume
+
+**First rollout of a migrations-bearing image.** The first deploy that ships a `Dockerfile.pocketbase` build with `pocketbase/pb_migrations/` baked in recreates the Pocketbase data volume from empty (dev and production alike) instead of upgrading an existing one in place, so no pre-existing collection can collide with the migrations. Recreate the volume with `docker-compose down -v` (or remove the named volume directly) before `docker-compose up` on that deploy.
+
+**Rolling back a bad migration.** Redeploy a prior `groovemark-pocketbase` image tag already published by CI (see [CI/CD with GitHub Actions](#cicd-with-github-actions)), or run `pocketbase migrate down` against the persisted volume.
 
 ## Configuration
 

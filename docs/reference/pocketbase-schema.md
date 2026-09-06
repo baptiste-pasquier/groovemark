@@ -10,7 +10,7 @@ stale_after: 2026-12-15
 
 ## Collection: favorites
 
-This collection stores user favorites (music mixes/sets from YouTube and SoundCloud).
+This collection stores user favorites (music mixes/sets from YouTube and SoundCloud). The canonical source of this schema is `pocketbase/pb_migrations/*.js`, baked into the PocketBase Docker image at build time and applied automatically on container start; the tables below describe what those migrations produce.
 
 ### Fields
 
