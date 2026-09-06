@@ -94,7 +94,7 @@ The app uses a multi-stage build:
 ### Pocketbase Image (Dockerfile.pocketbase)
 
 - Base: `alpine:latest`
-- Downloads Pocketbase v0.39.4 by default (configurable via `PB_VERSION`)
+- Downloads Pocketbase v0.40.2 by default (configurable via `PB_VERSION`)
 - Copies `pocketbase/pb_migrations/` into the image at build time; Pocketbase applies these migrations automatically on container start
 - Exposes port 8090
 - Data stored in `/pb/pb_data` volume

@@ -36,7 +36,7 @@ cd docker
 docker-compose up pocketbase -d
 ```
 
-The Docker setup pins PocketBase `v0.39.4` by default. Back up `pocketbase/pb_data` before
+The Docker setup pins PocketBase `v0.40.2` by default. Back up `pocketbase/pb_data` before
 upgrading an existing instance to a newer server release.
 
 ## 3. The `favorites` Collection
