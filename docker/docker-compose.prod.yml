@@ -12,8 +12,7 @@ services:
     volumes:
       # Persist Pocketbase data
       - pocketbase_data:/pb/pb_data
-      # Optional: Mount custom migrations and hooks
-      # - ../pocketbase/pb_migrations:/pb/pb_migrations:ro
+      # Optional: mount custom hooks
       # - ../pocketbase/pb_hooks:/pb/pb_hooks:ro
     healthcheck:
       test:
