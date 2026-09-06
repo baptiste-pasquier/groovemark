@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
@@ -164,16 +165,6 @@ describe('Favorite Import', () => {
 
     const importPromise = favoritesStore.importFavorites([
       {
-        id: 'import-older',
-        url: 'https://youtube.com/watch?v=importOld1A',
-        title: 'Older Import',
-        artists: [],
-        type: 'youtube',
-        thumbnail: '',
-        timestamps: [],
-        created: OTHER_IMPORTED_CREATED_AT,
-      },
-      {
         id: 'import-newer',
         url: 'https://youtube.com/watch?v=importNew1B',
         title: 'Newer Import',
@@ -182,6 +173,16 @@ describe('Favorite Import', () => {
         thumbnail: '',
         timestamps: [],
         created: IMPORTED_CREATED_AT,
+      },
+      {
+        id: 'import-older',
+        url: 'https://youtube.com/watch?v=importOld1A',
+        title: 'Older Import',
+        artists: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+        created: OTHER_IMPORTED_CREATED_AT,
       },
     ])
 

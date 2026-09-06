@@ -212,7 +212,7 @@ describe('PocketBaseFavoritesRepository', () => {
   // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
   // pass by accident if the mapping reads the collection's own `created` field instead
   // of `created_at`.
-  const inputCreated = '2020-05-15T10:30:00.000Z'
+  const INPUT_CREATED_AT = '2020-05-15T10:30:00.000Z'
 
   beforeEach(() => {
     resetPocketbaseMocks()
@@ -234,12 +234,12 @@ describe('PocketBaseFavoritesRepository', () => {
   }
 
   it('sends the input creation date as created_at and returns it on Favorite.created', async () => {
-    const result = await repository.create(recordInput({ created: inputCreated }))
+    const result = await repository.create(recordInput({ created: INPUT_CREATED_AT }))
 
     expect(pocketbaseCollectionApi.create).toHaveBeenCalledWith(
-      expect.objectContaining({ created_at: inputCreated }),
+      expect.objectContaining({ created_at: INPUT_CREATED_AT }),
     )
-    expect(result.created).toBe(inputCreated)
+    expect(result.created).toBe(INPUT_CREATED_AT)
   })
 
   it('defaults created_at to the current time when no creation date is supplied', async () => {
@@ -253,20 +253,40 @@ describe('PocketBaseFavoritesRepository', () => {
     expect(createdTime).toBeLessThanOrEqual(after)
   })
 
-  it('never sends created_at when updating a favorite', async () => {
-    await repository.update('record-1', recordInput({ created: inputCreated }))
+  it('defaults created_at to the current time when the supplied creation date is empty', async () => {
+    const before = Date.now()
+
+    const result = await repository.create(recordInput({ created: '' }))
+
+    const after = Date.now()
+    const sentPayload = pocketbaseCollectionApi.create.mock.calls[0]?.[0]
+    const sentCreatedAt = (sentPayload as { created_at?: string } | undefined)?.created_at
+    expect(sentCreatedAt).not.toBe('')
+    const createdTime = new Date(sentCreatedAt ?? '').getTime()
+    expect(createdTime).toBeGreaterThanOrEqual(before)
+    expect(createdTime).toBeLessThanOrEqual(after)
+    expect(new Date(result.created ?? '').getTime()).toBeGreaterThanOrEqual(before)
+  })
+
+  it('never sends created_at when updating a favorite, and returns the preserved created date', async () => {
+    pocketbaseCollectionApi.update.mockImplementationOnce((id, data) =>
+      Promise.resolve({ id, created_at: INPUT_CREATED_AT, ...data }),
+    )
+
+    const result = await repository.update('record-1', recordInput({ created: INPUT_CREATED_AT }))
 
     const sentPayload = pocketbaseCollectionApi.update.mock.calls[0]?.[1]
     expect(sentPayload).not.toHaveProperty('created_at')
+    expect(result.created).toBe(INPUT_CREATED_AT)
   })
 
   it('maps a listed record created_at onto Favorite.created', async () => {
     pocketbaseCollectionApi.getFullList.mockResolvedValue([
-      { ...recordInput(), id: 'record-1', created_at: inputCreated },
+      { ...recordInput(), id: 'record-1', created_at: INPUT_CREATED_AT },
     ] as never)
 
     const [favorite] = await repository.list()
 
-    expect(favorite?.created).toBe(inputCreated)
+    expect(favorite?.created).toBe(INPUT_CREATED_AT)
   })
 })
