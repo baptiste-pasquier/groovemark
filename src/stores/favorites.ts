@@ -243,6 +243,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
             type: favorite.type,
             thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
             timestamps: favorite.timestamps || [],
+            created: favorite.created,
           })
           favorites.value.push(createdFavorite)
         } else {
