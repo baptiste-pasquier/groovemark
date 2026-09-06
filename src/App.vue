@@ -89,9 +89,10 @@ async function handleImport(e: Event) {
 
     <FavoriteModal v-model="showModal" :edit-id="editId" />
     <ArtistSidebar :open="showSidebar" @close="showSidebar = false" />
-    <AlertDialog />
-    <ConfirmDialog />
   </div>
+
+  <AlertDialog />
+  <ConfirmDialog />
 </template>
 
 <style scoped></style>
