@@ -39,10 +39,7 @@ export const useAppStore = defineStore('app', () => {
         handleSignedOut()
       }
     } catch (error) {
-      console.error('Error bootstrapping app:', error)
-      await authStore.signOut()
-      handleSignedOut()
-      void favoritesUiStore.showAlert(i18n.global.t('messages.error_session_init'), 'alert')
+      await recoverFromSessionError('Error bootstrapping app:', error)
     } finally {
       isBootstrapped.value = true
     }
@@ -59,11 +56,15 @@ export const useAppStore = defineStore('app', () => {
       })
       status.value = 'ready'
     } catch (error) {
-      console.error('Error initializing authenticated session:', error)
-      await authStore.signOut()
-      handleSignedOut()
-      void favoritesUiStore.showAlert(i18n.global.t('messages.error_session_init'), 'alert')
+      await recoverFromSessionError('Error initializing authenticated session:', error)
     }
+  }
+
+  async function recoverFromSessionError(logMessage: string, error: unknown) {
+    console.error(logMessage, error)
+    await authStore.signOut()
+    handleSignedOut()
+    void favoritesUiStore.showAlert(i18n.global.t('messages.error_session_init'), 'alert')
   }
 
   function handleSignedOut() {

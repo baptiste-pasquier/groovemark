@@ -50,6 +50,7 @@ describe('useAppStore', () => {
   beforeEach(() => {
     resetPocketbaseMocks()
     resetLocalStorageMock()
+    i18n.global.locale.value = 'en'
   })
 
   it('recovers to unauthenticated and clears the auth session when initializing an authenticated session fails', async () => {
