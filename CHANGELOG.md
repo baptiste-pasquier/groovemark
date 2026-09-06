@@ -10,6 +10,7 @@ All notable changes to this project should be documented in this file.
 - Added a committed README demo GIF workflow driven by Playwright screenshots and a repo-local `docs/demo.gif` asset.
 - Restructured `docs/` into a Diátaxis + journal taxonomy (`explanation/`, `how-to/`, `reference/`, `conventions/`, `journal/`) with an enforced routing rule, and added `scripts/check_docs.py` as a pre-commit and CI gate.
 - Versioned PocketBase migrations (`pocketbase/pb_migrations/`) and baked them into the PocketBase Docker image, so the schema applies automatically in dev and production instead of requiring manual admin-UI setup.
+- Added a header badge showing live "Importing... (X/Y)" progress while a backup import is running, since rate-limit retries can make a large import take a while with no other visible feedback. The import control is disabled for the duration.
 
 ### Fixed
 
@@ -24,3 +25,4 @@ All notable changes to this project should be documented in this file.
 - Fixed an SSRF in the `/api/expand-soundcloud` PocketBase hook: the host check compared a string prefix instead of the parsed hostname, so a userinfo (`https://on.soundcloud.com@internal-host/...`) or subdomain-suffix (`https://on.soundcloud.com.attacker.test/`) URL could make the server fetch an arbitrary internal or external host.
 - Fixed the app getting stuck on the loading spinner forever after a failed sign-in or bootstrap: `useAppStore`'s `bootstrap()` and `handleAuthenticatedSession()` now recover to the login screen (and clear any partial auth session) instead of leaving `status` stuck at `'booting'`.
 - Fixed the `favorites` collection's `updateRule` allowing an authenticated user to reassign a favorite's `owner` to another user's ID via a crafted `PATCH` request, injecting the record into the victim's list and removing it from their own.
+- Fixed cloud-mode backup imports silently dropping most favorites in production: the server's create-request rate limit rejected everything past the first burst, and those rejections were mislabeled as "already present" duplicates instead of surfacing as failures. Imports now pace and back off across the whole batch when rate-limited, and a real creation failure is reported as a distinct failed count.

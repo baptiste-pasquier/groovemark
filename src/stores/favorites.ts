@@ -9,7 +9,10 @@ import type {
   FavoritesRepository,
   RepositoryMode,
 } from '../services/favoritesRepository'
-import { selectFavoritesRepository } from '../services/favoritesRepository'
+import {
+  FavoritesRepositoryError,
+  selectFavoritesRepository,
+} from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -30,12 +33,88 @@ interface FavoriteDraft {
 }
 
 const DEFAULT_THUMBNAIL = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature'
+const RATE_LIMIT_STATUS = 429
+const MAX_CREATE_ATTEMPTS = 4
+const INITIAL_RATE_LIMIT_DELAY_MS = 1000
+const MAX_RATE_LIMIT_DELAY_MS = 8000
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+function isRateLimitedError(error: unknown): boolean {
+  if (!(error instanceof FavoritesRepositoryError)) return false
+  const cause = error.cause
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    'status' in cause &&
+    (cause as { status: unknown }).status === RATE_LIMIT_STATUS
+  )
+}
+
+// Shared across a whole import: one item getting rate-limited slows the pace
+// of every item still to come, instead of only retrying that one item.
+class ImportRateLimiter {
+  private minGapMs = 0
+  private nextRequestAt = 0
+
+  async pace() {
+    const waitMs = this.nextRequestAt - Date.now()
+    if (waitMs > 0) await wait(waitMs)
+  }
+
+  onRateLimited() {
+    this.minGapMs =
+      this.minGapMs === 0
+        ? INITIAL_RATE_LIMIT_DELAY_MS
+        : Math.min(this.minGapMs * 2, MAX_RATE_LIMIT_DELAY_MS)
+    this.nextRequestAt = Date.now() + this.minGapMs
+  }
+
+  // A create clearing the limiter means its window has moved on: go back to
+  // full speed instead of paying the escalated delay for the rest of the batch.
+  onSuccess() {
+    this.minGapMs = 0
+    this.nextRequestAt = Date.now()
+  }
+}
+
+async function createFavoriteWithRetry(
+  repository: FavoritesRepository,
+  input: FavoriteRecordInput,
+  limiter: ImportRateLimiter,
+  attempt = 1,
+): Promise<Favorite> {
+  await limiter.pace()
+  try {
+    const created = await repository.create(input)
+    limiter.onSuccess()
+    return created
+  } catch (error) {
+    if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
+    limiter.onRateLimited()
+    return createFavoriteWithRetry(repository, input, limiter, attempt + 1)
+  }
+}
+
+function buildImportResultMessage(added: number, skipped: number, failed: number): string {
+  const messageParts = [
+    added === 0 && skipped > 0
+      ? i18n.global.t('import.finished_zero_added', { skipped })
+      : i18n.global.t('import.added', { count: added }) +
+        (skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'),
+  ]
+  if (failed) messageParts.push(i18n.global.t('import.with_failed', { failed }))
+  return messageParts.join(' ')
+}
 
 export const useFavoritesStore = defineStore('favorites', () => {
   const favorites = ref<Favorite[]>([])
   const isLoading = ref(false)
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
+  const importProgress = ref<{ processed: number; total: number | null } | null>(null)
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -218,74 +297,86 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const favoritesUiStore = useFavoritesUiStore()
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
     const usesCloudRepository = repositoryMode.value === 'google-cloud'
+    const rateLimiter = new ImportRateLimiter()
     let added = 0
     let skipped = 0
+    let failed = 0
 
-    for (const favorite of data) {
-      const normalizedUrl = await normalizeUrl(favorite.url)
+    importProgress.value = { processed: 0, total: data.length }
 
-      if (!isSafeHttpUrl(normalizedUrl)) {
-        skipped++
-        continue
-      }
+    try {
+      for (const favorite of data) {
+        const normalizedUrl = await normalizeUrl(favorite.url)
 
-      if (existingUrls.has(normalizedUrl)) {
-        skipped++
-        continue
-      }
-
-      try {
-        if (usesCloudRepository && activeRepository) {
-          const createdFavorite = await activeRepository.create({
-            url: normalizedUrl,
-            title: favorite.title,
-            artists: favorite.artists || [],
-            type: favorite.type,
-            thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
-            timestamps: favorite.timestamps || [],
-            created: favorite.created,
-          })
-          favorites.value.push(createdFavorite)
-        } else {
-          favorites.value.push({
-            ...favorite,
-            url: normalizedUrl,
-            created: favorite.created || new Date().toISOString(),
-          })
+        if (!isSafeHttpUrl(normalizedUrl)) {
+          skipped++
+          importProgress.value.processed++
+          continue
         }
-        existingUrls.add(normalizedUrl)
-        added++
-      } catch (error) {
-        console.error('Error importing favorite:', error)
-        skipped++
+
+        if (existingUrls.has(normalizedUrl)) {
+          skipped++
+          importProgress.value.processed++
+          continue
+        }
+
+        try {
+          if (usesCloudRepository && activeRepository) {
+            const createdFavorite = await createFavoriteWithRetry(
+              activeRepository,
+              {
+                url: normalizedUrl,
+                title: favorite.title,
+                artists: favorite.artists || [],
+                type: favorite.type,
+                thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
+                timestamps: favorite.timestamps || [],
+                created: favorite.created,
+              },
+              rateLimiter,
+            )
+            favorites.value.push(createdFavorite)
+          } else {
+            favorites.value.push({
+              ...favorite,
+              url: normalizedUrl,
+              created: favorite.created || new Date().toISOString(),
+            })
+          }
+          existingUrls.add(normalizedUrl)
+          added++
+        } catch (error) {
+          console.error('Error importing favorite:', error)
+          failed++
+        }
+        importProgress.value.processed++
       }
+    } finally {
+      importProgress.value = null
     }
 
     await persistCacheSnapshot()
 
-    if (added === 0) {
-      if (skipped > 0) {
-        await favoritesUiStore.showAlert(
-          i18n.global.t('import.finished_zero_added', { skipped }),
-          'info',
-        )
-      } else {
-        await favoritesUiStore.showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
-      }
-      return { added, skipped }
+    if (added === 0 && skipped === 0 && failed === 0) {
+      await favoritesUiStore.showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
+      return { added, skipped, failed }
     }
 
     await favoritesUiStore.showAlert(
-      i18n.global.t('import.added', { count: added }) +
-        (skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'),
-      'info',
+      buildImportResultMessage(added, skipped, failed),
+      failed ? 'alert' : 'info',
     )
 
-    return { added, skipped }
+    return { added, skipped, failed }
   }
 
   async function importFromFile(file: File) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    // Mark busy before the file is even parsed, so the import control stays
+    // disabled for the whole operation instead of leaving a gap a second
+    // file selection could slip through during the async read.
+    importProgress.value = { processed: 0, total: null }
 
     try {
       const favoritesToImport = await parseFavoritesImportFile(file)
@@ -300,6 +391,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
       }
 
       throw error
+    } finally {
+      importProgress.value = null
     }
   }
 
@@ -326,6 +419,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading.value = false
     repositoryMode.value = 'local'
     initialized.value = false
+    importProgress.value = null
     activeRepository = null
     cacheRepository = null
     sessionKey = ''
@@ -336,6 +430,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading,
     repositoryMode,
     initialized,
+    importProgress,
     initializeForCurrentSession,
     addOrUpdateFavorite,
     deleteFavorite,
