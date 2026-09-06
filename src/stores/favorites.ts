@@ -34,7 +34,9 @@ interface FavoriteDraft {
 
 const DEFAULT_THUMBNAIL = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Miniature'
 const RATE_LIMIT_STATUS = 429
-const MAX_CREATE_ATTEMPTS = 3
+const MAX_CREATE_ATTEMPTS = 4
+const INITIAL_RATE_LIMIT_DELAY_MS = 1000
+const MAX_RATE_LIMIT_DELAY_MS = 8000
 
 function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -51,18 +53,60 @@ function isRateLimitedError(error: unknown): boolean {
   )
 }
 
+// Shared across a whole import: one item getting rate-limited slows the pace
+// of every item still to come, instead of only retrying that one item.
+class ImportRateLimiter {
+  private minGapMs = 0
+  private nextRequestAt = 0
+
+  async pace() {
+    const waitMs = this.nextRequestAt - Date.now()
+    if (waitMs > 0) await wait(waitMs)
+    this.nextRequestAt = Date.now() + this.minGapMs
+  }
+
+  onRateLimited() {
+    this.minGapMs =
+      this.minGapMs === 0
+        ? INITIAL_RATE_LIMIT_DELAY_MS
+        : Math.min(this.minGapMs * 2, MAX_RATE_LIMIT_DELAY_MS)
+    this.nextRequestAt = Date.now() + this.minGapMs
+  }
+
+  // A create clearing the limiter means its window has moved on: go back to
+  // full speed instead of paying the escalated delay for the rest of the batch.
+  onSuccess() {
+    this.minGapMs = 0
+  }
+}
+
 async function createFavoriteWithRetry(
   repository: FavoritesRepository,
   input: FavoriteRecordInput,
+  limiter: ImportRateLimiter,
   attempt = 1,
 ): Promise<Favorite> {
+  await limiter.pace()
   try {
-    return await repository.create(input)
+    const created = await repository.create(input)
+    limiter.onSuccess()
+    return created
   } catch (error) {
     if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
-    await wait(300 * attempt)
-    return createFavoriteWithRetry(repository, input, attempt + 1)
+    limiter.onRateLimited()
+    return createFavoriteWithRetry(repository, input, limiter, attempt + 1)
   }
+}
+
+function buildImportResultMessage(added: number, skipped: number, failed: number): string {
+  const messageParts = [
+    added === 0 && skipped > 0
+      ? i18n.global.t('import.finished_zero_added', { skipped })
+      : i18n.global.t('import.added', { count: added }) +
+        (skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'),
+  ]
+  if (failed) messageParts.push(i18n.global.t('import.with_failed', { failed }))
+  return messageParts.join(' ')
 }
 
 export const useFavoritesStore = defineStore('favorites', () => {
@@ -252,6 +296,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const favoritesUiStore = useFavoritesUiStore()
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
     const usesCloudRepository = repositoryMode.value === 'google-cloud'
+    const rateLimiter = new ImportRateLimiter()
     let added = 0
     let skipped = 0
     let failed = 0
@@ -271,15 +316,19 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
       try {
         if (usesCloudRepository && activeRepository) {
-          const createdFavorite = await createFavoriteWithRetry(activeRepository, {
-            url: normalizedUrl,
-            title: favorite.title,
-            artists: favorite.artists || [],
-            type: favorite.type,
-            thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
-            timestamps: favorite.timestamps || [],
-            created: favorite.created,
-          })
+          const createdFavorite = await createFavoriteWithRetry(
+            activeRepository,
+            {
+              url: normalizedUrl,
+              title: favorite.title,
+              artists: favorite.artists || [],
+              type: favorite.type,
+              thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
+              timestamps: favorite.timestamps || [],
+              created: favorite.created,
+            },
+            rateLimiter,
+          )
           favorites.value.push(createdFavorite)
         } else {
           favorites.value.push({
@@ -298,28 +347,15 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     await persistCacheSnapshot()
 
-    if (added === 0) {
-      if (skipped === 0 && failed === 0) {
-        await favoritesUiStore.showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
-        return { added, skipped, failed }
-      }
-
-      const messageParts = [
-        skipped > 0
-          ? i18n.global.t('import.finished_zero_added', { skipped })
-          : i18n.global.t('import.added', { count: added }) + '.',
-      ]
-      if (failed) messageParts.push(i18n.global.t('import.with_failed', { failed }))
-
-      await favoritesUiStore.showAlert(messageParts.join(' '), failed ? 'alert' : 'info')
+    if (added === 0 && skipped === 0 && failed === 0) {
+      await favoritesUiStore.showAlert(i18n.global.t('import.none_or_invalid'), 'alert')
       return { added, skipped, failed }
     }
 
-    let message = i18n.global.t('import.added', { count: added })
-    message += skipped ? i18n.global.t('import.with_skipped', { skipped }) : '.'
-    if (failed) message += ' ' + i18n.global.t('import.with_failed', { failed })
-
-    await favoritesUiStore.showAlert(message, failed ? 'alert' : 'info')
+    await favoritesUiStore.showAlert(
+      buildImportResultMessage(added, skipped, failed),
+      failed ? 'alert' : 'info',
+    )
 
     return { added, skipped, failed }
   }

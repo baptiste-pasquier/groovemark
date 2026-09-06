@@ -222,7 +222,8 @@ describe('Favorite Import', () => {
     ])
 
     await flushPromises()
-    await new Promise((resolve) => setTimeout(resolve, 350))
+    // Comfortably longer than the production backoff (1s) to absorb CI scheduling jitter.
+    await new Promise((resolve) => setTimeout(resolve, 2000))
     await flushPromises()
     favoritesUiStore.closeAlert()
     await importPromise
@@ -230,7 +231,7 @@ describe('Favorite Import', () => {
     expect(favoritesStore.favorites).toHaveLength(1)
     expect(favoritesUiStore.alertDialog.message).toContain('1 added')
     expect(favoritesUiStore.alertDialog.message).not.toContain('already present')
-  })
+  }, 10000)
 
   it('reports a non-recoverable create failure as failed, never as an already-present duplicate', async () => {
     const authStore = useAuthStore()
