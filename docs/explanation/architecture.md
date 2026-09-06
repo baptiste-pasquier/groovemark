@@ -43,6 +43,11 @@ The persistence strategy is intentionally split by auth mode:
 
 This avoids mixing anonymous favorites with authenticated user data.
 
+The authenticated offline fallback (`google-cache` mode) is read-only: `useFavoritesStore`
+blocks add/edit/delete/import while backend is unavailable, since the cache has no queue to
+replay writes against PocketBase once the connection returns. Reconnecting always treats the
+PocketBase list as the source of truth and re-mirrors it into the cache.
+
 ## Storage Keys
 
 See [PocketBase Schema](../reference/pocketbase-schema.md#storage-keys) for the current

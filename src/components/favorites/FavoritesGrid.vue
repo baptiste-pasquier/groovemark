@@ -74,6 +74,7 @@ watch(sentinel, (el) => {
         v-for="fav in visibleFavorites"
         :key="fav.id"
         :favorite="fav"
+        :read-only="favoritesStore.isReadOnly"
         @edit="emit('edit', fav.id)"
         @delete="favoritesStore.deleteFavorite(fav.id)"
       />

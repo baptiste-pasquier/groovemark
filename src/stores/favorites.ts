@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import i18n from '../i18n'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
@@ -115,6 +115,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
   const importProgress = ref<{ processed: number; total: number | null } | null>(null)
+  const isReadOnly = computed(() => repositoryMode.value === 'google-cache')
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -206,6 +207,12 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
+  async function blockIfReadOnly(favoritesUiStore: ReturnType<typeof useFavoritesUiStore>) {
+    if (!isReadOnly.value) return false
+    await favoritesUiStore.showAlert(i18n.global.t('messages.offline_read_only'), 'alert')
+    return true
+  }
+
   function getImportErrorMessage(error: FavoriteImportError) {
     switch (error.code) {
       case 'invalid_array':
@@ -220,6 +227,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function addOrUpdateFavorite(draft: FavoriteDraft) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (await blockIfReadOnly(favoritesUiStore)) return false
+
     const normalizedUrl = await normalizeUrl(draft.url.trim())
     const duplicateFavorite = favorites.value.find(
       (favorite) => favorite.url === normalizedUrl && favorite.id !== draft.id,
@@ -274,6 +284,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function deleteFavorite(id: string) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (await blockIfReadOnly(favoritesUiStore)) return
+
     const confirmed = await favoritesUiStore.showConfirm(
       i18n.global.t('messages.confirm_delete_favorite'),
     )
@@ -295,6 +308,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function importFavorites(data: Favorite[]) {
     const favoritesUiStore = useFavoritesUiStore()
+
+    if (await blockIfReadOnly(favoritesUiStore)) {
+      return { added: 0, skipped: data.length, failed: 0 }
+    }
+
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
     const usesCloudRepository = repositoryMode.value === 'google-cloud'
     const rateLimiter = new ImportRateLimiter()
@@ -431,6 +449,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     repositoryMode,
     initialized,
     importProgress,
+    isReadOnly,
     initializeForCurrentSession,
     addOrUpdateFavorite,
     deleteFavorite,

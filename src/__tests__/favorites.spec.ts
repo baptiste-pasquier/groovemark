@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
+import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
+import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
 import type { FavoriteRecordInput } from '../services/favoritesRepository'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
@@ -111,6 +113,50 @@ describe('Favorites Store', () => {
     expect(getLocalStorageState()['groovemark:favorites:google:user-1']).toContain('cached-1')
   })
 
+  it('blocks writes while falling back to the offline cache and leaves it untouched', async () => {
+    const cachedFavorite = createFavorite('cached-1', 'https://youtube.com/watch?v=cached')
+    localStorage.setItem('groovemark:favorites:google:user-1', JSON.stringify([cachedFavorite]))
+
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    expect(favoritesStore.isReadOnly).toBe(true)
+
+    const addPromise = favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=offlineAdd01',
+      title: 'Offline add',
+      artists: [],
+      timestamps: [],
+      thumbnail: '',
+    })
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    expect(await addPromise).toBe(false)
+
+    const deletePromise = favoritesStore.deleteFavorite('cached-1')
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await deletePromise
+
+    const importPromise = favoritesStore.importFavorites([
+      createFavorite('offline-import-1', 'https://youtube.com/watch?v=offlineImport01'),
+    ])
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    expect(await importPromise).toEqual({ added: 0, skipped: 1, failed: 0 })
+
+    expect(favoritesStore.favorites).toEqual([cachedFavorite])
+    expect(getLocalStorageState()['groovemark:favorites:google:user-1']).toBe(
+      JSON.stringify([cachedFavorite]),
+    )
+  })
+
   it('isolates local-mode favorites after signing out from a Google session', async () => {
     const localFavorite = createFavorite('local-1', 'https://youtube.com/watch?v=local')
     const googleFavorite = createFavorite('google-1', 'https://youtube.com/watch?v=google')
@@ -183,6 +229,33 @@ describe('Favorites Store', () => {
     expect(favoritesStore.favorites[0]?.thumbnail).toBe(
       'https://i.ytimg.com/vi/newVideo02B/hqdefault.jpg',
     )
+  })
+
+  it('deletes a favorite when confirmed in a normal (non-read-only) mode', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+
+    await favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=deleteMe0001',
+      title: 'To delete',
+      artists: [],
+      timestamps: [],
+      thumbnail: '',
+    })
+    const [favorite] = favoritesStore.favorites
+    expect(favorite).toBeDefined()
+
+    const deletePromise = favoritesStore.deleteFavorite(favorite.id)
+    await flushPromises()
+    favoritesUiStore.respondConfirm(true)
+    await deletePromise
+
+    expect(favoritesStore.favorites).toEqual([])
+    expect(getLocalStorageState()['groovemark:favorites:local']).toBe('[]')
   })
 
   it('does not classify lookalike SoundCloud hosts as SoundCloud favorites', async () => {
