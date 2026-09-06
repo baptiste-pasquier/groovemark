@@ -13,8 +13,8 @@ services:
       # Persist Pocketbase data
       - pocketbase_data:/pb/pb_data
       # Optional: Mount custom migrations and hooks
-      # - ../pb_migrations:/pb/pb_migrations:ro
-      # - ../pb_hooks:/pb/pb_hooks:ro
+      # - ../pocketbase/pb_migrations:/pb/pb_migrations:ro
+      # - ../pocketbase/pb_hooks:/pb/pb_hooks:ro
     healthcheck:
       test:
         ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8090/api/health']

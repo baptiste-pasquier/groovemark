@@ -38,6 +38,7 @@ The Vite dev server runs on `http://localhost:5173` by default.
 If you want to test the authenticated PocketBase flow, start PocketBase separately:
 
 ```sh
+cd pocketbase
 ./pocketbase serve
 ```
 
