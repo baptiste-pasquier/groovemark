@@ -1,8 +1,12 @@
+import type { Artist } from '../types/artist'
 import type { Favorite } from '../types/favorite'
 import type { AuthMode } from '../types/auth'
-import { getFavoritesStorageKey } from './storage'
+import { getArtistsStorageKey, getFavoritesStorageKey } from './storage'
 import { LocalFavoritesRepository } from './localFavoritesRepository'
 import { PocketBaseFavoritesRepository } from './pocketbaseFavoritesRepository'
+import type { ArtistsRepository } from './artistsRepository'
+import { LocalArtistsRepository } from './localArtistsRepository'
+import { PocketBaseArtistsRepository } from './pocketbaseArtistsRepository'
 
 export type RepositoryMode = 'local' | 'google-cloud' | 'google-cache'
 
@@ -41,9 +45,11 @@ export interface FavoritesRepository {
   isAvailable?(): Promise<boolean>
 }
 
-export interface FavoritesRepositorySelection {
+export interface RepositorySelection {
   activeRepository: FavoritesRepository
   cacheRepository: LocalFavoritesRepository
+  activeArtistsRepository: ArtistsRepository
+  cacheArtistsRepository: LocalArtistsRepository
   mode: RepositoryMode
 }
 
@@ -53,20 +59,59 @@ interface FavoritesRepositoryContext {
   backendAvailable: boolean
 }
 
-export function selectFavoritesRepository(
-  context: FavoritesRepositoryContext,
-): FavoritesRepositorySelection {
+class ReadOnlyFavoritesRepository implements FavoritesRepository {
+  constructor(private readonly inner: LocalFavoritesRepository) {}
+
+  list(): Promise<Favorite[]> {
+    return this.inner.list()
+  }
+
+  create(): Promise<Favorite> {
+    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
+  }
+
+  update(): Promise<Favorite> {
+    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
+  }
+
+  delete(): Promise<void> {
+    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
+  }
+}
+
+class ReadOnlyArtistsRepository implements ArtistsRepository {
+  constructor(private readonly inner: LocalArtistsRepository) {}
+
+  list(): Promise<Artist[]> {
+    return this.inner.list()
+  }
+
+  findBySlug(slug: string): Promise<Artist | null> {
+    return this.inner.findBySlug(slug)
+  }
+
+  create(): Promise<Artist> {
+    throw new FavoritesRepositoryError('Artists are read-only while offline.', 'unavailable')
+  }
+}
+
+export function selectRepositories(context: FavoritesRepositoryContext): RepositorySelection {
   const cacheRepository = new LocalFavoritesRepository(
     getFavoritesStorageKey(context.authMode, context.userId),
     {
       allowLegacyRead: context.authMode === 'local',
     },
   )
+  const cacheArtistsRepository = new LocalArtistsRepository(
+    getArtistsStorageKey(context.authMode, context.userId),
+  )
 
   if (context.authMode === 'local') {
     return {
       activeRepository: cacheRepository,
       cacheRepository,
+      activeArtistsRepository: cacheArtistsRepository,
+      cacheArtistsRepository,
       mode: 'local',
     }
   }
@@ -77,8 +122,10 @@ export function selectFavoritesRepository(
 
   if (!context.backendAvailable) {
     return {
-      activeRepository: cacheRepository,
+      activeRepository: new ReadOnlyFavoritesRepository(cacheRepository),
       cacheRepository,
+      activeArtistsRepository: new ReadOnlyArtistsRepository(cacheArtistsRepository),
+      cacheArtistsRepository,
       mode: 'google-cache',
     }
   }
@@ -86,6 +133,8 @@ export function selectFavoritesRepository(
   return {
     activeRepository: new PocketBaseFavoritesRepository(),
     cacheRepository,
+    activeArtistsRepository: new PocketBaseArtistsRepository(),
+    cacheArtistsRepository,
     mode: 'google-cloud',
   }
 }

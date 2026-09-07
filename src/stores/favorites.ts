@@ -9,10 +9,7 @@ import type {
   FavoritesRepository,
   RepositoryMode,
 } from '../services/favoritesRepository'
-import {
-  FavoritesRepositoryError,
-  selectFavoritesRepository,
-} from '../services/favoritesRepository'
+import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -115,7 +112,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
   const importProgress = ref<{ processed: number; total: number | null } | null>(null)
-  const isReadOnly = computed(() => repositoryMode.value === 'google-cache')
+  const degradedReadOnly = ref(false)
+  const isReadOnly = computed(
+    () => repositoryMode.value === 'google-cache' || degradedReadOnly.value,
+  )
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -141,8 +141,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
     isLoading.value = true
     initialized.value = true
     sessionKey = nextSessionKey
+    degradedReadOnly.value = false
 
-    const selection = selectFavoritesRepository({
+    const selection = selectRepositories({
       authMode: authStore.authMode,
       userId: authStore.userId,
       backendAvailable: options.backendAvailable,
@@ -172,6 +173,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function persistCacheSnapshot() {
     if (!cacheRepository) return
     await cacheRepository.replaceAll(favorites.value)
+  }
+
+  function setDegradedReadOnly(value: boolean) {
+    degradedReadOnly.value = value
   }
 
   function buildFavoriteRecordInput(
@@ -440,6 +445,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     repositoryMode.value = 'local'
     initialized.value = false
     importProgress.value = null
+    degradedReadOnly.value = false
     activeRepository = null
     cacheRepository = null
     sessionKey = ''
@@ -453,6 +459,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     importProgress,
     isReadOnly,
     initializeForCurrentSession,
+    setDegradedReadOnly,
     addOrUpdateFavorite,
     deleteFavorite,
     importFavorites,

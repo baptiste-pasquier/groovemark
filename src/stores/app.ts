@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import i18n from '../i18n'
 import type { AppStatus } from '../types/app'
+import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesStore } from './favorites'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -13,6 +14,7 @@ export const useAppStore = defineStore('app', () => {
   const isBootstrapped = ref(false)
 
   const authStore = useAuthStore()
+  const artistsStore = useArtistsStore()
   const favoritesStore = useFavoritesStore()
   const favoritesUiStore = useFavoritesUiStore()
   const pocketBaseRepository = new PocketBaseFavoritesRepository()
@@ -31,9 +33,13 @@ export const useAppStore = defineStore('app', () => {
       await refreshBackendAvailability()
 
       if (authStore.isLoggedIn) {
+        await artistsStore.initializeForCurrentSession({
+          backendAvailable: backendAvailable.value,
+        })
         await favoritesStore.initializeForCurrentSession({
           backendAvailable: backendAvailable.value,
         })
+        favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
         status.value = 'ready'
       } else {
         handleSignedOut()
@@ -50,10 +56,15 @@ export const useAppStore = defineStore('app', () => {
 
     try {
       await refreshBackendAvailability()
+      await artistsStore.initializeForCurrentSession({
+        backendAvailable: backendAvailable.value,
+        force: true,
+      })
       await favoritesStore.initializeForCurrentSession({
         backendAvailable: backendAvailable.value,
         force: true,
       })
+      favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
       status.value = 'ready'
     } catch (error) {
       await recoverFromSessionError('Error initializing authenticated session:', error)
@@ -68,6 +79,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function handleSignedOut() {
+    artistsStore.$reset()
     favoritesStore.$reset()
     favoritesUiStore.$reset()
     status.value = 'unauthenticated'
