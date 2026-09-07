@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import type { Artist } from '../types/artist'
+import { useArtistsStore } from './artists'
 import { useFavoritesStore } from './favorites'
 
 interface ConfirmDialogState {
@@ -23,20 +25,38 @@ export const useFavoritesUiStore = defineStore('favoritesUi', () => {
   const confirmDialog = ref<ConfirmDialogState>({ message: '', visible: false })
 
   const favoritesStore = useFavoritesStore()
+  const artistsStore = useArtistsStore()
 
-  const allArtists = computed(() => {
-    const artists = new Set<string>()
+  // Referenced-artist subset for the filter list + counts (KTD14, R8): only
+  // artists actually credited by artistIds on a current favorite. An artist
+  // that no favorite references drops out here even though it stays
+  // suggestible from the full loaded set below.
+  const referencedArtists = computed(() => {
+    const seenIds = new Set<string>()
+    const referenced: Artist[] = []
     favoritesStore.favorites.forEach((favorite) => {
-      favorite.artists.forEach((artist) => artists.add(artist))
+      favorite.artistIds.forEach((artistId) => {
+        if (seenIds.has(artistId)) return
+        const artist = artistsStore.artists.find((candidate) => candidate.id === artistId)
+        if (!artist) return
+        seenIds.add(artistId)
+        referenced.push(artist)
+      })
     })
-    return Array.from(artists).sort((a, b) => a.localeCompare(b))
+    return referenced.sort((a, b) => a.displayName.localeCompare(b.displayName))
   })
+
+  // Full loaded set for suggestions/resolution (KTD14): every artist in the
+  // artists store, regardless of whether any favorite currently credits it.
+  const allArtistNames = computed(() =>
+    artistsStore.artists.map((artist) => artist.displayName).sort((a, b) => a.localeCompare(b)),
+  )
 
   const favoritesCountByArtist = computed(() => {
     const counts: Record<string, number> = {}
     favoritesStore.favorites.forEach((favorite) => {
-      favorite.artists.forEach((artist) => {
-        counts[artist] = (counts[artist] || 0) + 1
+      favorite.artistIds.forEach((artistId) => {
+        counts[artistId] = (counts[artistId] || 0) + 1
       })
     })
     return counts
@@ -48,7 +68,7 @@ export const useFavoritesUiStore = defineStore('favoritesUi', () => {
     return [...favoritesStore.favorites]
       .filter((favorite) => {
         const matchesArtist =
-          currentFilter.value === 'all' || favorite.artists.includes(currentFilter.value)
+          currentFilter.value === 'all' || favorite.artistIds.includes(currentFilter.value)
         const matchesSearch =
           !normalizedSearchTerm ||
           favorite.title.toLowerCase().includes(normalizedSearchTerm) ||
@@ -118,7 +138,8 @@ export const useFavoritesUiStore = defineStore('favoritesUi', () => {
     searchTerm,
     alertDialog,
     confirmDialog,
-    allArtists,
+    referencedArtists,
+    allArtistNames,
     favoritesCountByArtist,
     filteredFavorites,
     toggleSort,

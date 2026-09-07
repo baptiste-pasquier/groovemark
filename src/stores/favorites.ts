@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import i18n from '../i18n'
+import type { Artist } from '../types/artist'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
@@ -11,6 +12,7 @@ import type {
 } from '../services/favoritesRepository'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
+import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
 import { FavoriteImportError, parseFavoritesImportFile } from '../services/favoriteImport'
@@ -93,6 +95,26 @@ async function createFavoriteWithRetry(
     limiter.onRateLimited()
     return createFavoriteWithRetry(repository, input, limiter, attempt + 1)
   }
+}
+
+// Resolves each raw typed name to a canonical Artist (creating it if unknown,
+// per R2/KTD6), deduping by artist id so two spellings of one name typed in
+// the same save credit that artist only once (AE7).
+async function resolveArtistCredits(
+  rawNames: string[],
+  artistsStore: ReturnType<typeof useArtistsStore>,
+): Promise<Artist[]> {
+  const resolved: Artist[] = []
+  const seenIds = new Set<string>()
+
+  for (const rawName of rawNames) {
+    const artist = await artistsStore.resolveOrCreateArtist(rawName)
+    if (!artist || seenIds.has(artist.id)) continue
+    seenIds.add(artist.id)
+    resolved.push(artist)
+  }
+
+  return resolved
 }
 
 function buildImportResultMessage(added: number, skipped: number, failed: number): string {
@@ -181,7 +203,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   function buildFavoriteRecordInput(
     draft: FavoriteDraft,
-    currentFavorite?: Favorite,
+    currentFavorite: Favorite | undefined,
+    resolvedArtists: Artist[],
   ): FavoriteRecordInput {
     const type: Favorite['type'] = isSoundCloudUrl(draft.url) ? 'soundcloud' : 'youtube'
     const normalizedThumbnail = draft.thumbnail?.trim() || ''
@@ -205,8 +228,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return {
       url: draft.url,
       title: draft.title.trim(),
-      artists: [...draft.artists],
-      artistIds: [],
+      artists: resolvedArtists.map((artist) => artist.displayName),
+      artistIds: resolvedArtists.map((artist) => artist.id),
       type,
       thumbnail,
       timestamps: draft.timestamps,
@@ -233,6 +256,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function addOrUpdateFavorite(draft: FavoriteDraft) {
     const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
 
     if (await blockIfReadOnly(favoritesUiStore)) return false
 
@@ -256,12 +280,23 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const currentFavorite = draft.id
       ? favorites.value.find((favorite) => favorite.id === draft.id)
       : undefined
+
+    let resolvedArtists: Artist[]
+    try {
+      resolvedArtists = await resolveArtistCredits(draft.artists, artistsStore)
+    } catch (error) {
+      console.error('Error resolving artist credits:', error)
+      await favoritesUiStore.showAlert(i18n.global.t('messages.error_saving'), 'alert')
+      return false
+    }
+
     const favoriteInput = buildFavoriteRecordInput(
       {
         ...draft,
         url: normalizedUrl,
       },
       currentFavorite,
+      resolvedArtists,
     )
 
     try {
