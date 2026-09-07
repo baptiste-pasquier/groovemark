@@ -5,7 +5,11 @@ import { PocketBaseArtistsRepository } from '../services/pocketbaseArtistsReposi
 import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { getArtistsStorageKey } from '../services/storage'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
-import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import {
+  mockPocketbase,
+  pocketbaseArtistsCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
 
 describe('LocalArtistsRepository', () => {
   beforeEach(() => {
@@ -70,7 +74,7 @@ describe('PocketBaseArtistsRepository', () => {
   const repository = new PocketBaseArtistsRepository()
 
   it('surfaces a backend create failure as a FavoritesRepositoryError the rate-limit guard recognises', async () => {
-    pocketbaseCollectionApi.create.mockRejectedValue(
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue(
       Object.assign(new Error('rate limited'), { status: 429 }),
     )
 

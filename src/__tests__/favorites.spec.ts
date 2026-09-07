@@ -240,6 +240,34 @@ describe('Favorites Store', () => {
     )
   })
 
+  it('defaults artistIds to [] for a pre-existing favorite with no artistIds field, without crashing the filter/count getters', async () => {
+    const legacyFavorite = {
+      id: 'legacy-1',
+      url: 'https://youtube.com/watch?v=legacy',
+      title: 'Legacy favorite',
+      artists: ['Old Artist'],
+      type: 'youtube',
+      thumbnail: 'https://img.test/thumbnail.jpg',
+      timestamps: [],
+      created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+    } as unknown as Favorite
+    localStorage.setItem('groovemark:favorites:local', JSON.stringify([legacyFavorite]))
+
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual([])
+
+    expect(() => favoritesUiStore.filteredFavorites).not.toThrow()
+    expect(() => favoritesUiStore.favoritesCountByArtist).not.toThrow()
+    expect(favoritesUiStore.filteredFavorites.map((favorite) => favorite.id)).toContain('legacy-1')
+    expect(favoritesUiStore.favoritesCountByArtist).toEqual({})
+  })
+
   it('deletes a favorite when confirmed in a normal (non-read-only) mode', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()
