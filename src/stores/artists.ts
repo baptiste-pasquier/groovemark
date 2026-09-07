@@ -5,7 +5,7 @@ import type { ArtistsRepository } from '../services/artistsRepository'
 import type { SessionInitOptions } from '../services/favoritesRepository'
 import { selectRepositories } from '../services/favoritesRepository'
 import { LocalArtistsRepository } from '../services/localArtistsRepository'
-import { findArtistByName, normalizeArtistName } from '../utils/artist'
+import { createOrFindArtist, findArtistByName, normalizeArtistName } from '../utils/artist'
 import { useAuthStore } from './auth'
 
 export const useArtistsStore = defineStore('artists', () => {
@@ -91,19 +91,16 @@ export const useArtistsStore = defineStore('artists', () => {
       throw new Error('Artists repository has not been initialized.')
     }
 
-    try {
-      const created = await activeArtistsRepository.create({ displayName: rawName.trim(), slug })
-      addResolvedArtist(created)
-      return created
-    } catch (error) {
-      // KTD7: a create rejected by the unique index (owner+slug) is treated
-      // as a find -- re-read by slug and reuse the winner instead of failing.
-      const found = await activeArtistsRepository.findBySlug(slug)
-      if (!found) throw error
-
-      addResolvedArtist(found)
-      return found
-    }
+    // Race-recovery mechanics (KTD7) live in createOrFindArtist; this just
+    // registers the winner and lets a genuine create failure (nothing found
+    // on fallback) propagate, per this caller's throw policy (KTD6).
+    const resolved = await createOrFindArtist(
+      activeArtistsRepository,
+      { displayName: rawName.trim(), slug },
+      slug,
+    )
+    addResolvedArtist(resolved)
+    return resolved
   }
 
   function $reset() {

@@ -1,4 +1,5 @@
 import type { Artist } from '../types/artist'
+import type { ArtistRecordInput, ArtistsRepository } from '../services/artistsRepository'
 
 // Unicode "Combining Diacritical Marks" block (U+0300-U+036F).
 const COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g
@@ -81,4 +82,26 @@ export function findArtistByName(rawName: string, index: Artist[]): Artist | nul
   if (slug === null) return null
 
   return index.find((artist) => artist.slug === slug) ?? null
+}
+
+// Shared race-recovery mechanics for creating an artist (KTD7): a create
+// rejected by the unique index (owner+slug) is treated as a find -- re-read
+// by slug and reuse whichever record won the race, instead of failing. Every
+// caller of this function (the interactive artist-field save in
+// stores/artists.ts and the import path in stores/favorites.ts) needs this
+// same recovery; only what happens when the fallback find also comes up
+// empty is policy, and that stays with the caller: this rethrows the
+// original create error and lets the caller decide (KTD6).
+export async function createOrFindArtist(
+  repository: Pick<ArtistsRepository, 'create' | 'findBySlug'>,
+  input: ArtistRecordInput,
+  slug: string,
+): Promise<Artist> {
+  try {
+    return await repository.create(input)
+  } catch (error) {
+    const found = await repository.findBySlug(slug)
+    if (!found) throw error
+    return found
+  }
 }

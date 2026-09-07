@@ -5,7 +5,7 @@ import type { Artist } from '../types/artist'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
-import { electArtistDisplayNames, normalizeArtistName } from '../utils/artist'
+import { createOrFindArtist, electArtistDisplayNames, normalizeArtistName } from '../utils/artist'
 import type {
   FavoriteRecordInput,
   FavoritesRepository,
@@ -127,31 +127,33 @@ async function resolveImportArtistsBySlug(
     }
 
     try {
-      const created = await createRecordWithRetry(
-        artistsRepository,
+      // Race-recovery mechanics (KTD7) live in createOrFindArtist; the create
+      // itself still goes through the import's shared retry/rate-limiter
+      // path (KTD8), and a failure here (including the fallback find itself
+      // failing, e.g. a genuine network error rather than a clean "not
+      // found") must not abort the whole import -- it just means this slug
+      // stays unresolved, so only the rows crediting it are reported as
+      // failed (R18).
+      const resolved = await createOrFindArtist(
+        {
+          create: (createInput) => createRecordWithRetry(artistsRepository, createInput, limiter),
+          findBySlug: async (findSlug) => {
+            try {
+              return await artistsRepository.findBySlug(findSlug)
+            } catch (findError) {
+              console.error('Error finding artist during import fallback:', findError)
+              return null
+            }
+          },
+        },
         { displayName: electedDisplayName, slug },
-        limiter,
+        slug,
       )
-      artistsStore.addResolvedArtist(created)
-      resolvedBySlug.set(slug, created)
+      artistsStore.addResolvedArtist(resolved)
+      resolvedBySlug.set(slug, resolved)
     } catch (error) {
-      // The find-as-fallback lookup can itself fail (e.g. a genuine network
-      // error, not just a clean "not found"). That must not abort the whole
-      // import -- it just means this slug stays unresolved, so only the rows
-      // crediting it are reported as failed (R18).
-      let found: Artist | null = null
-      try {
-        found = await artistsRepository.findBySlug(slug)
-      } catch (findError) {
-        console.error('Error finding artist during import fallback:', findError)
-      }
-
-      if (!found) {
-        console.error('Error creating artist during import:', error)
-        continue
-      }
-      artistsStore.addResolvedArtist(found)
-      resolvedBySlug.set(slug, found)
+      console.error('Error creating artist during import:', error)
+      continue
     }
   }
 
