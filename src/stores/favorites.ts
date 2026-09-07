@@ -5,6 +5,7 @@ import type { Artist } from '../types/artist'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
+import { electArtistDisplayNames, normalizeArtistName } from '../utils/artist'
 import type {
   FavoriteRecordInput,
   FavoritesRepository,
@@ -12,6 +13,7 @@ import type {
 } from '../services/favoritesRepository'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
+import type { ArtistRecordInput, ArtistsRepository } from '../services/artistsRepository'
 import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -97,6 +99,116 @@ async function createFavoriteWithRetry(
   }
 }
 
+async function createArtistWithRetry(
+  repository: ArtistsRepository,
+  input: ArtistRecordInput,
+  limiter: ImportRateLimiter,
+  attempt = 1,
+): Promise<Artist> {
+  await limiter.pace()
+  try {
+    const created = await repository.create(input)
+    limiter.onSuccess()
+    return created
+  } catch (error) {
+    if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
+    limiter.onRateLimited()
+    return createArtistWithRetry(repository, input, limiter, attempt + 1)
+  }
+}
+
+// Resolves the whole import's artist-name population in one pass, before any
+// favorite is created, so two rows crediting the same name (by R13's
+// case/accent/whitespace-insensitive matching) never create two artists
+// (KTD5). An existing artist always wins over the file's own election
+// (AE17) -- the election only decides the spelling for a genuinely new
+// artist. Artist creates share the import's rate limiter and retry path with
+// favorite creates (KTD8). A create rejected by the unique index is treated
+// as a find (KTD7). A slug that fails to resolve is simply absent from the
+// returned map; the caller decides what that means for the rows crediting it
+// (R18).
+async function resolveImportArtistsBySlug(
+  population: string[],
+  artistsStore: ReturnType<typeof useArtistsStore>,
+  artistsRepository: ArtistsRepository,
+  limiter: ImportRateLimiter,
+): Promise<Map<string, Artist>> {
+  const elected = electArtistDisplayNames(population)
+  const resolvedBySlug = new Map<string, Artist>()
+
+  for (const [slug, electedDisplayName] of elected) {
+    const existing = artistsStore.artists.find((artist) => artist.slug === slug)
+    if (existing) {
+      resolvedBySlug.set(slug, existing)
+      continue
+    }
+
+    try {
+      const created = await createArtistWithRetry(
+        artistsRepository,
+        { displayName: electedDisplayName, slug },
+        limiter,
+      )
+      artistsStore.artists.push(created)
+      resolvedBySlug.set(slug, created)
+    } catch (error) {
+      // The find-as-fallback lookup can itself fail (e.g. a genuine network
+      // error, not just a clean "not found"). That must not abort the whole
+      // import -- it just means this slug stays unresolved, so only the rows
+      // crediting it are reported as failed (R18).
+      let found: Artist | null = null
+      try {
+        found = await artistsRepository.findBySlug(slug)
+      } catch (findError) {
+        console.error('Error finding artist during import fallback:', findError)
+      }
+
+      if (!found) {
+        console.error('Error creating artist during import:', error)
+        continue
+      }
+      if (!artistsStore.artists.some((artist) => artist.id === found.id)) {
+        artistsStore.artists.push(found)
+      }
+      resolvedBySlug.set(slug, found)
+    }
+  }
+
+  await artistsStore.persistArtistsCacheSnapshot()
+  return resolvedBySlug
+}
+
+// Maps one favorite's raw artist names to already-resolved artists (from
+// resolveImportArtistsBySlug), deduping by id. A name empty once trimmed is
+// dropped silently (mirrors AE8) and is NOT a resolution failure. A name
+// whose slug has no entry in resolvedBySlug means its artist failed to
+// create; the row is reported as failed so the caller can honor R18 (leave
+// the favorite unimported rather than under-crediting it).
+function resolveRowArtists(
+  rawNames: string[],
+  resolvedBySlug: Map<string, Artist>,
+): { resolved: Artist[]; failed: boolean } {
+  const resolved: Artist[] = []
+  const seenIds = new Set<string>()
+  let failed = false
+
+  for (const rawName of rawNames) {
+    const slug = normalizeArtistName(rawName)
+    if (slug === null) continue
+
+    const artist = resolvedBySlug.get(slug)
+    if (!artist) {
+      failed = true
+      continue
+    }
+    if (seenIds.has(artist.id)) continue
+    seenIds.add(artist.id)
+    resolved.push(artist)
+  }
+
+  return { resolved, failed }
+}
+
 // Resolves each raw typed name to a canonical Artist (creating it if unknown,
 // per R2/KTD6), deduping by artist id so two spellings of one name typed in
 // the same save credit that artist only once (AE7).
@@ -115,6 +227,25 @@ async function resolveArtistCredits(
   }
 
   return resolved
+}
+
+// R12: the export keeps its pre-identity shape. artistIds is an internal
+// relation id, meaningless on a different account or instance, so it is
+// deliberately not written out; the denormalized `artists` names column
+// (KTD12) already carries everything the export needs.
+export function buildFavoritesExportPayload(
+  favoritesToExport: Favorite[],
+): Omit<Favorite, 'artistIds'>[] {
+  return favoritesToExport.map((favorite) => ({
+    id: favorite.id,
+    url: favorite.url,
+    title: favorite.title,
+    artists: favorite.artists,
+    type: favorite.type,
+    thumbnail: favorite.thumbnail,
+    timestamps: favorite.timestamps,
+    created: favorite.created,
+  }))
 }
 
 function buildImportResultMessage(added: number, skipped: number, failed: number): string {
@@ -141,6 +272,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
+  let importArtistsRepository: ArtistsRepository | null = null
   let sessionKey = ''
 
   const authStore = useAuthStore()
@@ -172,6 +304,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     })
     activeRepository = selection.activeRepository
     cacheRepository = selection.cacheRepository
+    importArtistsRepository = selection.activeArtistsRepository
     repositoryMode.value = selection.mode
 
     try {
@@ -349,9 +482,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function importFavorites(data: Favorite[]) {
     const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
 
     if (await blockIfReadOnly(favoritesUiStore)) {
       return { added: 0, skipped: data.length, failed: 0 }
+    }
+
+    if (!importArtistsRepository) {
+      throw new Error('Artists repository has not been initialized.')
     }
 
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
@@ -364,6 +502,26 @@ export const useFavoritesStore = defineStore('favorites', () => {
     importProgress.value = { processed: 0, total: data.length }
 
     try {
+      // Population pass: gather every row's raw artist names that will
+      // plausibly survive the skip checks below, so the whole file's
+      // distinct artists are resolved once before any favorite is created
+      // (KTD5, KTD8). A name from a row later re-skipped as an already-seen
+      // duplicate here is harmless to have resolved -- the resulting artist
+      // is simply unused by this import.
+      const population: string[] = []
+      for (const favorite of data) {
+        const normalizedUrl = await normalizeUrl(favorite.url)
+        if (!isSafeHttpUrl(normalizedUrl) || existingUrls.has(normalizedUrl)) continue
+        population.push(...(favorite.artists || []))
+      }
+
+      const resolvedBySlug = await resolveImportArtistsBySlug(
+        population,
+        artistsStore,
+        importArtistsRepository,
+        rateLimiter,
+      )
+
       for (const favorite of data) {
         const normalizedUrl = await normalizeUrl(favorite.url)
 
@@ -379,6 +537,20 @@ export const useFavoritesStore = defineStore('favorites', () => {
           continue
         }
 
+        const { resolved: rowArtists, failed: rowFailed } = resolveRowArtists(
+          favorite.artists || [],
+          resolvedBySlug,
+        )
+
+        if (rowFailed) {
+          failed++
+          importProgress.value.processed++
+          continue
+        }
+
+        const artists = rowArtists.map((artist) => artist.displayName)
+        const artistIds = rowArtists.map((artist) => artist.id)
+
         try {
           if (usesCloudRepository && activeRepository) {
             const createdFavorite = await createFavoriteWithRetry(
@@ -386,8 +558,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
               {
                 url: normalizedUrl,
                 title: favorite.title,
-                artists: favorite.artists || [],
-                artistIds: favorite.artistIds || [],
+                artists,
+                artistIds,
                 type: favorite.type,
                 thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
                 timestamps: favorite.timestamps || [],
@@ -400,6 +572,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
             favorites.value.push({
               ...favorite,
               url: normalizedUrl,
+              artists,
+              artistIds,
               created: favorite.created || new Date().toISOString(),
             })
           }
@@ -463,7 +637,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return
     }
 
-    const jsonString = JSON.stringify(favorites.value, null, 2)
+    const jsonString = JSON.stringify(buildFavoritesExportPayload(favorites.value), null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -483,6 +657,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     degradedReadOnly.value = false
     activeRepository = null
     cacheRepository = null
+    importArtistsRepository = null
     sessionKey = ''
   }
 
