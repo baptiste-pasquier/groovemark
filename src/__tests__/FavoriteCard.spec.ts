@@ -8,6 +8,7 @@ const favorite: Favorite = {
   url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   title: 'Favorite',
   artists: ['Artist'],
+  artistIds: [],
   type: 'youtube',
   thumbnail: 'https://img.test/thumb.jpg',
   timestamps: [{ label: 'Intro', time: '1:23', rated: true }],

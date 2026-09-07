@@ -10,6 +10,7 @@ export interface FavoriteRecordInput {
   url: string
   title: string
   artists: string[]
+  artistIds: string[]
   type: Favorite['type']
   thumbnail: string
   timestamps: Favorite['timestamps']

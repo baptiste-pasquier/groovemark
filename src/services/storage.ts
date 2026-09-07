@@ -4,6 +4,7 @@ export const AUTH_MODE_KEY = 'groovemark_auth_mode'
 export const LOCALE_STORAGE_KEY = 'groovemark_locale'
 export const LEGACY_FAVORITES_STORAGE_KEY = 'favorites'
 const LOCAL_FAVORITES_STORAGE_KEY = 'groovemark:favorites:local'
+const LOCAL_ARTISTS_STORAGE_KEY = 'groovemark:artists:local'
 
 export function getStoredAuthMode(): AuthMode {
   try {
@@ -56,6 +57,18 @@ export function getFavoritesStorageKey(authMode: Exclude<AuthMode, null>, userId
   }
 
   return `groovemark:favorites:google:${userId}`
+}
+
+export function getArtistsStorageKey(authMode: Exclude<AuthMode, null>, userId?: string | null) {
+  if (authMode === 'local') {
+    return LOCAL_ARTISTS_STORAGE_KEY
+  }
+
+  if (!userId) {
+    throw new Error('Google artists storage requires a user id.')
+  }
+
+  return `groovemark:artists:google:${userId}`
 }
 
 export function readStorage<T>(key: string): T | null {

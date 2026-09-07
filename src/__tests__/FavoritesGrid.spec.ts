@@ -36,6 +36,7 @@ function createFavorite(id: string): Favorite {
     url: `https://www.youtube.com/watch?v=${id}`,
     title: `Favorite ${id}`,
     artists: ['Artist'],
+    artistIds: [],
     type: 'youtube',
     thumbnail: 'https://img.test/thumb.jpg',
     timestamps: [],

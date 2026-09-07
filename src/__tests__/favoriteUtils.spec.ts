@@ -8,6 +8,7 @@ function mockFavorite(partial: Partial<Favorite> = {}): Favorite {
     url: partial.url || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     title: 'Test',
     artists: [],
+    artistIds: [],
     type: partial.type || 'youtube',
     thumbnail: '',
     timestamps: [],
