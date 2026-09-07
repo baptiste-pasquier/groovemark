@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { normalizeArtistName, electArtistDisplayNames, findArtistByName } from '../utils/artist'
+import { describe, it, expect, vi } from 'vitest'
+import {
+  normalizeArtistName,
+  electArtistDisplayNames,
+  findArtistByName,
+  createOrFindArtist,
+} from '../utils/artist'
 import type { Artist } from '../types/artist'
 
 describe('artist utils', () => {
@@ -72,6 +77,65 @@ describe('artist utils', () => {
     it('returns null when no artist matches', () => {
       expect(findArtistByName('Justice', artists)).toBeNull()
       expect(findArtistByName('   ', artists)).toBeNull()
+    })
+  })
+
+  describe('createOrFindArtist', () => {
+    // KTD7: the happy path never needs the fallback find at all.
+    it('returns the created artist without calling findBySlug when create succeeds', async () => {
+      const created: Artist = { id: '1', displayName: 'Daft Punk', slug: 'daft punk' }
+      const repository = {
+        create: vi.fn().mockResolvedValue(created),
+        findBySlug: vi.fn(),
+      }
+
+      const resolved = await createOrFindArtist(
+        repository,
+        { displayName: 'Daft Punk', slug: 'daft punk' },
+        'daft punk',
+      )
+
+      expect(resolved).toBe(created)
+      expect(repository.findBySlug).not.toHaveBeenCalled()
+    })
+
+    // KTD7 race-recovery success/reuse branch: create is rejected by the
+    // unique index, but the fallback find turns up the record that won the
+    // race, so the loser reuses it instead of losing the credit.
+    it('reuses the artist found by findBySlug when create is rejected and the fallback find succeeds', async () => {
+      const winner: Artist = { id: 'winner-1', displayName: 'Daft Punk', slug: 'daft punk' }
+      const createError = new Error('unique index violation')
+      const repository = {
+        create: vi.fn().mockRejectedValue(createError),
+        findBySlug: vi.fn().mockResolvedValue(winner),
+      }
+
+      const resolved = await createOrFindArtist(
+        repository,
+        { displayName: 'Daft Punk (dup)', slug: 'daft punk' },
+        'daft punk',
+      )
+
+      expect(resolved).toBe(winner)
+      expect(repository.findBySlug).toHaveBeenCalledWith('daft punk')
+    })
+
+    // KTD6: when the fallback find also comes up empty, the original create
+    // error propagates so the caller can decide what a genuine failure means.
+    it('rethrows the original create error when the fallback find finds nothing', async () => {
+      const createError = new Error('unique index violation')
+      const repository = {
+        create: vi.fn().mockRejectedValue(createError),
+        findBySlug: vi.fn().mockResolvedValue(null),
+      }
+
+      await expect(
+        createOrFindArtist(
+          repository,
+          { displayName: 'Daft Punk (dup)', slug: 'daft punk' },
+          'daft punk',
+        ),
+      ).rejects.toBe(createError)
     })
   })
 })

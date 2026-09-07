@@ -224,6 +224,29 @@ describe('Artists Store', () => {
     expect(artistsStore.artists.map((artist) => artist.slug)).toContain('daft-punk')
   })
 
+  it('reuses the artist found by findBySlug when a create is rejected by the unique index (KTD7)', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    await artistsStore.initializeForCurrentSession({ backendAvailable: true })
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValueOnce({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockResolvedValueOnce({
+      id: 'winner-1',
+      displayName: 'New Artist',
+      slug: 'new artist',
+    } as never)
+
+    const resolved = await artistsStore.resolveOrCreateArtist('New Artist')
+
+    expect(resolved).toEqual(createArtist('winner-1', 'New Artist', 'new artist'))
+    expect(artistsStore.artists).toEqual([createArtist('winner-1', 'New Artist', 'new artist')])
+  })
+
   it('clears a prior degraded read-only state on sign-out and on a fresh healthy session', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()

@@ -672,6 +672,48 @@ describe('Favorite Import', () => {
     ).toBe(false)
   })
 
+  it('reuses the artist found by the fallback lookup when a create is rejected by the unique index (KTD7)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockResolvedValue({
+      id: 'winner-1',
+      displayName: 'New Artist',
+      slug: 'new artist',
+    } as never)
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'artist-create-races',
+        url: 'https://youtube.com/watch?v=artistCreateRaces1',
+        title: 'Raced Artist Favorite',
+        artists: ['New Artist'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(1)
+    expect(result.failed).toBe(0)
+    expect(artistsStore.artists).toHaveLength(1)
+    expect(artistsStore.artists[0]?.id).toBe('winner-1')
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual(['winner-1'])
+  })
+
   it('drops an empty-once-trimmed artist name silently rather than failing the favorite (R18/AE8)', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()

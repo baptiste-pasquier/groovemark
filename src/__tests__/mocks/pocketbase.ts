@@ -96,6 +96,10 @@ export const mockPocketbase = {
     (name?: string): MockCollectionHandle =>
       name === 'artists' ? artistsCollectionApi : favoritesCollectionApi,
   ),
+  // Real PocketBase interpolates {:param} placeholders; tests never assert on
+  // the resulting string, so a simple pass-through is enough to let
+  // `findBySlug`'s `pb.filter(...)` call succeed instead of throwing.
+  filter: vi.fn((expression: string) => expression),
   health: {
     check: vi.fn(() => Promise.resolve({ code: 200 })),
   },
