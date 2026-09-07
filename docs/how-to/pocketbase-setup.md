@@ -39,7 +39,7 @@ docker-compose up pocketbase -d
 The Docker setup pins PocketBase `v0.40.2` by default. Back up `pocketbase/pb_data` before
 upgrading an existing instance to a newer server release.
 
-## 3. The `favorites` Collection
+## 3. The `favorites` and `artists` Collections
 
 The migrations in `pocketbase/pb_migrations/` create the `favorites` collection and its API rules automatically the first time PocketBase starts -- no admin UI setup step is required. The collection has the following fields:
 
@@ -55,6 +55,15 @@ The migrations in `pocketbase/pb_migrations/` create the `favorites` collection 
 
 PocketBase also manages auto-generated fields such as `id`, `created`, and
 `updated`.
+
+The migrations also create the `artists` collection, referenced from `favorites` by the
+`artistIds` relation above. Its fields:
+
+- `displayName` (Text, required)
+- `slug` (Text, required) -- normalized name, unique per owner
+- `owner` (Relation to `users`, required)
+
+PocketBase also manages its auto-generated `id`, `created`, and `updated` fields.
 
 See [Pocketbase Schema](../reference/pocketbase-schema.md) for the full schema and example payloads.
 
@@ -74,7 +83,7 @@ The migrations set these user-scoped rules so authenticated users only read and 
 - **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 - **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id`
-- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
 This matches the current client behavior for authenticated sync and offline fallback.

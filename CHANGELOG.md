@@ -11,6 +11,7 @@ All notable changes to this project should be documented in this file.
 - Restructured `docs/` into a Diátaxis + journal taxonomy (`explanation/`, `how-to/`, `reference/`, `conventions/`, `journal/`) with an enforced routing rule, and added `scripts/check_docs.py` as a pre-commit and CI gate.
 - Versioned PocketBase migrations (`pocketbase/pb_migrations/`) and baked them into the PocketBase Docker image, so the schema applies automatically in dev and production instead of requiring manual admin-UI setup.
 - Added a header badge showing live "Importing... (X/Y)" progress while a backup import is running, since rate-limit retries can make a large import take a while with no other visible feedback. The import control is disabled for the duration.
+- Promoted artists to a first-class PocketBase record (`artists` collection) referenced from `favorites` by an `artistIds` relation, so a mix's artist field, the grid's artist filter, and the search box resolve by identity instead of exact-string name matching. Importing a JSON backup resolves each artist name to an existing artist or creates one, collapsing spelling variants within the file into a single artist named by the most frequent spelling.
 
 ### Fixed
 
