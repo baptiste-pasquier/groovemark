@@ -2,15 +2,11 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Artist } from '../types/artist'
 import type { ArtistsRepository } from '../services/artistsRepository'
+import type { SessionInitOptions } from '../services/favoritesRepository'
 import { selectRepositories } from '../services/favoritesRepository'
 import { LocalArtistsRepository } from '../services/localArtistsRepository'
 import { findArtistByName, normalizeArtistName } from '../utils/artist'
 import { useAuthStore } from './auth'
-
-interface InitializeArtistsOptions {
-  backendAvailable: boolean
-  force?: boolean
-}
 
 export const useArtistsStore = defineStore('artists', () => {
   const artists = ref<Artist[]>([])
@@ -28,7 +24,7 @@ export const useArtistsStore = defineStore('artists', () => {
     return `${authStore.authMode ?? 'none'}:${authStore.userId ?? 'anonymous'}`
   }
 
-  async function initializeForCurrentSession(options: InitializeArtistsOptions) {
+  async function initializeForCurrentSession(options: SessionInitOptions) {
     if (!authStore.authMode) {
       $reset()
       return
@@ -71,6 +67,15 @@ export const useArtistsStore = defineStore('artists', () => {
     await cacheArtistsRepository.replaceAll(artists.value)
   }
 
+  // Registers an artist resolved elsewhere (e.g. the import path in
+  // favorites.ts) into the in-memory set, without persisting -- callers
+  // persist once after they're done resolving a whole batch.
+  function addResolvedArtist(artist: Artist) {
+    if (!artists.value.some((existing) => existing.id === artist.id)) {
+      artists.value.push(artist)
+    }
+  }
+
   // Pure matching lives in utils/artist.ts; this is the per-caller create
   // policy for the artist field (KTD6). Callers decide how to surface a
   // failure -- this just resolves-or-creates and returns null for a name
@@ -88,8 +93,7 @@ export const useArtistsStore = defineStore('artists', () => {
 
     try {
       const created = await activeArtistsRepository.create({ displayName: rawName.trim(), slug })
-      artists.value.push(created)
-      await persistArtistsCacheSnapshot()
+      addResolvedArtist(created)
       return created
     } catch (error) {
       // KTD7: a create rejected by the unique index (owner+slug) is treated
@@ -97,10 +101,7 @@ export const useArtistsStore = defineStore('artists', () => {
       const found = await activeArtistsRepository.findBySlug(slug)
       if (!found) throw error
 
-      if (!artists.value.some((artist) => artist.id === found.id)) {
-        artists.value.push(found)
-        await persistArtistsCacheSnapshot()
-      }
+      addResolvedArtist(found)
       return found
     }
   }
@@ -122,6 +123,7 @@ export const useArtistsStore = defineStore('artists', () => {
     loadFailed,
     initializeForCurrentSession,
     persistArtistsCacheSnapshot,
+    addResolvedArtist,
     resolveOrCreateArtist,
     $reset,
   }

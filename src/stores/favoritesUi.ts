@@ -32,12 +32,13 @@ export const useFavoritesUiStore = defineStore('favoritesUi', () => {
   // that no favorite references drops out here even though it stays
   // suggestible from the full loaded set below.
   const referencedArtists = computed(() => {
+    const artistsById = new Map(artistsStore.artists.map((artist) => [artist.id, artist]))
     const seenIds = new Set<string>()
     const referenced: Artist[] = []
     favoritesStore.favorites.forEach((favorite) => {
       favorite.artistIds.forEach((artistId) => {
         if (seenIds.has(artistId)) return
-        const artist = artistsStore.artists.find((candidate) => candidate.id === artistId)
+        const artist = artistsById.get(artistId)
         if (!artist) return
         seenIds.add(artistId)
         referenced.push(artist)

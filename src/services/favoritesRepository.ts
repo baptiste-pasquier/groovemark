@@ -59,6 +59,11 @@ interface FavoritesRepositoryContext {
   backendAvailable: boolean
 }
 
+export interface SessionInitOptions {
+  backendAvailable: boolean
+  force?: boolean
+}
+
 class ReadOnlyFavoritesRepository implements FavoritesRepository {
   constructor(private readonly inner: LocalFavoritesRepository) {}
 

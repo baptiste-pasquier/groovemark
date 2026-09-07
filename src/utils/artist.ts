@@ -73,18 +73,12 @@ export function electArtistDisplayNames(rawNames: string[]): Map<string, string>
   return winners
 }
 
-// Look up an artist by name in a supplied index (array or slug-keyed Map).
-// The name is normalized internally, so callers can pass a raw name. Pure,
-// no I/O: creating a missing artist is left to the caller.
-export function findArtistByName(
-  rawName: string,
-  index: Artist[] | Map<string, Artist>,
-): Artist | null {
+// Look up an artist by name in a supplied array index. The name is
+// normalized internally, so callers can pass a raw name. Pure, no I/O:
+// creating a missing artist is left to the caller.
+export function findArtistByName(rawName: string, index: Artist[]): Artist | null {
   const slug = normalizeArtistName(rawName)
   if (slug === null) return null
 
-  if (index instanceof Map) {
-    return index.get(slug) ?? null
-  }
   return index.find((artist) => artist.slug === slug) ?? null
 }

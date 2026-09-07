@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
@@ -8,7 +8,11 @@ import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
-import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import {
+  pocketbaseArtistsCollectionApi,
+  pocketbaseCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
 import type { Artist } from '../types/artist'
 
 function createUser(id: string): RecordModel {
@@ -25,36 +29,11 @@ function createArtist(id: string, displayName: string, slug: string): Artist {
   return { id, displayName, slug }
 }
 
-// The shared pocketbase mock resolves `collection()` to the same object no matter
-// what collection name it is called with, so favorites and artists calls can't be
-// told apart there. Route calls for the 'artists' collection to a repository-local
-// mock so favorites and artists behavior can be controlled independently.
-const artistsCollectionApi = {
-  getFullList: vi.fn(() => Promise.resolve([])),
-  create: vi.fn((data: unknown) => Promise.resolve({ id: 'mock-artist-id', ...(data as object) })),
-  update: vi.fn(),
-  delete: vi.fn(),
-  authWithOAuth2: vi.fn(),
-}
-
-function routeArtistsCollectionCalls() {
-  mockPocketbase.collection.mockImplementation((name?: string) =>
-    name === 'artists' ? artistsCollectionApi : pocketbaseCollectionApi,
-  )
-}
-
 describe('Artists Store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     resetLocalStorageMock()
     resetPocketbaseMocks()
-    artistsCollectionApi.getFullList.mockReset()
-    artistsCollectionApi.getFullList.mockResolvedValue([])
-    artistsCollectionApi.create.mockReset()
-    artistsCollectionApi.create.mockImplementation((data: unknown) =>
-      Promise.resolve({ id: 'mock-artist-id', ...(data as object) }),
-    )
-    routeArtistsCollectionCalls()
   })
 
   it('keeps local-mode and authenticated artist sets separate', async () => {
@@ -114,7 +93,7 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    artistsCollectionApi.getFullList.mockResolvedValue([
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
       { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft-punk' },
     ] as never)
     pocketbaseCollectionApi.getFullList.mockResolvedValue([
@@ -154,7 +133,9 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    artistsCollectionApi.getFullList.mockRejectedValue(new Error('artists backend unreachable'))
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValue(
+      new Error('artists backend unreachable'),
+    )
 
     await appStore.handleAuthenticatedSession()
 
@@ -172,7 +153,9 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    artistsCollectionApi.getFullList.mockRejectedValue(new Error('artists backend unreachable'))
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValue(
+      new Error('artists backend unreachable'),
+    )
     pocketbaseCollectionApi.getFullList.mockResolvedValue([
       {
         id: 'cloud-1',
@@ -228,7 +211,7 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    artistsCollectionApi.getFullList.mockResolvedValue([
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
       { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft-punk' },
     ] as never)
 
@@ -250,7 +233,9 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    artistsCollectionApi.getFullList.mockRejectedValueOnce(new Error('artists backend unreachable'))
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValueOnce(
+      new Error('artists backend unreachable'),
+    )
 
     await appStore.handleAuthenticatedSession()
     expect(favoritesStore.isReadOnly).toBe(true)

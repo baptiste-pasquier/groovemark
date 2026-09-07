@@ -63,15 +63,10 @@ describe('artist utils', () => {
 
   describe('findArtistByName', () => {
     const artists: Artist[] = [{ id: '1', displayName: 'Daft Punk', slug: 'daft punk' }]
-    const index = new Map(artists.map((artist) => [artist.slug, artist]))
 
     it('finds an artist in an array index by a matching (case/accent-insensitive) name', () => {
       expect(findArtistByName('DAFT PUNK', artists)).toBe(artists[0])
       expect(findArtistByName('  daft   punk  ', artists)).toBe(artists[0])
-    })
-
-    it('finds an artist in a Map index by slug', () => {
-      expect(findArtistByName('Daft Punk', index)).toBe(artists[0])
     })
 
     it('returns null when no artist matches', () => {

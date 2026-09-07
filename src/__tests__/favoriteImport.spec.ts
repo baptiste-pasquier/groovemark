@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -9,7 +9,11 @@ import { useAuthStore } from '../stores/auth'
 import { buildFavoritesExportPayload, useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { resetLocalStorageMock } from './mocks/localStorage'
-import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import {
+  pocketbaseArtistsCollectionApi,
+  pocketbaseCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
 import type { Favorite } from '../types/favorite'
 
 // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
@@ -28,41 +32,12 @@ function createUser(id: string): RecordModel {
   }
 }
 
-// The shared pocketbase mock resolves `collection()` to the same object no matter
-// what collection name it is called with, so favorites and artists calls can't be
-// told apart there. Route calls for the 'artists' collection to a repository-local
-// mock (mirroring artists.spec.ts) so favorites and artists behavior can be
-// controlled independently.
-const artistsCollectionApi = {
-  getFullList: vi.fn(() => Promise.resolve([])),
-  create: vi.fn((data: unknown) => Promise.resolve({ id: 'mock-artist-id', ...(data as object) })),
-  getFirstListItem: vi.fn(() => Promise.reject({ status: 404 })),
-  update: vi.fn(),
-  delete: vi.fn(),
-  authWithOAuth2: vi.fn(),
-}
-
-function routeArtistsCollectionCalls() {
-  mockPocketbase.collection.mockImplementation((name?: string) =>
-    name === 'artists' ? artistsCollectionApi : pocketbaseCollectionApi,
-  )
-}
-
 describe('Favorite Import', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     resetLocalStorageMock()
     resetPocketbaseMocks()
     i18n.global.locale.value = 'en'
-    artistsCollectionApi.getFullList.mockReset()
-    artistsCollectionApi.getFullList.mockResolvedValue([])
-    artistsCollectionApi.create.mockReset()
-    artistsCollectionApi.create.mockImplementation((data: unknown) =>
-      Promise.resolve({ id: 'mock-artist-id', ...(data as object) }),
-    )
-    artistsCollectionApi.getFirstListItem.mockReset()
-    artistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
-    routeArtistsCollectionCalls()
   })
 
   it('shows an alert when importing invalid JSON through the new import path', async () => {
@@ -621,7 +596,7 @@ describe('Favorite Import', () => {
     authStore.user = createUser('user-1')
     await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
 
-    artistsCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
+    pocketbaseArtistsCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -668,8 +643,8 @@ describe('Favorite Import', () => {
       slug: 'real artist',
     })
 
-    artistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
-    artistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
 
     const importPromise = favoritesStore.importFavorites([
       {

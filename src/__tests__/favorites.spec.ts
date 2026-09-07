@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -10,7 +10,12 @@ import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
 import type { FavoriteRecordInput } from '../services/favoritesRepository'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
-import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import {
+  mockPocketbase,
+  pocketbaseArtistsCollectionApi,
+  pocketbaseCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
 import type { Artist } from '../types/artist'
 import type { Favorite } from '../types/favorite'
 
@@ -398,40 +403,10 @@ describe('Favorites Store', () => {
 })
 
 describe('Favorites Store artist resolution failures', () => {
-  // The shared pocketbase mock resolves `collection()` to the same object no
-  // matter what collection name it is called with, so route the 'artists'
-  // collection to its own mock (mirroring artists.spec.ts) to force a create
-  // failure that also fails to resolve via findBySlug.
-  const artistsCollectionApi = {
-    getFullList: vi.fn(() => Promise.resolve([])),
-    create: vi.fn((data: unknown) =>
-      Promise.resolve({ id: 'mock-artist-id', ...(data as object) }),
-    ),
-    getFirstListItem: vi.fn(() => Promise.reject({ status: 404 })),
-    update: vi.fn(),
-    delete: vi.fn(),
-    authWithOAuth2: vi.fn(),
-  }
-
-  function routeArtistsCollectionCalls() {
-    mockPocketbase.collection.mockImplementation((name?: string) =>
-      name === 'artists' ? artistsCollectionApi : pocketbaseCollectionApi,
-    )
-  }
-
   beforeEach(() => {
     setActivePinia(createPinia())
     resetLocalStorageMock()
     resetPocketbaseMocks()
-    artistsCollectionApi.getFullList.mockReset()
-    artistsCollectionApi.getFullList.mockResolvedValue([])
-    artistsCollectionApi.create.mockReset()
-    artistsCollectionApi.create.mockImplementation((data: unknown) =>
-      Promise.resolve({ id: 'mock-artist-id', ...(data as object) }),
-    )
-    artistsCollectionApi.getFirstListItem.mockReset()
-    artistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
-    routeArtistsCollectionCalls()
   })
 
   it('shows the save-error alert and never calls the favorites repository when resolution fails', async () => {
@@ -447,7 +422,7 @@ describe('Favorites Store artist resolution failures', () => {
     await artistsStore.initializeForCurrentSession({ backendAvailable: true })
     await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
 
-    artistsCollectionApi.create.mockRejectedValue(new Error('create failed'))
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue(new Error('create failed'))
 
     const addPromise = favoritesStore.addOrUpdateFavorite({
       url: 'https://youtube.com/watch?v=resolutionFail',

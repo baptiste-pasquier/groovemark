@@ -10,19 +10,15 @@ import type {
   FavoriteRecordInput,
   FavoritesRepository,
   RepositoryMode,
+  SessionInitOptions,
 } from '../services/favoritesRepository'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
-import type { ArtistRecordInput, ArtistsRepository } from '../services/artistsRepository'
+import type { ArtistsRepository } from '../services/artistsRepository'
 import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
 import { FavoriteImportError, parseFavoritesImportFile } from '../services/favoriteImport'
-
-interface InitializeFavoritesOptions {
-  backendAvailable: boolean
-  force?: boolean
-}
 
 interface FavoriteDraft {
   id?: string
@@ -81,30 +77,16 @@ class ImportRateLimiter {
   }
 }
 
-async function createFavoriteWithRetry(
-  repository: FavoritesRepository,
-  input: FavoriteRecordInput,
-  limiter: ImportRateLimiter,
-  attempt = 1,
-): Promise<Favorite> {
-  await limiter.pace()
-  try {
-    const created = await repository.create(input)
-    limiter.onSuccess()
-    return created
-  } catch (error) {
-    if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
-    limiter.onRateLimited()
-    return createFavoriteWithRetry(repository, input, limiter, attempt + 1)
-  }
+interface CreatableRepository<TInput, TRecord> {
+  create(input: TInput): Promise<TRecord>
 }
 
-async function createArtistWithRetry(
-  repository: ArtistsRepository,
-  input: ArtistRecordInput,
+async function createRecordWithRetry<TInput, TRecord>(
+  repository: CreatableRepository<TInput, TRecord>,
+  input: TInput,
   limiter: ImportRateLimiter,
   attempt = 1,
-): Promise<Artist> {
+): Promise<TRecord> {
   await limiter.pace()
   try {
     const created = await repository.create(input)
@@ -113,7 +95,7 @@ async function createArtistWithRetry(
   } catch (error) {
     if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
     limiter.onRateLimited()
-    return createArtistWithRetry(repository, input, limiter, attempt + 1)
+    return createRecordWithRetry(repository, input, limiter, attempt + 1)
   }
 }
 
@@ -135,21 +117,22 @@ async function resolveImportArtistsBySlug(
 ): Promise<Map<string, Artist>> {
   const elected = electArtistDisplayNames(population)
   const resolvedBySlug = new Map<string, Artist>()
+  const existingBySlug = new Map(artistsStore.artists.map((artist) => [artist.slug, artist]))
 
   for (const [slug, electedDisplayName] of elected) {
-    const existing = artistsStore.artists.find((artist) => artist.slug === slug)
+    const existing = existingBySlug.get(slug)
     if (existing) {
       resolvedBySlug.set(slug, existing)
       continue
     }
 
     try {
-      const created = await createArtistWithRetry(
+      const created = await createRecordWithRetry(
         artistsRepository,
         { displayName: electedDisplayName, slug },
         limiter,
       )
-      artistsStore.artists.push(created)
+      artistsStore.addResolvedArtist(created)
       resolvedBySlug.set(slug, created)
     } catch (error) {
       // The find-as-fallback lookup can itself fail (e.g. a genuine network
@@ -167,15 +150,27 @@ async function resolveImportArtistsBySlug(
         console.error('Error creating artist during import:', error)
         continue
       }
-      if (!artistsStore.artists.some((artist) => artist.id === found.id)) {
-        artistsStore.artists.push(found)
-      }
+      artistsStore.addResolvedArtist(found)
       resolvedBySlug.set(slug, found)
     }
   }
 
   await artistsStore.persistArtistsCacheSnapshot()
   return resolvedBySlug
+}
+
+// Shared dedup step for a candidate list that may contain nulls (a name
+// empty once trimmed, or one that failed to resolve): drop the nulls and
+// keep only the first artist for each id.
+function dedupeArtistsById(candidates: (Artist | null)[]): Artist[] {
+  const seenIds = new Set<string>()
+  const deduped: Artist[] = []
+  for (const artist of candidates) {
+    if (!artist || seenIds.has(artist.id)) continue
+    seenIds.add(artist.id)
+    deduped.push(artist)
+  }
+  return deduped
 }
 
 // Maps one favorite's raw artist names to already-resolved artists (from
@@ -188,9 +183,8 @@ function resolveRowArtists(
   rawNames: string[],
   resolvedBySlug: Map<string, Artist>,
 ): { resolved: Artist[]; failed: boolean } {
-  const resolved: Artist[] = []
-  const seenIds = new Set<string>()
   let failed = false
+  const candidates: (Artist | null)[] = []
 
   for (const rawName of rawNames) {
     const slug = normalizeArtistName(rawName)
@@ -201,31 +195,28 @@ function resolveRowArtists(
       failed = true
       continue
     }
-    if (seenIds.has(artist.id)) continue
-    seenIds.add(artist.id)
-    resolved.push(artist)
+    candidates.push(artist)
   }
 
-  return { resolved, failed }
+  return { resolved: dedupeArtistsById(candidates), failed }
 }
 
 // Resolves each raw typed name to a canonical Artist (creating it if unknown,
 // per R2/KTD6), deduping by artist id so two spellings of one name typed in
-// the same save credit that artist only once (AE7).
+// the same save credit that artist only once (AE7). Resolution stays
+// sequential (not Promise.all) so two names that both create a genuinely new
+// artist in the same save don't race each other into duplicate creates
+// (KTD7 handles races across separate calls, not within one).
 async function resolveArtistCredits(
   rawNames: string[],
   artistsStore: ReturnType<typeof useArtistsStore>,
 ): Promise<Artist[]> {
-  const resolved: Artist[] = []
-  const seenIds = new Set<string>()
-
+  const resolvedOrNull: (Artist | null)[] = []
   for (const rawName of rawNames) {
-    const artist = await artistsStore.resolveOrCreateArtist(rawName)
-    if (!artist || seenIds.has(artist.id)) continue
-    seenIds.add(artist.id)
-    resolved.push(artist)
+    resolvedOrNull.push(await artistsStore.resolveOrCreateArtist(rawName))
   }
-
+  const resolved = dedupeArtistsById(resolvedOrNull)
+  await artistsStore.persistArtistsCacheSnapshot()
   return resolved
 }
 
@@ -281,7 +272,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return `${authStore.authMode ?? 'none'}:${authStore.userId ?? 'anonymous'}`
   }
 
-  async function initializeForCurrentSession(options: InitializeFavoritesOptions) {
+  async function initializeForCurrentSession(options: SessionInitOptions) {
     if (!authStore.authMode) {
       $reset()
       return
@@ -508,9 +499,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
       // (KTD5, KTD8). A name from a row later re-skipped as an already-seen
       // duplicate here is harmless to have resolved -- the resulting artist
       // is simply unused by this import.
+      const normalizedRows: { favorite: Favorite; normalizedUrl: string }[] = []
       const population: string[] = []
       for (const favorite of data) {
         const normalizedUrl = await normalizeUrl(favorite.url)
+        normalizedRows.push({ favorite, normalizedUrl })
         if (!isSafeHttpUrl(normalizedUrl) || existingUrls.has(normalizedUrl)) continue
         population.push(...(favorite.artists || []))
       }
@@ -522,9 +515,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
         rateLimiter,
       )
 
-      for (const favorite of data) {
-        const normalizedUrl = await normalizeUrl(favorite.url)
-
+      for (const { favorite, normalizedUrl } of normalizedRows) {
         if (!isSafeHttpUrl(normalizedUrl)) {
           skipped++
           importProgress.value.processed++
@@ -553,7 +544,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
         try {
           if (usesCloudRepository && activeRepository) {
-            const createdFavorite = await createFavoriteWithRetry(
+            const createdFavorite = await createRecordWithRetry(
               activeRepository,
               {
                 url: normalizedUrl,

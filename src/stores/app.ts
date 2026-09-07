@@ -33,12 +33,14 @@ export const useAppStore = defineStore('app', () => {
       await refreshBackendAvailability()
 
       if (authStore.isLoggedIn) {
-        await artistsStore.initializeForCurrentSession({
-          backendAvailable: backendAvailable.value,
-        })
-        await favoritesStore.initializeForCurrentSession({
-          backendAvailable: backendAvailable.value,
-        })
+        await Promise.all([
+          artistsStore.initializeForCurrentSession({
+            backendAvailable: backendAvailable.value,
+          }),
+          favoritesStore.initializeForCurrentSession({
+            backendAvailable: backendAvailable.value,
+          }),
+        ])
         favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
         status.value = 'ready'
       } else {
@@ -56,14 +58,16 @@ export const useAppStore = defineStore('app', () => {
 
     try {
       await refreshBackendAvailability()
-      await artistsStore.initializeForCurrentSession({
-        backendAvailable: backendAvailable.value,
-        force: true,
-      })
-      await favoritesStore.initializeForCurrentSession({
-        backendAvailable: backendAvailable.value,
-        force: true,
-      })
+      await Promise.all([
+        artistsStore.initializeForCurrentSession({
+          backendAvailable: backendAvailable.value,
+          force: true,
+        }),
+        favoritesStore.initializeForCurrentSession({
+          backendAvailable: backendAvailable.value,
+          force: true,
+        }),
+      ])
       favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
       status.value = 'ready'
     } catch (error) {

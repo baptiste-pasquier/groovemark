@@ -47,28 +47,42 @@ export function setStoredLocale(locale: string) {
   }
 }
 
-export function getFavoritesStorageKey(authMode: Exclude<AuthMode, null>, userId?: string | null) {
+function getScopedStorageKey(
+  authMode: Exclude<AuthMode, null>,
+  userId: string | null | undefined,
+  localKey: string,
+  googlePrefix: string,
+  entityLabel: string,
+) {
   if (authMode === 'local') {
-    return LOCAL_FAVORITES_STORAGE_KEY
+    return localKey
   }
 
   if (!userId) {
-    throw new Error('Google favorites storage requires a user id.')
+    throw new Error(`Google ${entityLabel} storage requires a user id.`)
   }
 
-  return `groovemark:favorites:google:${userId}`
+  return `${googlePrefix}:${userId}`
+}
+
+export function getFavoritesStorageKey(authMode: Exclude<AuthMode, null>, userId?: string | null) {
+  return getScopedStorageKey(
+    authMode,
+    userId,
+    LOCAL_FAVORITES_STORAGE_KEY,
+    'groovemark:favorites:google',
+    'favorites',
+  )
 }
 
 export function getArtistsStorageKey(authMode: Exclude<AuthMode, null>, userId?: string | null) {
-  if (authMode === 'local') {
-    return LOCAL_ARTISTS_STORAGE_KEY
-  }
-
-  if (!userId) {
-    throw new Error('Google artists storage requires a user id.')
-  }
-
-  return `groovemark:artists:google:${userId}`
+  return getScopedStorageKey(
+    authMode,
+    userId,
+    LOCAL_ARTISTS_STORAGE_KEY,
+    'groovemark:artists:google',
+    'artists',
+  )
 }
 
 export function readStorage<T>(key: string): T | null {
