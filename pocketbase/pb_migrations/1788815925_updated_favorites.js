@@ -12,7 +12,7 @@ migrate(
         help: '',
         hidden: false,
         id: 'relation2571184304',
-        maxSelect: 0,
+        maxSelect: 999,
         minSelect: 0,
         name: 'artistIds',
         presentable: false,
