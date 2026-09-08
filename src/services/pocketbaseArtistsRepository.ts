@@ -11,15 +11,19 @@ interface PocketbaseArtist extends Artist {
   owner?: string
 }
 
+function toArtist(record: PocketbaseArtist): Artist {
+  return {
+    id: record.id,
+    displayName: record.displayName,
+    slug: record.slug,
+  }
+}
+
 export class PocketBaseArtistsRepository implements ArtistsRepository {
   async list(): Promise<Artist[]> {
     try {
       const records = await pb.collection(COLLECTION_NAME).getFullList<PocketbaseArtist>()
-      return records.map((record) => ({
-        id: record.id,
-        displayName: record.displayName,
-        slug: record.slug,
-      }))
+      return records.map(toArtist)
     } catch (error) {
       console.error('Error fetching artists from PocketBase:', error)
       throw new FavoritesRepositoryError('Could not load artists from PocketBase.', 'read_failed', {
@@ -36,11 +40,7 @@ export class PocketBaseArtistsRepository implements ArtistsRepository {
         owner: pb.authStore.model?.id,
       })
 
-      return {
-        id: record.id,
-        displayName: record.displayName,
-        slug: record.slug,
-      }
+      return toArtist(record)
     } catch (error) {
       console.error('Error creating artist in PocketBase:', error)
       throw new FavoritesRepositoryError('Could not create artist in PocketBase.', 'write_failed', {
@@ -55,11 +55,7 @@ export class PocketBaseArtistsRepository implements ArtistsRepository {
         .collection(COLLECTION_NAME)
         .getFirstListItem<PocketbaseArtist>(pb.filter('slug = {:slug}', { slug }))
 
-      return {
-        id: record.id,
-        displayName: record.displayName,
-        slug: record.slug,
-      }
+      return toArtist(record)
     } catch (error) {
       if (
         typeof error === 'object' &&
