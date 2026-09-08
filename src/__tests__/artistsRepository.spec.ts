@@ -63,6 +63,66 @@ describe('LocalArtistsRepository', () => {
     const found = await repository.findBySlug('daft-punk')
     expect(found).toEqual(original)
   })
+
+  it('serializes concurrent creates so a race on the same slug cannot silently drop one artist', async () => {
+    const storageKey = getArtistsStorageKey('local')
+    const repository = new LocalArtistsRepository(storageKey)
+
+    // Fired without awaiting between them, so both read the empty storage
+    // before either has written -- exactly the race a non-atomic
+    // list -> find -> push -> replaceAll can lose without a write lock.
+    const results = await Promise.allSettled([
+      repository.create({ displayName: 'Daft Punk', slug: 'daft-punk' }),
+      repository.create({ displayName: 'Daft Punk (dup)', slug: 'daft-punk' }),
+    ])
+
+    const fulfilled = results.filter((result) => result.status === 'fulfilled')
+    const rejected = results.filter((result) => result.status === 'rejected')
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(FavoritesRepositoryError)
+
+    const artists = await repository.list()
+    expect(artists).toHaveLength(1)
+  })
+
+  it('createMany resolves a whole population in a single locked write, reusing an existing slug', async () => {
+    const storageKey = getArtistsStorageKey('local')
+    const repository = new LocalArtistsRepository(storageKey)
+
+    const existing = await repository.create({
+      displayName: 'Existing Artist',
+      slug: 'existing artist',
+    })
+
+    const results = await repository.createMany([
+      { displayName: 'Existing Artist', slug: 'existing artist' },
+      { displayName: 'New Artist A', slug: 'new artist a' },
+      { displayName: 'New Artist B', slug: 'new artist b' },
+    ])
+
+    expect(results).toEqual([
+      existing,
+      expect.objectContaining({ displayName: 'New Artist A', slug: 'new artist a' }),
+      expect.objectContaining({ displayName: 'New Artist B', slug: 'new artist b' }),
+    ])
+
+    const stored = await repository.list()
+    expect(stored).toHaveLength(3)
+  })
+
+  it('createMany shares the same write lock as create, so the two cannot race each other', async () => {
+    const storageKey = getArtistsStorageKey('local')
+    const repository = new LocalArtistsRepository(storageKey)
+
+    await Promise.all([
+      repository.create({ displayName: 'Solo Artist', slug: 'solo artist' }),
+      repository.createMany([{ displayName: 'Batch Artist', slug: 'batch artist' }]),
+    ])
+
+    const stored = await repository.list()
+    expect(stored.map((artist) => artist.slug).sort()).toEqual(['batch artist', 'solo artist'])
+  })
 })
 
 describe('PocketBaseArtistsRepository', () => {

@@ -12,9 +12,10 @@ import type {
   RepositoryMode,
   SessionInitOptions,
 } from '../services/favoritesRepository'
-import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
+import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import type { ArtistsRepository } from '../services/artistsRepository'
+import { createSessionGuard } from '../utils/sessionGuard'
 import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -119,41 +120,66 @@ async function resolveImportArtistsBySlug(
   const resolvedBySlug = new Map<string, Artist>()
   const existingBySlug = new Map(artistsStore.artists.map((artist) => [artist.slug, artist]))
 
+  const newEntries: { slug: string; displayName: string }[] = []
   for (const [slug, electedDisplayName] of elected) {
     const existing = existingBySlug.get(slug)
     if (existing) {
       resolvedBySlug.set(slug, existing)
-      continue
+    } else {
+      newEntries.push({ slug, displayName: electedDisplayName })
     }
+  }
 
+  if (newEntries.length === 0) {
+    return resolvedBySlug
+  }
+
+  if (artistsRepository.createMany) {
+    // Local mode: one locked read-modify-write for the whole population
+    // instead of one round trip per artist (still race-safe -- see
+    // LocalArtistsRepository's write queue).
     try {
-      // Race-recovery mechanics (KTD7) live in createOrFindArtist; the create
-      // itself still goes through the import's shared retry/rate-limiter
-      // path (KTD8), and a failure here (including the fallback find itself
-      // failing, e.g. a genuine network error rather than a clean "not
-      // found") must not abort the whole import -- it just means this slug
-      // stays unresolved, so only the rows crediting it are reported as
-      // failed (R18).
-      const resolved = await createOrFindArtist(
-        {
-          create: (createInput) => createRecordWithRetry(artistsRepository, createInput, limiter),
-          findBySlug: async (findSlug) => {
-            try {
-              return await artistsRepository.findBySlug(findSlug)
-            } catch (findError) {
-              console.error('Error finding artist during import fallback:', findError)
-              return null
-            }
-          },
-        },
-        { displayName: electedDisplayName, slug },
-        slug,
+      const created = await artistsRepository.createMany(
+        newEntries.map(({ slug, displayName }) => ({ displayName, slug })),
       )
-      artistsStore.addResolvedArtist(resolved)
-      resolvedBySlug.set(slug, resolved)
+      for (const artist of created) {
+        artistsStore.addResolvedArtist(artist)
+        resolvedBySlug.set(artist.slug, artist)
+      }
     } catch (error) {
-      console.error('Error creating artist during import:', error)
-      continue
+      console.error('Error batch-creating artists during import:', error)
+    }
+  } else {
+    // Remote mode: no bulk-create endpoint is used here, so each artist
+    // still goes through the import's shared retry/rate-limiter path
+    // (KTD8). Race-recovery mechanics (KTD7) live in createOrFindArtist,
+    // and a failure here (including the fallback find itself failing, e.g.
+    // a genuine network error rather than a clean "not found") must not
+    // abort the whole import -- it just means this slug stays unresolved,
+    // so only the rows crediting it are reported as failed (R18).
+    for (const { slug, displayName } of newEntries) {
+      try {
+        const resolved = await createOrFindArtist(
+          {
+            create: (createInput) => createRecordWithRetry(artistsRepository, createInput, limiter),
+            findBySlug: async (findSlug) => {
+              try {
+                return await artistsRepository.findBySlug(findSlug)
+              } catch (findError) {
+                console.error('Error finding artist during import fallback:', findError)
+                return null
+              }
+            },
+          },
+          { displayName, slug },
+          slug,
+        )
+        artistsStore.addResolvedArtist(resolved)
+        resolvedBySlug.set(slug, resolved)
+      } catch (error) {
+        console.error('Error creating artist during import:', error)
+        continue
+      }
     }
   }
 
@@ -209,6 +235,9 @@ function resolveRowArtists(
 // sequential (not Promise.all) so two names that both create a genuinely new
 // artist in the same save don't race each other into duplicate creates
 // (KTD7 handles races across separate calls, not within one).
+// Resolves (creating where needed) without registering anything into the
+// artists store yet -- the caller only registers and persists the result
+// once the favorite it's for has actually been saved (see addOrUpdateFavorite).
 async function resolveArtistCredits(
   rawNames: string[],
   artistsStore: ReturnType<typeof useArtistsStore>,
@@ -217,9 +246,7 @@ async function resolveArtistCredits(
   for (const rawName of rawNames) {
     resolvedOrNull.push(await artistsStore.resolveOrCreateArtist(rawName))
   }
-  const resolved = dedupeArtistsById(resolvedOrNull)
-  await artistsStore.persistArtistsCacheSnapshot()
-  return resolved
+  return dedupeArtistsById(resolvedOrNull)
 }
 
 // R12: the export keeps its pre-identity shape. artistIds is an internal
@@ -266,13 +293,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
   let importArtistsRepository: ArtistsRepository | null = null
-  let sessionKey = ''
+  const sessionGuard = createSessionGuard()
 
   const authStore = useAuthStore()
-
-  function getCurrentSessionKey() {
-    return `${authStore.authMode ?? 'none'}:${authStore.userId ?? 'anonymous'}`
-  }
 
   async function initializeForCurrentSession(options: SessionInitOptions) {
     if (!authStore.authMode) {
@@ -280,21 +303,15 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return
     }
 
-    const nextSessionKey = getCurrentSessionKey()
-    if (initialized.value && !options.force && sessionKey === nextSessionKey) {
+    if (sessionGuard.shouldSkip(authStore, initialized.value, options.force ?? false)) {
       return
     }
 
     isLoading.value = true
     initialized.value = true
-    sessionKey = nextSessionKey
     degradedReadOnly.value = false
 
-    const selection = selectRepositories({
-      authMode: authStore.authMode,
-      userId: authStore.userId,
-      backendAvailable: options.backendAvailable,
-    })
+    const selection = options.selection
     activeRepository = selection.activeRepository
     cacheRepository = selection.cacheRepository
     importArtistsRepository = selection.activeArtistsRepository
@@ -439,6 +456,13 @@ export const useFavoritesStore = defineStore('favorites', () => {
         const createdFavorite = await activeRepository.create(favoriteInput)
         favorites.value.push(createdFavorite)
       }
+
+      // Only register/persist the artists this save actually resolved once
+      // the favorite crediting them is confirmed saved -- registering them
+      // earlier would show a newly-created artist as a suggestion even if
+      // this save then failed, crediting nothing.
+      resolvedArtists.forEach((artist) => artistsStore.addResolvedArtist(artist))
+      await artistsStore.persistArtistsCacheSnapshot()
 
       await persistCacheSnapshot()
       return true
@@ -651,7 +675,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     activeRepository = null
     cacheRepository = null
     importArtistsRepository = null
-    sessionKey = ''
+    sessionGuard.reset()
   }
 
   return {

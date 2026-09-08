@@ -8,7 +8,8 @@ import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
 import { buildFavoritesExportPayload, useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
-import { resetLocalStorageMock } from './mocks/localStorage'
+import { localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
+import { sessionInit } from './mocks/sessionInit'
 import {
   pocketbaseArtistsCollectionApi,
   pocketbaseCollectionApi,
@@ -46,7 +47,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFromFile(
       new File(['not valid json'], 'favorites.json', {
@@ -70,7 +71,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -103,7 +104,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -135,7 +136,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const before = Date.now()
     const importPromise = favoritesStore.importFavorites([
@@ -170,7 +171,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -216,7 +217,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
 
@@ -253,7 +254,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
 
@@ -287,7 +288,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     let resolveFirstCreate: (() => void) | undefined
     pocketbaseCollectionApi.create.mockImplementationOnce(
@@ -345,7 +346,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const callTimes: number[] = []
     pocketbaseCollectionApi.create.mockImplementation((data) => {
@@ -404,7 +405,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     let resolveFileText: ((text: string) => void) | undefined
     const slowFile = {
@@ -437,7 +438,7 @@ describe('Favorite Import', () => {
     const artistsStore = useArtistsStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const legacyEntry = {
       id: 'legacy-1',
@@ -469,7 +470,7 @@ describe('Favorite Import', () => {
     const artistsStore = useArtistsStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -507,6 +508,65 @@ describe('Favorite Import', () => {
     expect(first?.artistIds[0]).toBe(second?.artistIds[0])
   })
 
+  it('creates several new local-mode artists in one storage write instead of one per artist', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const artistsWriteCallsBeforeImport = localStorageMock.setItem.mock.calls.filter(
+      ([key]) => key === 'groovemark:artists:local',
+    ).length
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'batch-1',
+        url: 'https://youtube.com/watch?v=batch1',
+        title: 'Batch One',
+        artists: ['Artist One'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'batch-2',
+        url: 'https://youtube.com/watch?v=batch2',
+        title: 'Batch Two',
+        artists: ['Artist Two'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'batch-3',
+        url: 'https://youtube.com/watch?v=batch3',
+        title: 'Batch Three',
+        artists: ['Artist Three'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(3)
+    expect(artistsStore.artists).toHaveLength(3)
+
+    const artistsWriteCallsDuringImport =
+      localStorageMock.setItem.mock.calls.filter(([key]) => key === 'groovemark:artists:local')
+        .length - artistsWriteCallsBeforeImport
+    expect(artistsWriteCallsDuringImport).toBe(1)
+  })
+
   it('credits an existing artist and leaves its display name unchanged (AE17)', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()
@@ -514,7 +574,7 @@ describe('Favorite Import', () => {
     const artistsStore = useArtistsStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     artistsStore.artists.push({
       id: 'existing-artist-1',
@@ -552,7 +612,7 @@ describe('Favorite Import', () => {
     const artistsStore = useArtistsStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const addResult = await favoritesStore.addOrUpdateFavorite({
       url: 'https://youtube.com/watch?v=alreadyThere1',
@@ -594,7 +654,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseArtistsCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
 
@@ -633,7 +693,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     // "Real Artist" already exists, so it resolves without any create call --
     // isolating the failure to the genuinely new artist name.
@@ -681,7 +741,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
     pocketbaseArtistsCollectionApi.getFirstListItem.mockResolvedValue({
@@ -720,7 +780,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFavorites([
       {

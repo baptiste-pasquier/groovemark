@@ -7,6 +7,7 @@ import { useAuthStore } from './auth'
 import { useFavoritesStore } from './favorites'
 import { useFavoritesUiStore } from './favoritesUi'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
+import { selectRepositories } from '../services/favoritesRepository'
 
 export const useAppStore = defineStore('app', () => {
   const status = ref<AppStatus>('booting')
@@ -23,6 +24,27 @@ export const useAppStore = defineStore('app', () => {
     backendAvailable.value = await pocketBaseRepository.isAvailable()
   }
 
+  // Computes the repository selection exactly once per session-init call and
+  // hands the same object to both stores, so favorites and artists can never
+  // independently resolve a different mode for the same session (KTD13).
+  async function initializeStoresForSession(options: { force?: boolean }) {
+    if (!authStore.authMode) {
+      throw new Error('Cannot initialize session repositories without an auth mode.')
+    }
+
+    const selection = selectRepositories({
+      authMode: authStore.authMode,
+      userId: authStore.userId,
+      backendAvailable: backendAvailable.value,
+    })
+
+    await Promise.all([
+      artistsStore.initializeForCurrentSession({ selection, force: options.force }),
+      favoritesStore.initializeForCurrentSession({ selection, force: options.force }),
+    ])
+    favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
+  }
+
   async function bootstrap() {
     if (isBootstrapped.value) return
 
@@ -33,15 +55,7 @@ export const useAppStore = defineStore('app', () => {
       await refreshBackendAvailability()
 
       if (authStore.isLoggedIn) {
-        await Promise.all([
-          artistsStore.initializeForCurrentSession({
-            backendAvailable: backendAvailable.value,
-          }),
-          favoritesStore.initializeForCurrentSession({
-            backendAvailable: backendAvailable.value,
-          }),
-        ])
-        favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
+        await initializeStoresForSession({})
         status.value = 'ready'
       } else {
         handleSignedOut()
@@ -58,17 +72,7 @@ export const useAppStore = defineStore('app', () => {
 
     try {
       await refreshBackendAvailability()
-      await Promise.all([
-        artistsStore.initializeForCurrentSession({
-          backendAvailable: backendAvailable.value,
-          force: true,
-        }),
-        favoritesStore.initializeForCurrentSession({
-          backendAvailable: backendAvailable.value,
-          force: true,
-        }),
-      ])
-      favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
+      await initializeStoresForSession({ force: true })
       status.value = 'ready'
     } catch (error) {
       await recoverFromSessionError('Error initializing authenticated session:', error)

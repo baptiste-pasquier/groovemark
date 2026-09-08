@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
+import { sessionInit } from './mocks/sessionInit'
 import {
   pocketbaseArtistsCollectionApi,
   pocketbaseCollectionApi,
@@ -49,13 +50,13 @@ describe('Artists Store', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await artistsStore.initializeForCurrentSession({ backendAvailable: false })
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
     expect(artistsStore.artists).toEqual([googleArtist])
 
     await authStore.signOut()
     artistsStore.$reset()
     authStore.continueInLocalMode()
-    await artistsStore.initializeForCurrentSession({ backendAvailable: false })
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
 
     expect(artistsStore.artists).toEqual([localArtist])
   })
@@ -74,11 +75,11 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await artistsStore.initializeForCurrentSession({ backendAvailable: false })
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
     expect(artistsStore.artists).toEqual([userOneArtist])
 
     authStore.user = createUser('user-2')
-    await artistsStore.initializeForCurrentSession({ backendAvailable: false, force: true })
+    await artistsStore.initializeForCurrentSession(sessionInit(false, { force: true }))
 
     expect(artistsStore.artists).toEqual([userTwoArtist])
   })
@@ -110,8 +111,8 @@ describe('Artists Store', () => {
       },
     ] as never)
 
-    await artistsStore.initializeForCurrentSession({ backendAvailable: true })
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     expect(artistsStore.artists).not.toEqual([])
     expect(favoritesStore.favorites).not.toEqual([])
@@ -141,6 +142,37 @@ describe('Artists Store', () => {
 
     expect(appStore.status).toBe('ready')
     expect(authStore.authMode).toBe('google')
+    expect(favoritesStore.isReadOnly).toBe(true)
+  })
+
+  it('falls back to the cached artist list instead of showing an empty one when loading fails', async () => {
+    const cachedArtist = createArtist('cached-1', 'Cached Artist', 'cached-artist')
+    localStorage.setItem('groovemark:artists:google:user-1', JSON.stringify([cachedArtist]))
+
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    // The backend looks available (health check ok, per resetPocketbaseMocks'
+    // default), but the actual artists fetch still fails -- the scenario a
+    // plain availability ping can't catch.
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValue(
+      new Error('artists backend unreachable'),
+    )
+
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
+
+    expect(artistsStore.artists).toEqual([cachedArtist])
+    // A failed load always stays read-only, even once repopulated from
+    // cache: the cache can be stale, and a writable UI over it would
+    // recreate artists that already exist server-side (see
+    // docs/explanation/architecture.md).
+    expect(artistsStore.loadFailed).toBe(true)
+    favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
     expect(favoritesStore.isReadOnly).toBe(true)
   })
 
@@ -215,10 +247,10 @@ describe('Artists Store', () => {
       { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft-punk' },
     ] as never)
 
-    await artistsStore.initializeForCurrentSession({ backendAvailable: true })
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
     expect(getLocalStorageState()['groovemark:artists:google:user-1']).toContain('daft-punk')
 
-    await artistsStore.initializeForCurrentSession({ backendAvailable: false, force: true })
+    await artistsStore.initializeForCurrentSession(sessionInit(false, { force: true }))
 
     expect(artistsStore.artists.length).toBeGreaterThan(0)
     expect(artistsStore.artists.map((artist) => artist.slug)).toContain('daft-punk')
@@ -232,7 +264,7 @@ describe('Artists Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await artistsStore.initializeForCurrentSession({ backendAvailable: true })
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseArtistsCollectionApi.create.mockRejectedValueOnce({ status: 400, response: {} })
     pocketbaseArtistsCollectionApi.getFirstListItem.mockResolvedValueOnce({
@@ -244,7 +276,10 @@ describe('Artists Store', () => {
     const resolved = await artistsStore.resolveOrCreateArtist('New Artist')
 
     expect(resolved).toEqual(createArtist('winner-1', 'New Artist', 'new artist'))
-    expect(artistsStore.artists).toEqual([createArtist('winner-1', 'New Artist', 'new artist')])
+    // resolveOrCreateArtist no longer registers its result -- the caller
+    // (resolveArtistCredits, via addOrUpdateFavorite) only does that once
+    // the favorite crediting it has actually been saved.
+    expect(artistsStore.artists).toEqual([])
   })
 
   it('clears a prior degraded read-only state on sign-out and on a fresh healthy session', async () => {

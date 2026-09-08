@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 
 const storage: Record<string, string> = {}
 
-export const localStorageMock: Storage = {
+export const localStorageMock = {
   getItem: vi.fn((key: string) => storage[key] ?? null),
   setItem: vi.fn((key: string, value: string) => {
     storage[key] = value
@@ -17,7 +17,7 @@ export const localStorageMock: Storage = {
   get length() {
     return Object.keys(storage).length
   },
-}
+} satisfies Storage
 
 Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,

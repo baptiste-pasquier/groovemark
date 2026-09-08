@@ -1,4 +1,3 @@
-import type { Artist } from '../types/artist'
 import type { Favorite } from '../types/favorite'
 import type { AuthMode } from '../types/auth'
 import { getArtistsStorageKey, getFavoritesStorageKey } from './storage'
@@ -60,44 +59,55 @@ interface FavoritesRepositoryContext {
 }
 
 export interface SessionInitOptions {
-  backendAvailable: boolean
+  selection: RepositorySelection
   force?: boolean
 }
 
-class ReadOnlyFavoritesRepository implements FavoritesRepository {
-  constructor(private readonly inner: LocalFavoritesRepository) {}
+// Wraps `inner`, delegating the named read methods and replacing every other
+// method with one that throws `unavailableMessage`. Both read-only
+// repositories (favorites, artists) are the same shape -- reads work against
+// the local cache, every write is rejected -- so this is the one place that
+// shape is expressed, instead of one hand-written class per repository.
+function createReadOnlyRepository<TRepo extends object>(
+  inner: TRepo,
+  readMethodNames: readonly (keyof TRepo)[],
+  writeMethodNames: readonly (keyof TRepo)[],
+  unavailableMessage: string,
+): TRepo {
+  const repository: Record<string, unknown> = {}
 
-  list(): Promise<Favorite[]> {
-    return this.inner.list()
+  for (const name of readMethodNames) {
+    const method = inner[name]
+    if (typeof method === 'function') {
+      repository[name as string] = method.bind(inner)
+    }
   }
 
-  create(): Promise<Favorite> {
-    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
+  for (const name of writeMethodNames) {
+    repository[name as string] = () => {
+      throw new FavoritesRepositoryError(unavailableMessage, 'unavailable')
+    }
   }
 
-  update(): Promise<Favorite> {
-    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
-  }
-
-  delete(): Promise<void> {
-    throw new FavoritesRepositoryError('Favorites are read-only while offline.', 'unavailable')
-  }
+  return repository as TRepo
 }
 
-class ReadOnlyArtistsRepository implements ArtistsRepository {
-  constructor(private readonly inner: LocalArtistsRepository) {}
+function createReadOnlyFavoritesRepository(inner: LocalFavoritesRepository): FavoritesRepository {
+  return createReadOnlyRepository<FavoritesRepository>(
+    inner,
+    ['list'],
+    ['create', 'update', 'delete'],
+    'Favorites are read-only while offline.',
+  )
+}
 
-  list(): Promise<Artist[]> {
-    return this.inner.list()
-  }
-
-  findBySlug(slug: string): Promise<Artist | null> {
-    return this.inner.findBySlug(slug)
-  }
-
-  create(): Promise<Artist> {
-    throw new FavoritesRepositoryError('Artists are read-only while offline.', 'unavailable')
-  }
+function createReadOnlyArtistsRepository(inner: LocalArtistsRepository): ArtistsRepository {
+  return createReadOnlyRepository<ArtistsRepository>(
+    inner,
+    ['list', 'findBySlug'],
+    ['create'],
+    'Artists are read-only while offline.',
+  )
 }
 
 export function selectRepositories(context: FavoritesRepositoryContext): RepositorySelection {
@@ -127,9 +137,9 @@ export function selectRepositories(context: FavoritesRepositoryContext): Reposit
 
   if (!context.backendAvailable) {
     return {
-      activeRepository: new ReadOnlyFavoritesRepository(cacheRepository),
+      activeRepository: createReadOnlyFavoritesRepository(cacheRepository),
       cacheRepository,
-      activeArtistsRepository: new ReadOnlyArtistsRepository(cacheArtistsRepository),
+      activeArtistsRepository: createReadOnlyArtistsRepository(cacheArtistsRepository),
       cacheArtistsRepository,
       mode: 'google-cache',
     }
