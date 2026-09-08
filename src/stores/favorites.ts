@@ -1,27 +1,25 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import i18n from '../i18n'
+import type { Artist } from '../types/artist'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
+import { createOrFindArtist, electArtistDisplayNames, normalizeArtistName } from '../utils/artist'
 import type {
   FavoriteRecordInput,
   FavoritesRepository,
   RepositoryMode,
+  SessionInitOptions,
 } from '../services/favoritesRepository'
-import {
-  FavoritesRepositoryError,
-  selectFavoritesRepository,
-} from '../services/favoritesRepository'
+import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
+import type { ArtistsRepository } from '../services/artistsRepository'
+import { createSessionGuard } from '../utils/sessionGuard'
+import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
 import { FavoriteImportError, parseFavoritesImportFile } from '../services/favoriteImport'
-
-interface InitializeFavoritesOptions {
-  backendAvailable: boolean
-  force?: boolean
-}
 
 interface FavoriteDraft {
   id?: string
@@ -80,12 +78,16 @@ class ImportRateLimiter {
   }
 }
 
-async function createFavoriteWithRetry(
-  repository: FavoritesRepository,
-  input: FavoriteRecordInput,
+interface CreatableRepository<TInput, TRecord> {
+  create(input: TInput): Promise<TRecord>
+}
+
+async function createRecordWithRetry<TInput, TRecord>(
+  repository: CreatableRepository<TInput, TRecord>,
+  input: TInput,
   limiter: ImportRateLimiter,
   attempt = 1,
-): Promise<Favorite> {
+): Promise<TRecord> {
   await limiter.pace()
   try {
     const created = await repository.create(input)
@@ -94,8 +96,176 @@ async function createFavoriteWithRetry(
   } catch (error) {
     if (attempt >= MAX_CREATE_ATTEMPTS || !isRateLimitedError(error)) throw error
     limiter.onRateLimited()
-    return createFavoriteWithRetry(repository, input, limiter, attempt + 1)
+    return createRecordWithRetry(repository, input, limiter, attempt + 1)
   }
+}
+
+// Resolves the whole import's artist-name population in one pass, before any
+// favorite is created, so two rows crediting the same name (by R13's
+// case/accent/whitespace-insensitive matching) never create two artists
+// (KTD5). An existing artist always wins over the file's own election
+// (AE17) -- the election only decides the spelling for a genuinely new
+// artist. Artist creates share the import's rate limiter and retry path with
+// favorite creates (KTD8). A create rejected by the unique index is treated
+// as a find (KTD7). A slug that fails to resolve is simply absent from the
+// returned map; the caller decides what that means for the rows crediting it
+// (R18).
+async function resolveImportArtistsBySlug(
+  population: string[],
+  artistsStore: ReturnType<typeof useArtistsStore>,
+  artistsRepository: ArtistsRepository,
+  limiter: ImportRateLimiter,
+): Promise<Map<string, Artist>> {
+  const elected = electArtistDisplayNames(population)
+  const resolvedBySlug = new Map<string, Artist>()
+  const existingBySlug = new Map(artistsStore.artists.map((artist) => [artist.slug, artist]))
+
+  const newEntries: { slug: string; displayName: string }[] = []
+  for (const [slug, electedDisplayName] of elected) {
+    const existing = existingBySlug.get(slug)
+    if (existing) {
+      resolvedBySlug.set(slug, existing)
+    } else {
+      newEntries.push({ slug, displayName: electedDisplayName })
+    }
+  }
+
+  if (newEntries.length === 0) {
+    return resolvedBySlug
+  }
+
+  if (artistsRepository.createMany) {
+    // Local mode: one locked read-modify-write for the whole population
+    // instead of one round trip per artist (still race-safe -- see
+    // LocalArtistsRepository's write queue).
+    try {
+      const created = await artistsRepository.createMany(
+        newEntries.map(({ slug, displayName }) => ({ displayName, slug })),
+      )
+      for (const artist of created) {
+        artistsStore.addResolvedArtist(artist)
+        resolvedBySlug.set(artist.slug, artist)
+      }
+    } catch (error) {
+      console.error('Error batch-creating artists during import:', error)
+    }
+  } else {
+    // Remote mode: no bulk-create endpoint is used here, so each artist
+    // still goes through the import's shared retry/rate-limiter path
+    // (KTD8). Race-recovery mechanics (KTD7) live in createOrFindArtist,
+    // and a failure here (including the fallback find itself failing, e.g.
+    // a genuine network error rather than a clean "not found") must not
+    // abort the whole import -- it just means this slug stays unresolved,
+    // so only the rows crediting it are reported as failed (R18).
+    for (const { slug, displayName } of newEntries) {
+      try {
+        const resolved = await createOrFindArtist(
+          {
+            create: (createInput) => createRecordWithRetry(artistsRepository, createInput, limiter),
+            findBySlug: async (findSlug) => {
+              try {
+                return await artistsRepository.findBySlug(findSlug)
+              } catch (findError) {
+                console.error('Error finding artist during import fallback:', findError)
+                return null
+              }
+            },
+          },
+          { displayName, slug },
+          slug,
+        )
+        artistsStore.addResolvedArtist(resolved)
+        resolvedBySlug.set(slug, resolved)
+      } catch (error) {
+        console.error('Error creating artist during import:', error)
+        continue
+      }
+    }
+  }
+
+  await artistsStore.persistArtistsCacheSnapshot()
+  return resolvedBySlug
+}
+
+// Shared dedup step for a candidate list that may contain nulls (a name
+// empty once trimmed, or one that failed to resolve): drop the nulls and
+// keep only the first artist for each id.
+function dedupeArtistsById(candidates: (Artist | null)[]): Artist[] {
+  const seenIds = new Set<string>()
+  const deduped: Artist[] = []
+  for (const artist of candidates) {
+    if (!artist || seenIds.has(artist.id)) continue
+    seenIds.add(artist.id)
+    deduped.push(artist)
+  }
+  return deduped
+}
+
+// Maps one favorite's raw artist names to already-resolved artists (from
+// resolveImportArtistsBySlug), deduping by id. A name empty once trimmed is
+// dropped silently (mirrors AE8) and is NOT a resolution failure. A name
+// whose slug has no entry in resolvedBySlug means its artist failed to
+// create; the row is reported as failed so the caller can honor R18 (leave
+// the favorite unimported rather than under-crediting it).
+function resolveRowArtists(
+  rawNames: string[],
+  resolvedBySlug: Map<string, Artist>,
+): { resolved: Artist[]; failed: boolean } {
+  let failed = false
+  const candidates: (Artist | null)[] = []
+
+  for (const rawName of rawNames) {
+    const slug = normalizeArtistName(rawName)
+    if (slug === null) continue
+
+    const artist = resolvedBySlug.get(slug)
+    if (!artist) {
+      failed = true
+      continue
+    }
+    candidates.push(artist)
+  }
+
+  return { resolved: dedupeArtistsById(candidates), failed }
+}
+
+// Resolves each raw typed name to a canonical Artist (creating it if unknown,
+// per R2/KTD6), deduping by artist id so two spellings of one name typed in
+// the same save credit that artist only once (AE7). Resolution stays
+// sequential (not Promise.all) so two names that both create a genuinely new
+// artist in the same save don't race each other into duplicate creates
+// (KTD7 handles races across separate calls, not within one).
+// Resolves (creating where needed) without registering anything into the
+// artists store yet -- the caller only registers and persists the result
+// once the favorite it's for has actually been saved (see addOrUpdateFavorite).
+async function resolveArtistCredits(
+  rawNames: string[],
+  artistsStore: ReturnType<typeof useArtistsStore>,
+): Promise<Artist[]> {
+  const resolvedOrNull: (Artist | null)[] = []
+  for (const rawName of rawNames) {
+    resolvedOrNull.push(await artistsStore.resolveOrCreateArtist(rawName))
+  }
+  return dedupeArtistsById(resolvedOrNull)
+}
+
+// R12: the export keeps its pre-identity shape. artistIds is an internal
+// relation id, meaningless on a different account or instance, so it is
+// deliberately not written out; the denormalized `artists` names column
+// (KTD12) already carries everything the export needs.
+export function buildFavoritesExportPayload(
+  favoritesToExport: Favorite[],
+): Omit<Favorite, 'artistIds'>[] {
+  return favoritesToExport.map((favorite) => ({
+    id: favorite.id,
+    url: favorite.url,
+    title: favorite.title,
+    artists: favorite.artists,
+    type: favorite.type,
+    thumbnail: favorite.thumbnail,
+    timestamps: favorite.timestamps,
+    created: favorite.created,
+  }))
 }
 
 function buildImportResultMessage(added: number, skipped: number, failed: number): string {
@@ -115,40 +285,36 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
   const importProgress = ref<{ processed: number; total: number | null } | null>(null)
-  const isReadOnly = computed(() => repositoryMode.value === 'google-cache')
+  const degradedReadOnly = ref(false)
+  const isReadOnly = computed(
+    () => repositoryMode.value === 'google-cache' || degradedReadOnly.value,
+  )
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
-  let sessionKey = ''
+  let importArtistsRepository: ArtistsRepository | null = null
+  const sessionGuard = createSessionGuard()
 
   const authStore = useAuthStore()
 
-  function getCurrentSessionKey() {
-    return `${authStore.authMode ?? 'none'}:${authStore.userId ?? 'anonymous'}`
-  }
-
-  async function initializeForCurrentSession(options: InitializeFavoritesOptions) {
+  async function initializeForCurrentSession(options: SessionInitOptions) {
     if (!authStore.authMode) {
       $reset()
       return
     }
 
-    const nextSessionKey = getCurrentSessionKey()
-    if (initialized.value && !options.force && sessionKey === nextSessionKey) {
+    if (sessionGuard.shouldSkip(authStore, initialized.value, options.force ?? false)) {
       return
     }
 
     isLoading.value = true
     initialized.value = true
-    sessionKey = nextSessionKey
+    degradedReadOnly.value = false
 
-    const selection = selectFavoritesRepository({
-      authMode: authStore.authMode,
-      userId: authStore.userId,
-      backendAvailable: options.backendAvailable,
-    })
+    const selection = options.selection
     activeRepository = selection.activeRepository
     cacheRepository = selection.cacheRepository
+    importArtistsRepository = selection.activeArtistsRepository
     repositoryMode.value = selection.mode
 
     try {
@@ -174,9 +340,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
     await cacheRepository.replaceAll(favorites.value)
   }
 
+  function setDegradedReadOnly(value: boolean) {
+    degradedReadOnly.value = value
+  }
+
   function buildFavoriteRecordInput(
     draft: FavoriteDraft,
-    currentFavorite?: Favorite,
+    currentFavorite: Favorite | undefined,
+    resolvedArtists: Artist[],
   ): FavoriteRecordInput {
     const type: Favorite['type'] = isSoundCloudUrl(draft.url) ? 'soundcloud' : 'youtube'
     const normalizedThumbnail = draft.thumbnail?.trim() || ''
@@ -200,7 +371,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     return {
       url: draft.url,
       title: draft.title.trim(),
-      artists: [...draft.artists],
+      artists: resolvedArtists.map((artist) => artist.displayName),
+      artistIds: resolvedArtists.map((artist) => artist.id),
       type,
       thumbnail,
       timestamps: draft.timestamps,
@@ -227,6 +399,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function addOrUpdateFavorite(draft: FavoriteDraft) {
     const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
 
     if (await blockIfReadOnly(favoritesUiStore)) return false
 
@@ -250,12 +423,23 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const currentFavorite = draft.id
       ? favorites.value.find((favorite) => favorite.id === draft.id)
       : undefined
+
+    let resolvedArtists: Artist[]
+    try {
+      resolvedArtists = await resolveArtistCredits(draft.artists, artistsStore)
+    } catch (error) {
+      console.error('Error resolving artist credits:', error)
+      await favoritesUiStore.showAlert(i18n.global.t('messages.error_saving'), 'alert')
+      return false
+    }
+
     const favoriteInput = buildFavoriteRecordInput(
       {
         ...draft,
         url: normalizedUrl,
       },
       currentFavorite,
+      resolvedArtists,
     )
 
     try {
@@ -272,6 +456,13 @@ export const useFavoritesStore = defineStore('favorites', () => {
         const createdFavorite = await activeRepository.create(favoriteInput)
         favorites.value.push(createdFavorite)
       }
+
+      // Only register/persist the artists this save actually resolved once
+      // the favorite crediting them is confirmed saved -- registering them
+      // earlier would show a newly-created artist as a suggestion even if
+      // this save then failed, crediting nothing.
+      resolvedArtists.forEach((artist) => artistsStore.addResolvedArtist(artist))
+      await artistsStore.persistArtistsCacheSnapshot()
 
       await persistCacheSnapshot()
       return true
@@ -308,9 +499,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   async function importFavorites(data: Favorite[]) {
     const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
 
     if (await blockIfReadOnly(favoritesUiStore)) {
       return { added: 0, skipped: data.length, failed: 0 }
+    }
+
+    if (!importArtistsRepository) {
+      throw new Error('Artists repository has not been initialized.')
     }
 
     const existingUrls = new Set(favorites.value.map((favorite) => favorite.url))
@@ -323,9 +519,29 @@ export const useFavoritesStore = defineStore('favorites', () => {
     importProgress.value = { processed: 0, total: data.length }
 
     try {
+      // Population pass: gather every row's raw artist names that will
+      // plausibly survive the skip checks below, so the whole file's
+      // distinct artists are resolved once before any favorite is created
+      // (KTD5, KTD8). A name from a row later re-skipped as an already-seen
+      // duplicate here is harmless to have resolved -- the resulting artist
+      // is simply unused by this import.
+      const normalizedRows: { favorite: Favorite; normalizedUrl: string }[] = []
+      const population: string[] = []
       for (const favorite of data) {
         const normalizedUrl = await normalizeUrl(favorite.url)
+        normalizedRows.push({ favorite, normalizedUrl })
+        if (!isSafeHttpUrl(normalizedUrl) || existingUrls.has(normalizedUrl)) continue
+        population.push(...(favorite.artists || []))
+      }
 
+      const resolvedBySlug = await resolveImportArtistsBySlug(
+        population,
+        artistsStore,
+        importArtistsRepository,
+        rateLimiter,
+      )
+
+      for (const { favorite, normalizedUrl } of normalizedRows) {
         if (!isSafeHttpUrl(normalizedUrl)) {
           skipped++
           importProgress.value.processed++
@@ -338,14 +554,29 @@ export const useFavoritesStore = defineStore('favorites', () => {
           continue
         }
 
+        const { resolved: rowArtists, failed: rowFailed } = resolveRowArtists(
+          favorite.artists || [],
+          resolvedBySlug,
+        )
+
+        if (rowFailed) {
+          failed++
+          importProgress.value.processed++
+          continue
+        }
+
+        const artists = rowArtists.map((artist) => artist.displayName)
+        const artistIds = rowArtists.map((artist) => artist.id)
+
         try {
           if (usesCloudRepository && activeRepository) {
-            const createdFavorite = await createFavoriteWithRetry(
+            const createdFavorite = await createRecordWithRetry(
               activeRepository,
               {
                 url: normalizedUrl,
                 title: favorite.title,
-                artists: favorite.artists || [],
+                artists,
+                artistIds,
                 type: favorite.type,
                 thumbnail: favorite.thumbnail || DEFAULT_THUMBNAIL,
                 timestamps: favorite.timestamps || [],
@@ -358,6 +589,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
             favorites.value.push({
               ...favorite,
               url: normalizedUrl,
+              artists,
+              artistIds,
               created: favorite.created || new Date().toISOString(),
             })
           }
@@ -421,7 +654,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return
     }
 
-    const jsonString = JSON.stringify(favorites.value, null, 2)
+    const jsonString = JSON.stringify(buildFavoritesExportPayload(favorites.value), null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -438,9 +671,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
     repositoryMode.value = 'local'
     initialized.value = false
     importProgress.value = null
+    degradedReadOnly.value = false
     activeRepository = null
     cacheRepository = null
-    sessionKey = ''
+    importArtistsRepository = null
+    sessionGuard.reset()
   }
 
   return {
@@ -451,6 +686,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     importProgress,
     isReadOnly,
     initializeForCurrentSession,
+    setDegradedReadOnly,
     addOrUpdateFavorite,
     deleteFavorite,
     importFavorites,

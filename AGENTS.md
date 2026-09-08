@@ -16,10 +16,12 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
   - `useFavoritesStore` owns favorites domain data and persistence flows
   - `useFavoritesUiStore` owns search, sort, filters, and dialog state
   - `useAuthStore` owns auth mode and PocketBase session state
+  - `useArtistsStore` owns artist identity: load, resolve-or-create, cache mirror
 - Favorites persistence is repository-based:
   - `PocketBaseFavoritesRepository` for authenticated online sessions
   - `LocalFavoritesRepository` for local mode and authenticated offline cache
-  - `selectFavoritesRepository()` chooses the active repository from auth mode and backend availability
+  - `PocketBaseArtistsRepository` / `LocalArtistsRepository` mirror the same split for artist identity
+  - `selectRepositories()` returns both a favorites repository pair and an artists repository pair under one mode, from a single call
 - Favorites responsive layout is token-based:
   - Layout sizing tokens live in `src/assets/tailwind.css`
   - Semantic layout classes such as `.app-shell`, `.favorites-header`, and `.favorites-grid`
@@ -28,6 +30,8 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
 - localStorage keys are intentionally scoped:
   - `groovemark:favorites:local`
   - `groovemark:favorites:google:<userId>`
+  - `groovemark:artists:local`
+  - `groovemark:artists:google:<userId>`
   - Do not reintroduce a shared `favorites` key
 
 ## Build / Lint / Test Commands
@@ -186,6 +190,8 @@ const allArtists = computed(() => {
 - `useAppStore`: bootstrapping only (`booting | unauthenticated | ready`, backend availability)
 - `useFavoritesStore`: favorites CRUD, repository selection, import/export, cache sync
 - `useFavoritesUiStore`: filtered lists, sort/filter/search state, alert/confirm dialogs
+- `useArtistsStore`: artist identity load, resolve-or-create, cache mirror
+- `useArtistsStore` loads from bootstrap independently of `useFavoritesStore`; do not load it from inside `useFavoritesStore`
 - Do not move dialog state back into `useFavoritesStore`
 - Do not put locale initialization inside view components; keep it in services/bootstrap
 
@@ -208,7 +214,7 @@ src/
     modals/            # Dialogs (alert, confirm, favorite edit)
   i18n/locales/        # en.json, fr.json
   services/            # PocketBase client, repositories, storage/locale/import helpers
-  stores/              # Pinia stores (app, auth, favorites, favoritesUi)
+  stores/              # Pinia stores (app, artists, auth, favorites, favoritesUi)
   types/               # TypeScript interfaces and shared app/auth aliases
   assets/              # Global CSS (Tailwind base)
   utils/               # Pure utility functions (URL, favorite helpers)
@@ -219,6 +225,7 @@ src/
 - The `favorites` collection should be treated as user-owned data.
 - Client assumptions rely on an `owner` relation field and user-scoped API rules:
   - `@request.auth.id != "" && owner = @request.auth.id` for list/view/update/delete
+- The `artists` collection follows the same owner-scoped pattern (`owner` relation, list/view/update/delete rule, plus a create-owner guard), with a unique index on `(owner, slug)`.
 - Authenticated offline fallback uses the user-scoped local cache, not local-mode storage.
 - If updating import/export or migration behavior, preserve separation between:
   - local mode favorites

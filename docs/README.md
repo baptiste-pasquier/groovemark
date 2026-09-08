@@ -91,8 +91,7 @@ Every maintained doc appears here. A doc missing from this list fails CI.
 
 - [`decisions/`](journal/decisions/) — one architectural choice per entry, MADR format. An
   accepted decision is never edited
-- `solutions/` — what broke, what was tried, what the measurement said. Created on its first
-  entry; none exists yet
+- [`solutions/`](journal/solutions/) — what broke, what was tried, what the measurement said
 - [`plans/`](journal/plans/) — shipped implementation plans, kept for provenance
 - [`ideation/`](journal/ideation/) — requirements exploration that fed a plan
 

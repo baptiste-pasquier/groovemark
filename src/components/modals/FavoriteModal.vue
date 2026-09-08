@@ -199,7 +199,7 @@ function close() {
               <Users class="absolute top-3 left-3 z-10 h-5 w-5 text-gray-400" />
               <ArtistTagsInput
                 v-model="artists"
-                :suggestions="favoritesUiStore.allArtists"
+                :suggestions="favoritesUiStore.allArtistNames"
                 :placeholder="t('modal.artists_placeholder')"
                 class="!pl-10"
               />

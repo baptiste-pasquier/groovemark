@@ -7,6 +7,17 @@ interface LocalFavoritesRepositoryOptions {
   allowLegacyRead?: boolean
 }
 
+// Data written before artistIds existed -- or a pre-change JSON import
+// re-saved locally before this feature shipped -- has no artistIds at all.
+// Defaulting it here, at the localStorage read boundary, keeps every
+// artistIds.includes(...) call elsewhere safe without scattering the same
+// guard through the UI layer. The favorite still renders its names via the
+// untouched `artists` column; it just carries no relation until it is next
+// saved through the artist field.
+function normalizeStoredFavorite(favorite: Favorite): Favorite {
+  return favorite.artistIds ? favorite : { ...favorite, artistIds: [] }
+}
+
 export class LocalFavoritesRepository implements FavoritesRepository {
   private storageKey: string
   private allowLegacyRead: boolean
@@ -19,15 +30,16 @@ export class LocalFavoritesRepository implements FavoritesRepository {
   async list(): Promise<Favorite[]> {
     const favorites = readStorage<Favorite[]>(this.storageKey)
     if (favorites) {
-      return favorites
+      return favorites.map(normalizeStoredFavorite)
     }
 
     if (this.allowLegacyRead) {
       const legacyFavorites = readStorage<Favorite[]>(LEGACY_FAVORITES_STORAGE_KEY)
       if (legacyFavorites) {
-        await this.replaceAll(legacyFavorites)
+        const normalizedLegacyFavorites = legacyFavorites.map(normalizeStoredFavorite)
+        await this.replaceAll(normalizedLegacyFavorites)
         removeStorage(LEGACY_FAVORITES_STORAGE_KEY)
-        return legacyFavorites
+        return normalizedLegacyFavorites
       }
     }
 

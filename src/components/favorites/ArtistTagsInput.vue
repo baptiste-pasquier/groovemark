@@ -3,6 +3,8 @@ import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AlertCircle } from 'lucide-vue-next'
 
+import { normalizeArtistName } from '../../utils/artist'
+
 interface Props {
   modelValue: string[]
   suggestions: string[]
@@ -35,7 +37,9 @@ function update(v: string[]) {
 function addTag(raw?: string) {
   const value = (raw ?? input.value).trim()
   if (!value) return
-  if (!internal.value.includes(value)) {
+  const slug = normalizeArtistName(value)
+  const isDuplicate = internal.value.some((tag) => normalizeArtistName(tag) === slug)
+  if (!isDuplicate) {
     internal.value.push(value)
     update(internal.value)
   }
@@ -57,12 +61,24 @@ function onBackspace(e: KeyboardEvent) {
   }
 }
 
+function isAlreadyTagged(suggestion: string) {
+  const slug = normalizeArtistName(suggestion)
+  return internal.value.some((tag) => normalizeArtistName(tag) === slug)
+}
+
 const filteredSuggestions = computed(() => {
-  const q = input.value.toLowerCase()
-  if (!q) return props.suggestions.filter((s) => !internal.value.includes(s)).slice(0, 8)
+  const query = normalizeArtistName(input.value)
+  if (query === null) return props.suggestions.filter((s) => !isAlreadyTagged(s)).slice(0, 8)
   return props.suggestions
-    .filter((s) => s.toLowerCase().includes(q) && !internal.value.includes(s))
-    .sort((a, b) => a.toLowerCase().indexOf(q) - b.toLowerCase().indexOf(q))
+    .filter((s) => {
+      const slug = normalizeArtistName(s)
+      return slug !== null && slug.includes(query) && !isAlreadyTagged(s)
+    })
+    .sort(
+      (a, b) =>
+        (normalizeArtistName(a) ?? '').indexOf(query) -
+        (normalizeArtistName(b) ?? '').indexOf(query),
+    )
     .slice(0, 8)
 })
 

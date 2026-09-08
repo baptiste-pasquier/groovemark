@@ -36,6 +36,7 @@ function createFavorite(id: string): Favorite {
     url: `https://www.youtube.com/watch?v=${id}`,
     title: `Favorite ${id}`,
     artists: ['Artist'],
+    artistIds: ['artist-1'],
     type: 'youtube',
     thumbnail: 'https://img.test/thumb.jpg',
     timestamps: [],
@@ -188,7 +189,7 @@ describe('FavoritesGrid', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.findAll('.favorite-card')).toHaveLength(40)
 
-    favoritesUiStore.setFilter('Artist')
+    favoritesUiStore.setFilter('artist-1')
     await wrapper.vm.$nextTick()
 
     expect(wrapper.findAll('.favorite-card')).toHaveLength(20)

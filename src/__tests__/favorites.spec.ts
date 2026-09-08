@@ -3,13 +3,21 @@ import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
+import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
 import type { FavoriteRecordInput } from '../services/favoritesRepository'
-import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
-import { mockPocketbase, pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import { getLocalStorageState, localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
+import { sessionInit } from './mocks/sessionInit'
+import {
+  mockPocketbase,
+  pocketbaseArtistsCollectionApi,
+  pocketbaseCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
+import type { Artist } from '../types/artist'
 import type { Favorite } from '../types/favorite'
 
 function createFavorite(id: string, url: string): Favorite {
@@ -18,6 +26,7 @@ function createFavorite(id: string, url: string): Favorite {
     url,
     title: `Favorite ${id}`,
     artists: ['Artist'],
+    artistIds: [],
     type: 'youtube',
     thumbnail: 'https://img.test/thumbnail.jpg',
     timestamps: [],
@@ -33,6 +42,10 @@ function createUser(id: string): RecordModel {
     name: `User ${id}`,
     email: `${id}@example.com`,
   }
+}
+
+function createArtist(id: string, displayName: string, slug: string): Artist {
+  return { id, displayName, slug }
 }
 
 describe('Favorites Store', () => {
@@ -53,7 +66,7 @@ describe('Favorites Store', () => {
     const favoritesStore = useFavoritesStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     expect(favoritesStore.favorites).toEqual([localFavorite])
   })
@@ -71,7 +84,7 @@ describe('Favorites Store', () => {
 
     const favoritesStore = useFavoritesStore()
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     expect(favoritesStore.favorites).toEqual([cloudFavorite])
     expect(getLocalStorageState()['groovemark:favorites:google:user-1']).toContain('cloud-1')
@@ -88,7 +101,7 @@ describe('Favorites Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     expect(favoritesStore.repositoryMode).toBe('google-cache')
     expect(favoritesStore.favorites).toEqual([cachedFavorite])
@@ -106,7 +119,7 @@ describe('Favorites Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     expect(favoritesStore.repositoryMode).toBe('google-cache')
     expect(favoritesStore.favorites).toEqual([cachedFavorite])
@@ -125,7 +138,7 @@ describe('Favorites Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
     expect(favoritesStore.isReadOnly).toBe(true)
 
     const addPromise = favoritesStore.addOrUpdateFavorite({
@@ -171,13 +184,13 @@ describe('Favorites Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
     expect(favoritesStore.favorites).toEqual([googleFavorite])
 
     await authStore.signOut()
     favoritesStore.$reset()
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     expect(favoritesStore.favorites).toEqual([localFavorite])
   })
@@ -196,11 +209,11 @@ describe('Favorites Store', () => {
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
 
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
     expect(favoritesStore.favorites).toEqual([userOneFavorite])
 
     authStore.user = createUser('user-2')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false, force: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false, { force: true }))
 
     expect(favoritesStore.favorites).toEqual([userTwoFavorite])
   })
@@ -211,10 +224,12 @@ describe('Favorites Store', () => {
     localStorage.setItem('groovemark:favorites:local', JSON.stringify([originalFavorite]))
 
     const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
     const favoritesStore = useFavoritesStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const success = await favoritesStore.addOrUpdateFavorite({
       id: originalFavorite.id,
@@ -231,13 +246,41 @@ describe('Favorites Store', () => {
     )
   })
 
+  it('defaults artistIds to [] for a pre-existing favorite with no artistIds field, without crashing the filter/count getters', async () => {
+    const legacyFavorite = {
+      id: 'legacy-1',
+      url: 'https://youtube.com/watch?v=legacy',
+      title: 'Legacy favorite',
+      artists: ['Old Artist'],
+      type: 'youtube',
+      thumbnail: 'https://img.test/thumbnail.jpg',
+      timestamps: [],
+      created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+    } as unknown as Favorite
+    localStorage.setItem('groovemark:favorites:local', JSON.stringify([legacyFavorite]))
+
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual([])
+
+    expect(() => favoritesUiStore.filteredFavorites).not.toThrow()
+    expect(() => favoritesUiStore.favoritesCountByArtist).not.toThrow()
+    expect(favoritesUiStore.filteredFavorites.map((favorite) => favorite.id)).toContain('legacy-1')
+    expect(favoritesUiStore.favoritesCountByArtist).toEqual({})
+  })
+
   it('deletes a favorite when confirmed in a normal (non-read-only) mode', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     await favoritesStore.addOrUpdateFavorite({
       url: 'https://youtube.com/watch?v=deleteMe0001',
@@ -260,10 +303,12 @@ describe('Favorites Store', () => {
 
   it('does not classify lookalike SoundCloud hosts as SoundCloud favorites', async () => {
     const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
     const favoritesStore = useFavoritesStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const success = await favoritesStore.addOrUpdateFavorite({
       url: 'https://evil-soundcloud.com/artist/track?utm_source=test',
@@ -278,6 +323,166 @@ describe('Favorites Store', () => {
     expect(favoritesStore.favorites[0]?.url).toBe(
       'https://evil-soundcloud.com/artist/track?utm_source=test',
     )
+  })
+
+  it('credits the existing artist regardless of the typed case, with no duplicate created (AE1)', async () => {
+    const existingArtist = createArtist('artist-1', 'Amelie Lens', 'amelie lens')
+    localStorage.setItem('groovemark:artists:local', JSON.stringify([existingArtist]))
+
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const success = await favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=ae1TestVideo',
+      title: 'AE1 test',
+      artists: ['AMELIE LENS'],
+      timestamps: [],
+      thumbnail: '',
+    })
+
+    expect(success).toBe(true)
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual(['artist-1'])
+    // KTD12: the denormalized `artists` column carries the resolved display
+    // name, not the raw spelling the user typed.
+    expect(favoritesStore.favorites[0]?.artists).toEqual(['Amelie Lens'])
+    expect(artistsStore.artists).toHaveLength(1)
+  })
+
+  it('dedups two spellings of the same artist typed in a single save (AE7)', async () => {
+    const existingArtist = createArtist('artist-1', 'Amelie Lens', 'amelie lens')
+    localStorage.setItem('groovemark:artists:local', JSON.stringify([existingArtist]))
+
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const success = await favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=ae7TestVideo',
+      title: 'AE7 test',
+      artists: ['Amelie Lens', 'AMELIE LENS'],
+      timestamps: [],
+      thumbnail: '',
+    })
+
+    expect(success).toBe(true)
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual(['artist-1'])
+    expect(favoritesStore.favorites[0]?.artists).toEqual(['Amelie Lens'])
+    expect(artistsStore.artists).toHaveLength(1)
+  })
+
+  it('drops an artist field entry that is empty once trimmed, creating no artist (AE8)', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+    await artistsStore.initializeForCurrentSession(sessionInit(false))
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const success = await favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=ae8TestVideo',
+      title: 'AE8 test',
+      artists: ['   ', 'Real Artist'],
+      timestamps: [],
+      thumbnail: '',
+    })
+
+    expect(success).toBe(true)
+    expect(favoritesStore.favorites[0]?.artists).toEqual(['Real Artist'])
+    expect(favoritesStore.favorites[0]?.artistIds).toHaveLength(1)
+    expect(artistsStore.artists).toHaveLength(1)
+  })
+})
+
+describe('Favorites Store artist resolution failures', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    resetLocalStorageMock()
+    resetPocketbaseMocks()
+  })
+
+  it('shows the save-error alert and never calls the favorites repository when resolution fails', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue(new Error('create failed'))
+
+    const addPromise = favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=resolutionFail',
+      title: 'Resolution failure',
+      artists: ['New Artist'],
+      timestamps: [],
+      thumbnail: '',
+    })
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const success = await addPromise
+
+    expect(success).toBe(false)
+    expect(pocketbaseCollectionApi.create).not.toHaveBeenCalled()
+    expect(favoritesStore.favorites).toEqual([])
+  })
+
+  it('does not surface a newly-created artist as a suggestion when the favorite save itself fails', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
+
+    const artistsWriteCallsAfterInit = localStorageMock.setItem.mock.calls.filter(
+      ([key]) => key === 'groovemark:artists:google:user-1',
+    ).length
+
+    // Artist creation succeeds, but the favorite it's meant to credit fails
+    // to save -- the artist must not appear as a suggestion for a save the
+    // user never completed.
+    pocketbaseCollectionApi.create.mockRejectedValue(new Error('favorite save failed'))
+
+    const addPromise = favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=favoriteSaveFail',
+      title: 'Favorite save failure',
+      artists: ['New Artist'],
+      timestamps: [],
+      thumbnail: '',
+    })
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const success = await addPromise
+
+    expect(success).toBe(false)
+    expect(artistsStore.artists).toEqual([])
+    // persistArtistsCacheSnapshot only writes when something was actually
+    // registered -- the failed save must not add a write beyond the one
+    // already done at session init.
+    const artistsWriteCallsAfterFailedSave = localStorageMock.setItem.mock.calls.filter(
+      ([key]) => key === 'groovemark:artists:google:user-1',
+    ).length
+    expect(artistsWriteCallsAfterFailedSave).toBe(artistsWriteCallsAfterInit)
   })
 })
 
@@ -299,6 +504,7 @@ describe('PocketBaseFavoritesRepository', () => {
       url: 'https://youtube.com/watch?v=abc',
       title: 'Test favorite',
       artists: [],
+      artistIds: [],
       type: 'youtube',
       thumbnail: '',
       timestamps: [],
@@ -361,5 +567,22 @@ describe('PocketBaseFavoritesRepository', () => {
     const [favorite] = await repository.list()
 
     expect(favorite?.created).toBe(INPUT_CREATED_AT)
+  })
+
+  it('defaults artists, artistIds, and timestamps to [] for a listed record missing those fields', async () => {
+    const recordWithoutArrays: Partial<FavoriteRecordInput> = recordInput()
+    delete recordWithoutArrays.artists
+    delete recordWithoutArrays.artistIds
+    delete recordWithoutArrays.timestamps
+
+    pocketbaseCollectionApi.getFullList.mockResolvedValue([
+      { ...recordWithoutArrays, id: 'record-1', created_at: INPUT_CREATED_AT },
+    ] as never)
+
+    const [favorite] = await repository.list()
+
+    expect(favorite?.artists).toEqual([])
+    expect(favorite?.artistIds).toEqual([])
+    expect(favorite?.timestamps).toEqual([])
   })
 })

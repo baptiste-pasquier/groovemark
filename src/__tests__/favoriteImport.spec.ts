@@ -4,11 +4,18 @@ import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
 import i18n from '../i18n'
+import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
-import { useFavoritesStore } from '../stores/favorites'
+import { buildFavoritesExportPayload, useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
-import { resetLocalStorageMock } from './mocks/localStorage'
-import { pocketbaseCollectionApi, resetPocketbaseMocks } from './mocks/pocketbase'
+import { localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
+import { sessionInit } from './mocks/sessionInit'
+import {
+  pocketbaseArtistsCollectionApi,
+  pocketbaseCollectionApi,
+  resetPocketbaseMocks,
+} from './mocks/pocketbase'
+import type { Favorite } from '../types/favorite'
 
 // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
 // pass by accident if the mapping reads the collection's own `created` field instead
@@ -40,7 +47,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFromFile(
       new File(['not valid json'], 'favorites.json', {
@@ -64,7 +71,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -72,6 +79,7 @@ describe('Favorite Import', () => {
         url: 'javascript:alert("xss")',
         title: 'Bad Favorite',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -96,7 +104,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -104,6 +112,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=cloudimport1',
         title: 'Imported Favorite',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -127,7 +136,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const before = Date.now()
     const importPromise = favoritesStore.importFavorites([
@@ -136,6 +145,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=cloudimport2',
         title: 'Imported Favorite Without Date',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -161,7 +171,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const importPromise = favoritesStore.importFavorites([
       {
@@ -169,6 +179,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=importNew1B',
         title: 'Newer Import',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -179,6 +190,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=importOld1A',
         title: 'Older Import',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -205,7 +217,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
 
@@ -215,6 +227,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=rateLimited1',
         title: 'Rate Limited Favorite',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -241,7 +254,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     pocketbaseCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
 
@@ -251,6 +264,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=alwaysFails1',
         title: 'Failing Favorite',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -274,7 +288,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     let resolveFirstCreate: (() => void) | undefined
     pocketbaseCollectionApi.create.mockImplementationOnce(
@@ -295,6 +309,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=progress1',
         title: 'Progress Favorite 1',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -304,6 +319,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=progress2',
         title: 'Progress Favorite 2',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -330,7 +346,7 @@ describe('Favorite Import', () => {
     authStore.authMode = 'google'
     authStore.isAuthenticated = true
     authStore.user = createUser('user-1')
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: true })
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
 
     const callTimes: number[] = []
     pocketbaseCollectionApi.create.mockImplementation((data) => {
@@ -353,6 +369,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=speed1',
         title: 'Speed Favorite 1',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -362,6 +379,7 @@ describe('Favorite Import', () => {
         url: 'https://youtube.com/watch?v=speed2',
         title: 'Speed Favorite 2',
         artists: [],
+        artistIds: [],
         type: 'youtube',
         thumbnail: '',
         timestamps: [],
@@ -387,7 +405,7 @@ describe('Favorite Import', () => {
     const favoritesUiStore = useFavoritesUiStore()
 
     authStore.continueInLocalMode()
-    await favoritesStore.initializeForCurrentSession({ backendAvailable: false })
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
 
     let resolveFileText: ((text: string) => void) | undefined
     const slowFile = {
@@ -411,5 +429,398 @@ describe('Favorite Import', () => {
     await importPromise
 
     expect(favoritesStore.importProgress).toBeNull()
+  })
+
+  it('imports a pre-identity export with no artistIds field with no artist-field error (AE6)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const legacyEntry = {
+      id: 'legacy-1',
+      url: 'https://youtube.com/watch?v=legacyExport1',
+      title: 'Legacy Export Favorite',
+      artists: ['Some Artist'],
+      type: 'youtube',
+      thumbnail: '',
+      timestamps: [],
+    } as unknown as Favorite
+
+    const importPromise = favoritesStore.importFavorites([legacyEntry])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.failed).toBe(0)
+    expect(result.added).toBe(1)
+    expect(favoritesStore.favorites[0]?.artistIds).toHaveLength(1)
+    expect(artistsStore.artists).toHaveLength(1)
+    expect(artistsStore.artists[0]?.displayName).toBe('Some Artist')
+  })
+
+  it('collapses two spellings of the same artist across rows into one artist (AE9)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'spelling-1',
+        url: 'https://youtube.com/watch?v=spelling1',
+        title: 'Spelling One',
+        artists: ['Amelie Lens'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'spelling-2',
+        url: 'https://youtube.com/watch?v=spelling2',
+        title: 'Spelling Two',
+        artists: ['amelie lens'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(2)
+    expect(artistsStore.artists).toHaveLength(1)
+
+    const [first, second] = favoritesStore.favorites
+    expect(first?.artistIds).toHaveLength(1)
+    expect(second?.artistIds).toHaveLength(1)
+    expect(first?.artistIds[0]).toBe(second?.artistIds[0])
+  })
+
+  it('creates several new local-mode artists in one storage write instead of one per artist', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const artistsWriteCallsBeforeImport = localStorageMock.setItem.mock.calls.filter(
+      ([key]) => key === 'groovemark:artists:local',
+    ).length
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'batch-1',
+        url: 'https://youtube.com/watch?v=batch1',
+        title: 'Batch One',
+        artists: ['Artist One'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'batch-2',
+        url: 'https://youtube.com/watch?v=batch2',
+        title: 'Batch Two',
+        artists: ['Artist Two'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+      {
+        id: 'batch-3',
+        url: 'https://youtube.com/watch?v=batch3',
+        title: 'Batch Three',
+        artists: ['Artist Three'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(3)
+    expect(artistsStore.artists).toHaveLength(3)
+
+    const artistsWriteCallsDuringImport =
+      localStorageMock.setItem.mock.calls.filter(([key]) => key === 'groovemark:artists:local')
+        .length - artistsWriteCallsBeforeImport
+    expect(artistsWriteCallsDuringImport).toBe(1)
+  })
+
+  it('credits an existing artist and leaves its display name unchanged (AE17)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    artistsStore.artists.push({
+      id: 'existing-artist-1',
+      displayName: 'Amelie Lens',
+      slug: 'amelie lens',
+    })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'existing-artist-import',
+        url: 'https://youtube.com/watch?v=existingArtist1',
+        title: 'Existing Artist Favorite',
+        artists: ['amelie lens'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(1)
+    expect(artistsStore.artists).toHaveLength(1)
+    expect(artistsStore.artists[0]?.displayName).toBe('Amelie Lens')
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual(['existing-artist-1'])
+  })
+
+  it('creates no artists when every row is skipped as an already-present duplicate URL', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const addResult = await favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=alreadyThere1',
+      title: 'Already There',
+      artists: [],
+      timestamps: [],
+      thumbnail: '',
+    })
+    expect(addResult).toBe(true)
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'duplicate-url-import',
+        url: 'https://youtube.com/watch?v=alreadyThere1',
+        title: 'Duplicate Favorite',
+        artists: ['Should Not Be Created'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.skipped).toBe(1)
+    expect(result.added).toBe(0)
+    expect(artistsStore.artists).toEqual([])
+  })
+
+  it('retries an artist create rejected by the rate limit instead of failing the favorite', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValueOnce({ status: 429, response: {} })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'artist-rate-limited',
+        url: 'https://youtube.com/watch?v=artistRateLimited1',
+        title: 'Rate Limited Artist Favorite',
+        artists: ['New Artist'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    // Comfortably longer than the production backoff (1s) to absorb CI scheduling jitter.
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.failed).toBe(0)
+    expect(result.added).toBe(1)
+    expect(artistsStore.artists).toHaveLength(1)
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual([artistsStore.artists[0]?.id])
+  }, 10000)
+
+  it('leaves the favorite unimported rather than under-crediting it when an artist create fails outright', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
+
+    // "Real Artist" already exists, so it resolves without any create call --
+    // isolating the failure to the genuinely new artist name.
+    artistsStore.artists.push({
+      id: 'real-artist-1',
+      displayName: 'Real Artist',
+      slug: 'real artist',
+    })
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'artist-create-fails',
+        url: 'https://youtube.com/watch?v=artistCreateFails1',
+        title: 'Failing Artist Favorite',
+        artists: ['Real Artist', 'New Artist That Fails'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(0)
+    expect(result.failed).toBe(1)
+    expect(
+      favoritesStore.favorites.some(
+        (favorite) => favorite.url === 'https://www.youtube.com/watch?v=artistCreateFails1',
+      ),
+    ).toBe(false)
+  })
+
+  it('reuses the artist found by the fallback lookup when a create is rejected by the unique index (KTD7)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    await favoritesStore.initializeForCurrentSession(sessionInit(true))
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockResolvedValue({
+      id: 'winner-1',
+      displayName: 'New Artist',
+      slug: 'new artist',
+    } as never)
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'artist-create-races',
+        url: 'https://youtube.com/watch?v=artistCreateRaces1',
+        title: 'Raced Artist Favorite',
+        artists: ['New Artist'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(1)
+    expect(result.failed).toBe(0)
+    expect(artistsStore.artists).toHaveLength(1)
+    expect(artistsStore.artists[0]?.id).toBe('winner-1')
+    expect(favoritesStore.favorites[0]?.artistIds).toEqual(['winner-1'])
+  })
+
+  it('drops an empty-once-trimmed artist name silently rather than failing the favorite (R18/AE8)', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+
+    const importPromise = favoritesStore.importFavorites([
+      {
+        id: 'blank-artist-name',
+        url: 'https://youtube.com/watch?v=blankArtistName1',
+        title: 'Blank Artist Name Favorite',
+        artists: ['   ', 'Real Artist'],
+        artistIds: [],
+        type: 'youtube',
+        thumbnail: '',
+        timestamps: [],
+      },
+    ])
+
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result.added).toBe(1)
+    expect(result.failed).toBe(0)
+    expect(favoritesStore.favorites[0]?.artistIds).toHaveLength(1)
+  })
+
+  it('exports artist names as strings, not identities', () => {
+    const favorite: Favorite = {
+      id: 'export-1',
+      url: 'https://youtube.com/watch?v=export1',
+      title: 'Export Favorite',
+      artists: ['Amelie Lens'],
+      artistIds: ['artist-1'],
+      type: 'youtube',
+      thumbnail: 'https://img.test/thumbnail.jpg',
+      timestamps: [],
+      created: '2024-01-01T00:00:00.000Z',
+    }
+
+    const result = buildFavoritesExportPayload([favorite])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).not.toHaveProperty('artistIds')
+    expect(result[0]?.artists).toEqual(['Amelie Lens'])
   })
 })

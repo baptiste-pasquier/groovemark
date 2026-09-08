@@ -9,6 +9,7 @@ const favoritesUiStore = useFavoritesUiStore()
 
 const emit = defineEmits<{ (e: 'select'): void }>()
 
+// `a` is an artist id, or the 'all' sentinel.
 function setFilter(a: string) {
   favoritesUiStore.setFilter(a)
   emit('select')
@@ -28,7 +29,7 @@ function setFilter(a: string) {
         "
         @click="setFilter('all')"
       >
-        <span>{{ t('app.all_artists') }} ({{ favoritesUiStore.allArtists.length }})</span>
+        <span>{{ t('app.all_artists') }} ({{ favoritesUiStore.referencedArtists.length }})</span>
         <span
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
           :class="{ 'bg-blue-100 text-blue-700': favoritesUiStore.currentFilter === 'all' }"
@@ -37,23 +38,23 @@ function setFilter(a: string) {
         </span>
       </button>
     </li>
-    <li v-for="artist in favoritesUiStore.allArtists" :key="artist">
+    <li v-for="artist in favoritesUiStore.referencedArtists" :key="artist.id">
       <button
         type="button"
         class="flex w-full items-center justify-between rounded-md px-4 py-2 text-left transition-colors"
         :class="
-          favoritesUiStore.currentFilter === artist
+          favoritesUiStore.currentFilter === artist.id
             ? 'bg-blue-100 text-blue-700'
             : 'hover:bg-gray-100'
         "
-        @click="setFilter(artist)"
+        @click="setFilter(artist.id)"
       >
-        <span class="truncate">{{ artist }}</span>
+        <span class="truncate">{{ artist.displayName }}</span>
         <span
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
-          :class="{ 'bg-blue-100 text-blue-700': favoritesUiStore.currentFilter === artist }"
+          :class="{ 'bg-blue-100 text-blue-700': favoritesUiStore.currentFilter === artist.id }"
         >
-          {{ favoritesUiStore.favoritesCountByArtist[artist] || 0 }}
+          {{ favoritesUiStore.favoritesCountByArtist[artist.id] || 0 }}
         </span>
       </button>
     </li>

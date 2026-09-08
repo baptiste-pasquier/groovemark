@@ -9,6 +9,7 @@ export interface Favorite {
   url: string
   title: string
   artists: string[]
+  artistIds: string[]
   type: 'youtube' | 'soundcloud'
   thumbnail: string
   timestamps: Timestamp[]

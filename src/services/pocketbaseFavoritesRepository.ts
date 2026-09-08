@@ -14,22 +14,27 @@ interface PocketbaseFavorite extends Favorite {
   owner?: string
 }
 
+function toFavorite(record: PocketbaseFavorite): Favorite {
+  return {
+    id: record.id,
+    url: record.url,
+    title: record.title,
+    artists: record.artists || [],
+    artistIds: record.artistIds || [],
+    type: record.type,
+    thumbnail: record.thumbnail,
+    timestamps: record.timestamps || [],
+    created: record.created_at,
+  }
+}
+
 export class PocketBaseFavoritesRepository implements FavoritesRepository {
   async list(): Promise<Favorite[]> {
     try {
       const records = await pb.collection(COLLECTION_NAME).getFullList<PocketbaseFavorite>({
         sort: '-created',
       })
-      return records.map((record) => ({
-        id: record.id,
-        url: record.url,
-        title: record.title,
-        artists: record.artists || [],
-        type: record.type,
-        thumbnail: record.thumbnail,
-        timestamps: record.timestamps || [],
-        created: record.created_at,
-      }))
+      return records.map(toFavorite)
     } catch (error) {
       console.error('Error fetching favorites from PocketBase:', error)
       throw new FavoritesRepositoryError(
@@ -48,6 +53,7 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         url: favorite.url,
         title: favorite.title,
         artists: favorite.artists,
+        artistIds: favorite.artistIds,
         type: favorite.type,
         thumbnail: favorite.thumbnail,
         timestamps: favorite.timestamps,
@@ -55,16 +61,7 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         owner: pb.authStore.model?.id,
       })
 
-      return {
-        id: record.id,
-        url: record.url,
-        title: record.title,
-        artists: record.artists || [],
-        type: record.type,
-        thumbnail: record.thumbnail,
-        timestamps: record.timestamps || [],
-        created: record.created_at,
-      }
+      return toFavorite(record)
     } catch (error) {
       console.error('Error creating favorite in PocketBase:', error)
       throw new FavoritesRepositoryError(
@@ -83,20 +80,12 @@ export class PocketBaseFavoritesRepository implements FavoritesRepository {
         url: favorite.url,
         title: favorite.title,
         artists: favorite.artists,
+        artistIds: favorite.artistIds,
         type: favorite.type,
         thumbnail: favorite.thumbnail,
         timestamps: favorite.timestamps,
       })
-      return {
-        id: record.id,
-        url: record.url,
-        title: record.title,
-        artists: record.artists || [],
-        type: record.type,
-        thumbnail: record.thumbnail,
-        timestamps: record.timestamps || [],
-        created: record.created_at,
-      }
+      return toFavorite(record)
     } catch (error) {
       console.error('Error updating favorite in PocketBase:', error)
       throw new FavoritesRepositoryError(

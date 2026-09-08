@@ -1,23 +1,82 @@
-import { vi } from 'vitest'
+import { vi, type Mock } from 'vitest'
 
-const collectionApi = {
-  getFullList: vi.fn(() => Promise.resolve([])),
-  create: vi.fn((data) =>
+function createCollectionApi() {
+  return {
+    getFullList: vi.fn(() => Promise.resolve([])),
+    create: vi.fn((data) =>
+      Promise.resolve({
+        id: 'mock-id',
+        created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        ...data,
+      }),
+    ),
+    update: vi.fn((id, data) =>
+      Promise.resolve({
+        id,
+        created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+        ...data,
+      }),
+    ),
+    delete: vi.fn(() => Promise.resolve()),
+    getFirstListItem: vi.fn(() => Promise.reject({ status: 404 })),
+    authWithOAuth2: vi.fn(async () => {
+      const record = {
+        id: 'google-user',
+        name: 'Google User',
+        email: 'google@example.com',
+      }
+      mockPocketbase.authStore.isValid = true
+      mockPocketbase.authStore.model = record
+      return { record }
+    }),
+  }
+}
+
+type CollectionApi = ReturnType<typeof createCollectionApi>
+
+// Loose shape used only to type `mockPocketbase.collection`'s implementation.
+// Several specs predate this per-collection routing and built their own
+// local, narrower collection double (missing `getFirstListItem`, or with a
+// bare `vi.fn()` for methods they never drive) before overriding
+// `mockPocketbase.collection.mockImplementation(...)` in their own
+// `beforeEach`. Typing the shared mock's return value this loosely -- rather
+// than as the fully-specific `CollectionApi` -- keeps those overrides
+// type-checking unchanged while still giving the default (non-overridden)
+// implementation real, distinct collection doubles.
+interface MockCollectionHandle {
+  getFullList: Mock
+  create: Mock
+  update: Mock
+  delete: Mock
+  getFirstListItem?: Mock
+  authWithOAuth2: Mock
+}
+
+function resetCollectionApi(api: CollectionApi) {
+  api.getFullList.mockReset()
+  api.getFullList.mockResolvedValue([])
+  api.create.mockReset()
+  api.create.mockImplementation((data) =>
     Promise.resolve({
       id: 'mock-id',
       created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
       ...data,
     }),
-  ),
-  update: vi.fn((id, data) =>
+  )
+  api.update.mockReset()
+  api.update.mockImplementation((id, data) =>
     Promise.resolve({
       id,
       created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
       ...data,
     }),
-  ),
-  delete: vi.fn(() => Promise.resolve()),
-  authWithOAuth2: vi.fn(async () => {
+  )
+  api.delete.mockReset()
+  api.delete.mockResolvedValue(undefined)
+  api.getFirstListItem.mockReset()
+  api.getFirstListItem.mockRejectedValue({ status: 404 })
+  api.authWithOAuth2.mockReset()
+  api.authWithOAuth2.mockImplementation(async () => {
     const record = {
       id: 'google-user',
       name: 'Google User',
@@ -26,11 +85,21 @@ const collectionApi = {
     mockPocketbase.authStore.isValid = true
     mockPocketbase.authStore.model = record
     return { record }
-  }),
+  })
 }
 
+const favoritesCollectionApi = createCollectionApi()
+const artistsCollectionApi = createCollectionApi()
+
 export const mockPocketbase = {
-  collection: vi.fn(() => collectionApi),
+  collection: vi.fn(
+    (name?: string): MockCollectionHandle =>
+      name === 'artists' ? artistsCollectionApi : favoritesCollectionApi,
+  ),
+  // Real PocketBase interpolates {:param} placeholders; tests never assert on
+  // the resulting string, so a simple pass-through is enough to let
+  // `findBySlug`'s `pb.filter(...)` call succeed instead of throwing.
+  filter: vi.fn((expression: string) => expression),
   health: {
     check: vi.fn(() => Promise.resolve({ code: 200 })),
   },
@@ -53,37 +122,8 @@ vi.mock('pocketbase', () => ({
 }))
 
 export function resetPocketbaseMocks() {
-  collectionApi.getFullList.mockReset()
-  collectionApi.getFullList.mockResolvedValue([])
-  collectionApi.create.mockReset()
-  collectionApi.create.mockImplementation((data) =>
-    Promise.resolve({
-      id: 'mock-id',
-      created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
-      ...data,
-    }),
-  )
-  collectionApi.update.mockReset()
-  collectionApi.update.mockImplementation((id, data) =>
-    Promise.resolve({
-      id,
-      created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
-      ...data,
-    }),
-  )
-  collectionApi.delete.mockReset()
-  collectionApi.delete.mockResolvedValue(undefined)
-  collectionApi.authWithOAuth2.mockReset()
-  collectionApi.authWithOAuth2.mockImplementation(async () => {
-    const record = {
-      id: 'google-user',
-      name: 'Google User',
-      email: 'google@example.com',
-    }
-    mockPocketbase.authStore.isValid = true
-    mockPocketbase.authStore.model = record
-    return { record }
-  })
+  resetCollectionApi(favoritesCollectionApi)
+  resetCollectionApi(artistsCollectionApi)
   mockPocketbase.collection.mockClear()
   mockPocketbase.health.check.mockReset()
   mockPocketbase.health.check.mockResolvedValue({ code: 200 })
@@ -95,4 +135,5 @@ export function resetPocketbaseMocks() {
   mockPocketbase.send.mockResolvedValue({ long_url: 'https://soundcloud.com/test/track' })
 }
 
-export const pocketbaseCollectionApi = collectionApi
+export const pocketbaseCollectionApi = favoritesCollectionApi
+export const pocketbaseArtistsCollectionApi = artistsCollectionApi
