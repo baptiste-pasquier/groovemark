@@ -393,9 +393,12 @@ describe('EventModal', () => {
 describe('EventModal in the events tab', () => {
   const EVENT_CARD_STUB = {
     name: 'EventCard',
-    template: '<div class="event-card" @click="$emit(\'open\', event.id)" />',
+    template:
+      '<div class="event-card" @click="$emit(\'open\', event.id)">' +
+      '<button class="event-card-delete" @click.stop="$emit(\'delete\', event.id)" />' +
+      '</div>',
     props: ['event'],
-    emits: ['open'],
+    emits: ['open', 'delete'],
   }
 
   async function mountEventsGrid() {
@@ -441,6 +444,34 @@ describe('EventModal in the events tab', () => {
     const modal = wrapper.findComponent(EventModal)
     expect(modal.props('modelValue')).toBe(true)
     expect(modal.props('editId')).toBe('event-1')
+  })
+
+  it('routes a card deletion through the store confirmation, naming the performances (R26, AE16)', async () => {
+    await enterLocalMode({
+      events: [
+        storedEvent('event-1', 'Nuits Sonores', '2026-05-04', 'Le Sucre', [
+          storedPerformance('perf-1', 'event-1', 'artist-anetha', 'Anetha', 'three-stars'),
+          storedPerformance('perf-2', 'event-1', 'artist-trym', 'Trym'),
+        ]),
+      ],
+    })
+    const wrapper = await mountEventsGrid()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    await wrapper.find('.event-card-delete').trigger('click')
+    await flushPromises()
+
+    // No delete path reaches storage without the confirmation, and the
+    // confirmation says what goes with the night.
+    expect(favoritesUiStore.confirmDialog.visible).toBe(true)
+    expect(favoritesUiStore.confirmDialog.message).toContain('2 performances')
+    expect(readStoredEvents()).toHaveLength(1)
+
+    favoritesUiStore.respondConfirm(true)
+    await flushPromises()
+
+    expect(useEventsStore().events).toEqual([])
+    expect(readStoredEvents()).toEqual([])
   })
 
   it('withholds the new-event affordance while the session is read-only', async () => {

@@ -73,7 +73,9 @@ defineExpose({ openEventId, showEventModal })
         v-for="event in eventsUiStore.filteredEvents"
         :key="event.id"
         :event="event"
+        :read-only="appStore.isReadOnly"
         @open="openEvent"
+        @delete="eventsStore.deleteEvent(event.id)"
       />
     </div>
   </main>

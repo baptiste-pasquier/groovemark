@@ -6,8 +6,10 @@ import type { RecordModel } from 'pocketbase'
 import i18n from '../i18n'
 import { useAppStore } from '../stores/app'
 import { useArtistsStore } from '../stores/artists'
+import { useArtistsUiStore } from '../stores/artistsUi'
 import { useAuthStore } from '../stores/auth'
 import { useEventsStore } from '../stores/events'
+import type { EventPerformanceDraft } from '../stores/events'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { LocalEventsRepository } from '../services/localEventsRepository'
@@ -540,5 +542,226 @@ describe('Events Store', () => {
     ])
     expect(eventsStore.events).toHaveLength(1)
     expect(getLocalStorageState()['groovemark:events:google:user-1']).toContain('Nuits Sonores')
+  })
+
+  // ---- Deletion (R26) -------------------------------------------------------
+
+  // Seeds a local-mode session holding one event whose line-up is the given
+  // typed names, saved through the store so the artists it credits are real
+  // resolved identities rather than hand-written rows.
+  async function localSessionWithEvent(performances: EventPerformanceDraft[]) {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+
+    authStore.continueInLocalMode()
+    const init = sessionInit(false)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+
+    const saved = await eventsStore.saveEvent({
+      name: 'Nuits Sonores',
+      dateAttended: '2026-05-04',
+      venue: 'Les Subsistances',
+      performances,
+    })
+    expect(saved).toBe(true)
+
+    return { artistsStore, eventsStore, favoritesUiStore: useFavoritesUiStore() }
+  }
+
+  it('names the performances a deletion removes and leaves them all intact when dismissed (R26, AE16)', async () => {
+    const { eventsStore, favoritesUiStore } = await localSessionWithEvent([
+      { artistName: 'Daft Punk', verdict: 'three-stars' },
+      { artistName: 'Justice', verdict: 'one-star' },
+      { artistName: 'Anetha', verdict: null },
+      { artistName: 'Trym', verdict: 'dislike' },
+    ])
+    const [event] = eventsStore.events
+    expect(event.performances).toHaveLength(4)
+
+    const deletePromise = eventsStore.deleteEvent(event.id)
+    await flushPromises()
+
+    // The count is in the message, not a generic warning: the performances go
+    // with the event and the operator cannot address them one by one.
+    expect(favoritesUiStore.confirmDialog.visible).toBe(true)
+    expect(favoritesUiStore.confirmDialog.message).toContain('4 performances')
+
+    favoritesUiStore.respondConfirm(false)
+    await deletePromise
+
+    expect(eventsStore.events).toHaveLength(1)
+    expect(eventsStore.events[0].performances).toHaveLength(4)
+    expect(eventsStore.artistPerformances).toHaveLength(4)
+    expect(getLocalStorageState()['groovemark:events:local']).toContain('Nuits Sonores')
+  })
+
+  it('removes the event and its performances once confirmed, and no artist record (R26)', async () => {
+    const { artistsStore, eventsStore, favoritesUiStore } = await localSessionWithEvent([
+      { artistName: 'Daft Punk', verdict: 'three-stars' },
+      { artistName: 'Justice', verdict: null },
+    ])
+    const [event] = eventsStore.events
+
+    const deletePromise = eventsStore.deleteEvent(event.id)
+    await flushPromises()
+    favoritesUiStore.respondConfirm(true)
+    await deletePromise
+
+    expect(eventsStore.events).toEqual([])
+    expect(eventsStore.artistPerformances).toEqual([])
+    expect(getLocalStorageState()['groovemark:events:local']).toBe('[]')
+    // Deleting a night removes the performances it held and nothing else: the
+    // artists it credited keep their identity (R26).
+    expect(artistsStore.artists.map((artist) => artist.displayName)).toEqual([
+      'Daft Punk',
+      'Justice',
+    ])
+    expect(getLocalStorageState()['groovemark:artists:local']).toContain('Daft Punk')
+  })
+
+  it('drops a performer credited only by the deleted event from the artists tab (AE5)', async () => {
+    const { artistsStore, eventsStore, favoritesUiStore } = await localSessionWithEvent([
+      { artistName: 'Trym', verdict: 'one-star' },
+    ])
+    const artistsUiStore = useArtistsUiStore()
+    expect(artistsUiStore.sortedRows.map((row) => row.artist.displayName)).toEqual(['Trym'])
+
+    const deletePromise = eventsStore.deleteEvent(eventsStore.events[0].id)
+    await flushPromises()
+    favoritesUiStore.respondConfirm(true)
+    await deletePromise
+
+    // Nothing credits Trym any more, so the row goes -- while the artist
+    // record itself stays, because deleting an event removes no artist.
+    expect(artistsUiStore.creditedArtists).toEqual([])
+    expect(artistsUiStore.sortedRows).toEqual([])
+    expect(artistsStore.artists).toHaveLength(1)
+  })
+
+  it('reads correctly at zero when the deleted event holds no performance (R26)', async () => {
+    const { eventsStore, favoritesUiStore } = await localSessionWithEvent([])
+    const [event] = eventsStore.events
+    expect(event.performances).toEqual([])
+
+    const deletePromise = eventsStore.deleteEvent(event.id)
+    await flushPromises()
+
+    expect(favoritesUiStore.confirmDialog.message).toContain('no performance')
+    expect(favoritesUiStore.confirmDialog.message).not.toContain('0 performance')
+
+    favoritesUiStore.respondConfirm(true)
+    await deletePromise
+
+    expect(eventsStore.events).toEqual([])
+  })
+
+  it('names a single performance in the singular, in the active locale (R26)', async () => {
+    i18n.global.locale.value = 'fr'
+    const { eventsStore, favoritesUiStore } = await localSessionWithEvent([
+      { artistName: 'Trym', verdict: 'one-star' },
+    ])
+
+    const deletePromise = eventsStore.deleteEvent(eventsStore.events[0].id)
+    await flushPromises()
+
+    // Both shipped locales carry the message as three plural forms, so a
+    // one-artist night never reads as "1 performances".
+    expect(favoritesUiStore.confirmDialog.message).toBe(
+      'Êtes-vous sûr de vouloir supprimer cet événement ? Sa suppression retire une performance.',
+    )
+
+    favoritesUiStore.respondConfirm(false)
+    await deletePromise
+    expect(eventsStore.events).toHaveLength(1)
+  })
+
+  it('refuses deleting an event while read-only, before any confirmation is shown (KTD6)', async () => {
+    localStorage.setItem(
+      'groovemark:events:google:user-1',
+      JSON.stringify([
+        storedEvent('cached-1', 'Cached Night', '2026-01-01', [
+          storedPerformance('p-1', 'cached-1', 'artist-1', 'Daft Punk', 'two-stars'),
+        ]),
+      ]),
+    )
+
+    signInAsGoogleUser()
+    const eventsStore = useEventsStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    await eventsStore.initializeForCurrentSession(sessionInit(false))
+    expect(eventsStore.effectiveMode).toBe('google-cache')
+
+    const deletePromise = eventsStore.deleteEvent('cached-1')
+    await flushPromises()
+
+    // The refusal comes first: a read-only session never gets as far as being
+    // asked to confirm.
+    expect(favoritesUiStore.alertDialog.message).toBe(READ_ONLY_MESSAGE)
+    expect(favoritesUiStore.confirmDialog.visible).toBe(false)
+    expect(favoritesUiStore.confirmDialog.message).toBe('')
+    favoritesUiStore.closeAlert()
+    await deletePromise
+
+    expect(eventsStore.events.map((event) => event.id)).toEqual(['cached-1'])
+    expect(eventsStore.artistPerformances).toHaveLength(1)
+  })
+
+  it('deletes only the event row in the cloud and lets the cascade take the performances (KTD1)', async () => {
+    localStorage.setItem(
+      'groovemark:events:google:user-1',
+      JSON.stringify([storedEvent('event-1', 'Nuits Sonores', '2026-05-04')]),
+    )
+
+    signInAsGoogleUser()
+    const eventsStore = useEventsStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    pocketbaseEventsCollectionApi.getFullList.mockResolvedValue([serverEvent()])
+    pocketbasePerformancesCollectionApi.getFullList.mockResolvedValue([serverPerformance()])
+
+    await eventsStore.initializeForCurrentSession(sessionInit(true))
+    expect(eventsStore.events[0].performances).toHaveLength(1)
+
+    const deletePromise = eventsStore.deleteEvent('event-1')
+    await flushPromises()
+    favoritesUiStore.respondConfirm(true)
+    await deletePromise
+
+    expect(pocketbaseEventsCollectionApi.delete).toHaveBeenCalledWith('event-1')
+    // The database cascade removes the performances, so no row is deleted by
+    // hand and no batch is sent.
+    expect(pocketbasePerformancesCollectionApi.delete).not.toHaveBeenCalled()
+    expect(pocketbaseBatchApi.requests).toEqual([])
+    expect(eventsStore.events).toEqual([])
+    expect(getLocalStorageState()['groovemark:events:google:user-1']).toBe('[]')
+  })
+
+  it('reports a failed deletion and keeps the event (R26)', async () => {
+    signInAsGoogleUser()
+    const eventsStore = useEventsStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    pocketbaseEventsCollectionApi.getFullList.mockResolvedValue([serverEvent()])
+    pocketbasePerformancesCollectionApi.getFullList.mockResolvedValue([serverPerformance()])
+    pocketbaseEventsCollectionApi.delete.mockRejectedValue(new Error('delete refused'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await eventsStore.initializeForCurrentSession(sessionInit(true))
+
+    const deletePromise = eventsStore.deleteEvent('event-1')
+    await flushPromises()
+    favoritesUiStore.respondConfirm(true)
+    await flushPromises()
+
+    // The failure names the event, not the favorite: one message per
+    // domain, so the alert never mislabels what could not be removed.
+    expect(favoritesUiStore.alertDialog.message).toBe('Error deleting event. Please try again.')
+    favoritesUiStore.closeAlert()
+    await deletePromise
+
+    expect(eventsStore.events.map((event) => event.id)).toEqual(['event-1'])
   })
 })

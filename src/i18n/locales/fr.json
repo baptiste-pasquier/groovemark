@@ -64,6 +64,7 @@
   },
   "events": {
     "add_new": "Nouvel événement",
+    "delete": "Supprimer cet événement",
     "empty_no_events": "Vous n'avez enregistré aucun événement pour le moment. Ajoutez-en un pour commencer !",
     "empty_no_results": "Aucun événement ne correspond à votre recherche.",
     "open": "Ouvrir cet événement",
@@ -89,10 +90,12 @@
   },
   "messages": {
     "confirm_delete_favorite": "Êtes-vous sûr de vouloir supprimer ce favori ?",
+    "confirm_delete_event": "Êtes-vous sûr de vouloir supprimer cet événement ? Il ne contient aucune performance. | Êtes-vous sûr de vouloir supprimer cet événement ? Sa suppression retire une performance. | Êtes-vous sûr de vouloir supprimer cet événement ? Sa suppression retire {count} performances.",
     "invalid_time_format": "Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.",
     "url_exists": "Cette URL existe déjà dans vos favoris.",
     "error_saving": "Erreur lors de la sauvegarde du favori. Veuillez réessayer.",
     "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer.",
+    "error_deleting_event": "Erreur lors de la suppression de l'événement. Veuillez réessayer.",
     "error_session_init": "Un problème est survenu lors du démarrage de votre session. Veuillez réessayer.",
     "offline_read_only": "Vous êtes hors ligne. Les favoris sont en lecture seule jusqu'au rétablissement de la connexion."
   },

@@ -321,6 +321,42 @@ export const useEventsStore = defineStore('events', () => {
     }
   }
 
+  // Deletes one event, its line-up included (R26). The number of performances
+  // the deletion carries off is *in* the confirmation rather than behind a
+  // generic warning: they go with the event, and the operator has no way to
+  // address them one at a time (AE16). Only the event row is deleted -- the
+  // schema cascades the performances (KTD1) -- and no artist record is
+  // touched, so a performer this night was the only credit for keeps their
+  // identity while dropping out of the artists tab (AE5).
+  async function deleteEvent(id: string) {
+    const favoritesUiStore = useFavoritesUiStore()
+
+    // The refusal comes before the confirmation, the order the mix delete
+    // uses: a read-only session is never asked to confirm a write it cannot
+    // make (KTD6).
+    if (await blockIfReadOnly(favoritesUiStore)) return
+
+    const performanceCount = eventsById.value.get(id)?.performances.length ?? 0
+    const confirmed = await favoritesUiStore.showConfirm(
+      i18n.global.t('messages.confirm_delete_event', { count: performanceCount }, performanceCount),
+    )
+    if (!confirmed) return
+
+    try {
+      if (!activeEventsRepository) {
+        throw new Error('Events repository has not been initialized.')
+      }
+
+      await activeEventsRepository.delete(id)
+      loadedEvents.value = loadedEvents.value.filter((event) => event.id !== id)
+      cacheDirty = true
+      await persistEventsCacheSnapshot()
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      await favoritesUiStore.showAlert(i18n.global.t('messages.error_deleting_event'), 'alert')
+    }
+  }
+
   function $reset() {
     loadedEvents.value = []
     isLoading.value = false
@@ -347,6 +383,7 @@ export const useEventsStore = defineStore('events', () => {
     performanceAggregateFor,
     initializeForCurrentSession,
     saveEvent,
+    deleteEvent,
     $reset,
   }
 })

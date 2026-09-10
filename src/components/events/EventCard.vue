@@ -2,17 +2,22 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { SquarePen, CalendarDays, MapPin } from 'lucide-vue-next'
+import { SquarePen, Trash2, CalendarDays, MapPin } from 'lucide-vue-next'
 import VerdictBadge from './VerdictBadge.vue'
 import type { MusicEvent, Performance } from '../../types/event'
 import { normalizeArtistName } from '../../utils/artist'
 import { formatDayAttended } from '../../utils/event'
 
-const props = defineProps<{ event: MusicEvent }>()
-// The card is where an existing event is reopened for revision (R8, AE17). It
-// names the event and stops there: the editing surface is the parent's, so the
-// card cannot know or care whether that surface is a modal.
-const emit = defineEmits<{ (e: 'open', id: string): void }>()
+// `readOnly` disables both controls, the way the mix card's do: the store
+// refuses the write anyway, but a control that looks live and then explains
+// itself in a dialog reads worse than one that is plainly unavailable.
+const props = defineProps<{ event: MusicEvent; readOnly?: boolean }>()
+// The card is where an existing event is reopened for revision (R8, AE17) and
+// where it is deleted from (R26). It names the event and stops there: the
+// editing surface is the parent's, so the card cannot know or care whether
+// that surface is a modal -- and what a deletion costs, and whether it happens
+// at all, is the store's to decide.
+const emit = defineEmits<{ (e: 'open', id: string): void; (e: 'delete', id: string): void }>()
 
 const { t, locale } = useI18n()
 
@@ -53,16 +58,26 @@ function artistRoute(performance: Performance) {
             </span>
           </div>
         </div>
-        <!-- The open affordance sits where the mix card puts its own controls,
-             so the delete control lands beside it rather than somewhere else. -->
+        <!-- Both affordances sit where the mix card puts its own controls,
+             the delete one beside the open one rather than somewhere else. -->
         <div class="ml-2 flex shrink-0 items-center space-x-3">
           <button
-            class="event-card-open rounded text-gray-400 transition-colors hover:text-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none"
+            class="event-card-open rounded text-gray-400 transition-colors hover:text-blue-500 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-gray-400"
+            :disabled="readOnly"
             :title="t('events.open')"
             :aria-label="t('events.open')"
             @click.stop="emit('open', event.id)"
           >
             <SquarePen class="h-5 w-5" />
+          </button>
+          <button
+            class="event-card-delete rounded text-gray-400 transition-colors hover:text-red-500 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-gray-400"
+            :disabled="readOnly"
+            :title="t('events.delete')"
+            :aria-label="t('events.delete')"
+            @click.stop="emit('delete', event.id)"
+          >
+            <Trash2 class="h-5 w-5" />
           </button>
         </div>
       </div>

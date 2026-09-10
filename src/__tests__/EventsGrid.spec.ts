@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import EventsGrid from '../components/events/EventsGrid.vue'
@@ -10,6 +11,7 @@ import EventsSearchBar from '../components/events/EventsSearchBar.vue'
 import HeaderBar from '../components/layout/HeaderBar.vue'
 import i18n from '../i18n'
 import { routes } from '../router'
+import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
 import { useEventsStore } from '../stores/events'
 import { useEventsUiStore } from '../stores/eventsUi'
@@ -61,7 +63,7 @@ async function seedLocalEvents(events: MusicEvent[] = SEEDED_EVENTS) {
 const EVENT_CARD_STUB = {
   name: 'EventCard',
   template: '<div class="event-card" @click="$emit(\'open\', event.id)" />',
-  props: ['event'],
+  props: ['event', 'readOnly'],
   emits: ['open'],
 }
 
@@ -210,6 +212,22 @@ describe('EventsGrid', () => {
     await wrapper.findAllComponents({ name: 'EventCard' })[1].trigger('click')
 
     expect((wrapper.vm as unknown as { openEventId: string | null }).openEventId).toBe('mid')
+  })
+
+  it('hands each card the one read-only switch, as the mixes grid does (KTD6)', async () => {
+    await seedLocalEvents()
+    const artistsStore = useArtistsStore()
+
+    const { wrapper } = await mountEventsGrid()
+    expect(wrapper.findAllComponents({ name: 'EventCard' })[0].props('readOnly')).toBe(false)
+
+    // A degraded session is read-only everywhere, so the events cards grey
+    // their controls out exactly as the mix cards do rather than accepting a
+    // gesture the store will refuse.
+    artistsStore.loadFailed = true
+    await nextTick()
+
+    expect(wrapper.findAllComponents({ name: 'EventCard' })[0].props('readOnly')).toBe(true)
   })
 
   it('invites a first event when none is recorded yet', async () => {

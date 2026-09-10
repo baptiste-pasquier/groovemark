@@ -116,3 +116,40 @@ test('records an event holding no performance and suggests its venue to the next
   const venueList = await page.locator('#event-venue').getAttribute('list')
   await expect(page.locator(`datalist#${venueList} option[value="Le Sucre"]`)).toHaveCount(1)
 })
+
+test('deletes a night only after a confirmation naming what goes with it', async ({ page }) => {
+  await enterLocalMode(page)
+
+  await page.locator('#add-event-btn').click()
+  await page.locator('#event-name').fill(EVENT_NAME)
+  await page.locator('#event-date').fill(EVENT_DATE)
+  await page.locator('#event-venue').fill(CORRECTED_VENUE)
+  await creditArtist(page, 0, FIRST_ARTIST)
+  await page.locator('#add-performance-btn').click()
+  await creditArtist(page, 1, SECOND_ARTIST)
+  await page.getByRole('button', { name: 'Sauvegarder' }).click()
+  await expect(page.locator('h2')).toBeHidden({ timeout: 5000 })
+
+  const card = page.locator('.event-card').filter({ hasText: EVENT_NAME })
+  await card.locator('.event-card-delete').click()
+
+  // The confirmation states how many performances go with the night, because
+  // the operator cannot address those rows individually.
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toContainText('retire 2 performances')
+
+  // Dismissed, nothing is removed.
+  await dialog.getByRole('button', { name: 'Annuler' }).click()
+  await expect(card).toBeVisible()
+  await expect(card.locator('.event-performance')).toHaveCount(2)
+
+  await card.locator('.event-card-delete').click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Supprimer' }).click()
+
+  await expect(page.locator('.event-card')).toHaveCount(0)
+
+  // A performer the deleted night was the only credit for leaves the
+  // catalogue, which is what the artists tab lists: credits, not records.
+  await page.locator('[data-destination="artists"]').click()
+  await expect(page.locator('.artists-row')).toHaveCount(0)
+})

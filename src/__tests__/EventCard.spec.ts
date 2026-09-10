@@ -131,6 +131,39 @@ describe('EventCard', () => {
     expect(wrapper.emitted('open')).toEqual([['event-1']])
   })
 
+  it('emits the event to delete from the delete affordance (R26)', async () => {
+    const { wrapper } = mountCard(musicEvent({ performances: [performance('p-1', 'Anetha')] }))
+
+    await wrapper.find('.event-card-delete').trigger('click')
+
+    // The card names the event and stops there: what a deletion costs, and
+    // whether it happens at all, is the store's to decide.
+    expect(wrapper.emitted('delete')).toEqual([['event-1']])
+  })
+
+  it('puts the delete control beside the open one, in the same block (R26)', () => {
+    const { wrapper } = mountCard(musicEvent())
+
+    const open = wrapper.find('.event-card-open')
+    const remove = wrapper.find('.event-card-delete')
+    expect(open.exists()).toBe(true)
+    expect(remove.exists()).toBe(true)
+    expect(remove.element.parentElement).toBe(open.element.parentElement)
+  })
+
+  it('disables both controls while the session is read-only, as the mix card does', () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    const wrapper = mount(EventCard, {
+      props: { event: musicEvent(), readOnly: true },
+      global: { plugins: [i18n, router] },
+    })
+
+    // The store refuses the write anyway, but a control that looks live and
+    // then explains itself in a dialog reads worse than an unavailable one.
+    expect(wrapper.find('.event-card-open').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.event-card-delete').attributes('disabled')).toBeDefined()
+  })
+
   it('links a credited name to the artist page through the named route and a slug param (R12, KTD14)', () => {
     const { wrapper } = mountCard(
       musicEvent({ performances: [performance('p-1', 'Daft Punk'), performance('p-2', 'AC/DC')] }),
