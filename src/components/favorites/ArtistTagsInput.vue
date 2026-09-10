@@ -9,6 +9,11 @@ interface Props {
   modelValue: string[]
   suggestions: string[]
   placeholder?: string
+  // Bound to a single artist (R5): the model still travels as an array, but it
+  // holds at most one name and committing a second replaces the first instead
+  // of appending. A performance credits exactly one artist, so the event
+  // modal's row uses this mode; a mix's artist field does not.
+  single?: boolean
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string[]): void }>()
@@ -39,7 +44,15 @@ function addTag(raw?: string) {
   if (!value) return
   const slug = normalizeArtistName(value)
   const isDuplicate = internal.value.some((tag) => normalizeArtistName(tag) === slug)
-  if (!isDuplicate) {
+  if (props.single) {
+    // Replace rather than append, and treat a commit of the artist already
+    // held as a no-op so the spelling on record does not churn -- the same
+    // rule the multi-value mode applies to a duplicate.
+    if (!isDuplicate) {
+      internal.value = [value]
+      update(internal.value)
+    }
+  } else if (!isDuplicate) {
     internal.value.push(value)
     update(internal.value)
   }

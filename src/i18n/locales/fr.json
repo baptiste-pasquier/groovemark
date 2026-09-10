@@ -70,6 +70,18 @@
     "label_placeholder": "Label (optionnel)",
     "time_placeholder": "Temps (ex: 23:45)"
   },
+  "verdict": {
+    "unrated": "non noté",
+    "clear_hint": "Cliquer à nouveau pour effacer",
+    "aria": {
+      "group": "Note",
+      "group_for": "Note pour {artist}",
+      "dislike": "J'y retourne pas",
+      "one_star": "Une étoile",
+      "two_stars": "Deux étoiles",
+      "three_stars": "Trois étoiles"
+    }
+  },
   "login": {
     "welcome": "Bienvenue sur GrooveMark",
     "signin_google": "Se connecter avec Google",
