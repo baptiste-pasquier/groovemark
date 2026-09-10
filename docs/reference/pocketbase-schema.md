@@ -148,6 +148,77 @@ A unique index on `(owner, slug)` rejects a second artist with the same normaliz
 - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
+## Collection: events
+
+This collection stores a night out: what it was called, when it happened and where. The performances seen there live in the `performances` collection and reference the event, rather than being nested inside this record. The canonical source of this schema is `pocketbase/pb_migrations/1789067400_created_events.js`, and the collection id it fixes is `pbc_1093733721`.
+
+### Fields
+
+| Field Name   | Type            | Required | Description                                                                                                |
+| ------------ | --------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| id           | Text (auto)     | Yes      | Auto-generated unique identifier, 15 characters matching `^[a-z0-9]+$`                                     |
+| name         | Text            | Yes      | The event's name, e.g. `Dour Festival`                                                                     |
+| dateAttended | Date            | Yes      | The night the event was attended -- client-settable, so an imported or back-dated event keeps its own date |
+| venue        | Text            | No       | Where the event took place                                                                                 |
+| owner        | Relation(users) | Yes      | Authenticated user who owns the event                                                                      |
+| created      | DateTime (auto) | Yes      | Auto-generated creation timestamp                                                                          |
+| updated      | DateTime (auto) | Yes      | Auto-generated last update timestamp                                                                       |
+
+An index on `(owner, dateAttended)` backs the newest-first listing of one account's events.
+
+### Collection Settings
+
+- **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
+- **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+
+## Collection: performances
+
+This collection stores one artist's appearance at one event, with at most one verdict on it. A performance exists as part of its event and nowhere else: its `eventId` relation cascades on delete, so removing an event removes its whole line-up. The canonical source of this schema is `pocketbase/pb_migrations/1789067401_created_performances.js`, and the collection id it fixes is `pbc_2758201643`.
+
+### Fields
+
+| Field Name | Type              | Required | Description                                                                                            |
+| ---------- | ----------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| id         | Text (auto)       | Yes      | Auto-generated unique identifier, 15 characters matching `^[a-z0-9]+$`                                 |
+| eventId    | Relation(events)  | Yes      | Single-select (`maxSelect: 1`) relation to the event; `cascadeDelete: true`                            |
+| artistId   | Relation(artists) | Yes      | Single-select (`maxSelect: 1`) relation to the credited artist; `cascadeDelete: false`                 |
+| artistName | Text              | Yes      | The credited artist's display name, denormalized so an exported event reads without the artist records |
+| verdict    | Select            | No       | One of `dislike`, `one-star`, `two-stars`, `three-stars`; empty means no verdict, not a lowest step    |
+| owner      | Relation(users)   | Yes      | Authenticated user who owns the performance                                                            |
+| created    | DateTime (auto)   | Yes      | Auto-generated creation timestamp                                                                      |
+| updated    | DateTime (auto)   | Yes      | Auto-generated last update timestamp                                                                   |
+
+Indexes on `(owner, eventId)` and `(owner, artistId)` back the two ways a performance is read: the line-up of one event, and one artist's live history.
+
+`owner` is a denormalized copy of the owning account, matching the other collections, and the relation guard below is what keeps it consistent with the event and artist the row points at.
+
+### Collection Settings
+
+The owner-scoped rules match the other collections, and the create and update rules carry an additional guard on both relations: a row may only reference an event and an artist belonging to the caller. Each guard correlates the submitted id with the caller through a collection lookup, rather than traversing the submitted relation.
+
+- **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id && @collection.events.id ?= @request.body.eventId && @collection.events.owner ?= @request.auth.id && @collection.artists.id ?= @request.body.artistId && @collection.artists.owner ?= @request.auth.id`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id) && (@request.body.eventId:isset = false || (@collection.events.id ?= @request.body.eventId && @collection.events.owner ?= @request.auth.id)) && (@request.body.artistId:isset = false || (@collection.artists.id ?= @request.body.artistId && @collection.artists.owner ?= @request.auth.id))`
+- **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+
+The update rule guards each relation only when the request submits it, so an edit that touches the verdict alone does not have to resubmit `eventId` or `artistId`.
+
+## Instance Settings
+
+The `/api/batch` endpoint is **disabled** in a default PocketBase instance. An event and all of its performance rows are written as one batch transaction, so `pocketbase/pb_migrations/1789067402_enable_batch.js` enables it and pins its two bounds:
+
+| Setting             | Value | Meaning                                                 |
+| ------------------- | ----- | ------------------------------------------------------- |
+| `batch.enabled`     | true  | The `/api/batch` endpoint accepts requests              |
+| `batch.maxRequests` | 50    | Maximum number of sub-requests in one batch             |
+| `batch.timeout`     | 3     | Seconds to wait before cancelling the batch transaction |
+
+Setting this in a migration rather than the dashboard keeps it reproducible in the Docker image: an instance that never applies the migration reads and lists events normally and refuses only to save one. The same two bounds are exported from `src/utils/event.ts` as `BATCH_MAX_REQUESTS` and `BATCH_TIMEOUT_SECONDS`, because the settings endpoint is superuser-only and the client cannot read them back from the server.
+
 ## Storage Keys
 
 Current browser storage keys:
