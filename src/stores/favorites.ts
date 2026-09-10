@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, type ComputedRef } from 'vue'
 import i18n from '../i18n'
 import type { Artist } from '../types/artist'
+import type { MusicEvent } from '../types/event'
 import type { Favorite, Timestamp } from '../types/favorite'
 import { getYoutubeVideoId, isSafeHttpUrl, isSoundCloudUrl, normalizeUrl } from '../utils/url'
 import { timeFormatIsValid } from '../utils/favorite'
@@ -19,8 +20,14 @@ import { createSessionGuard } from '../utils/sessionGuard'
 import { useAppStore } from './app'
 import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
+import { useEventsStore } from './events'
 import { useFavoritesUiStore } from './favoritesUi'
-import { FavoriteImportError, parseFavoritesImportFile } from '../services/favoriteImport'
+import type { BackupEvent, BackupFile } from '../services/favoriteImport'
+import {
+  BACKUP_FORMAT_VERSION,
+  FavoriteImportError,
+  parseBackupFile,
+} from '../services/favoriteImport'
 
 interface FavoriteDraft {
   id?: string
@@ -269,6 +276,63 @@ export function buildFavoritesExportPayload(
   }))
 }
 
+// R24: an exported event credits its performers by display name and by nothing
+// else. `artistId` is a relation id local to one account, so it is deliberately
+// not written out -- the denormalized `artistName` already carries everything a
+// restore onto another account needs, and the import resolves it there.
+export function buildEventsExportPayload(eventsToExport: MusicEvent[]): BackupEvent[] {
+  return eventsToExport.map((event) => ({
+    id: event.id,
+    name: event.name,
+    dateAttended: event.dateAttended,
+    venue: event.venue,
+    performances: event.performances.map((performance) => ({
+      artistName: performance.artistName,
+      verdict: performance.verdict,
+    })),
+  }))
+}
+
+// The whole backup file as a pure projection over the two loaded domains (R22):
+// an integer format version plus one top-level key each, so what the file is can
+// be read off it rather than inferred from its shape.
+export function buildBackupExportPayload(
+  favoritesToExport: Favorite[],
+  eventsToExport: MusicEvent[],
+): BackupFile {
+  return {
+    formatVersion: BACKUP_FORMAT_VERSION,
+    mixes: buildFavoritesExportPayload(favoritesToExport),
+    events: buildEventsExportPayload(eventsToExport),
+  }
+}
+
+// KTD17: a performance's artist name resolves an artist like any other name,
+// but votes on the winning spelling only when that artist has no mix-side name
+// in the same file. Left unstated, several casual spellings across a line-up
+// would outvote -- and so rename -- an artist whose mixes spell it properly;
+// excluding performance names from the election entirely would leave a
+// live-only artist with no spelling to be created under. An artist the target
+// account already has keeps the display name it has either way (AE17): the
+// election only ever decides the spelling for an artist the file creates.
+export function buildImportArtistPopulation(
+  mixArtistNames: string[],
+  performanceArtistNames: string[],
+): string[] {
+  const mixSlugs = new Set<string>()
+  for (const rawName of mixArtistNames) {
+    const slug = normalizeArtistName(rawName)
+    if (slug !== null) mixSlugs.add(slug)
+  }
+
+  const liveOnlyNames = performanceArtistNames.filter((rawName) => {
+    const slug = normalizeArtistName(rawName)
+    return slug !== null && !mixSlugs.has(slug)
+  })
+
+  return [...mixArtistNames, ...liveOnlyNames]
+}
+
 function buildImportResultMessage(added: number, skipped: number, failed: number): string {
   const messageParts = [
     added === 0 && skipped > 0
@@ -405,6 +469,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   function getImportErrorMessage(error: FavoriteImportError) {
     switch (error.code) {
+      case 'unsupported_format':
+        return i18n.global.t('import.error_unsupported_format', {
+          version: BACKUP_FORMAT_VERSION,
+        })
       case 'invalid_array':
         return i18n.global.t('import.error_invalid_array')
       case 'invalid_structure':
@@ -515,12 +583,15 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
-  async function importFavorites(data: Favorite[]) {
+  // Restores one backup file (R22): the mixes half here, the events half through
+  // the events store, both off one artist resolution pass. `eventRows` defaults
+  // to empty so a caller restoring mixes alone is unchanged.
+  async function importFavorites(data: Favorite[], eventRows: BackupEvent[] = []) {
     const favoritesUiStore = useFavoritesUiStore()
     const artistsStore = useArtistsStore()
 
     if (await blockIfReadOnly(favoritesUiStore)) {
-      return { added: 0, skipped: data.length, failed: 0 }
+      return { added: 0, skipped: data.length + eventRows.length, failed: 0 }
     }
 
     if (!importArtistsRepository) {
@@ -534,7 +605,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     let skipped = 0
     let failed = 0
 
-    importProgress.value = { processed: 0, total: data.length }
+    importProgress.value = { processed: 0, total: data.length + eventRows.length }
 
     try {
       // Population pass: gather every row's raw artist names that will
@@ -544,16 +615,22 @@ export const useFavoritesStore = defineStore('favorites', () => {
       // duplicate here is harmless to have resolved -- the resulting artist
       // is simply unused by this import.
       const normalizedRows: { favorite: Favorite; normalizedUrl: string }[] = []
-      const population: string[] = []
+      const mixArtistNames: string[] = []
       for (const favorite of data) {
         const normalizedUrl = await normalizeUrl(favorite.url)
         normalizedRows.push({ favorite, normalizedUrl })
         if (!isSafeHttpUrl(normalizedUrl) || existingUrls.has(normalizedUrl)) continue
-        population.push(...(favorite.artists || []))
+        mixArtistNames.push(...(favorite.artists || []))
       }
 
+      // Every event row is imported, so every performance name joins the
+      // population -- but only votes on the spelling under KTD17's rule.
+      const performanceArtistNames = eventRows.flatMap((row) =>
+        (row.performances || []).map((performance) => performance.artistName),
+      )
+
       const resolvedBySlug = await resolveImportArtistsBySlug(
-        population,
+        buildImportArtistPopulation(mixArtistNames, performanceArtistNames),
         artistsStore,
         importArtistsRepository,
         rateLimiter,
@@ -620,6 +697,21 @@ export const useFavoritesStore = defineStore('favorites', () => {
         }
         importProgress.value.processed++
       }
+
+      // Events come after the artists are resolved and after the mixes, so a
+      // performance credits the same artist record a mix in the same file does.
+      if (eventRows.length > 0) {
+        const eventsResult = await useEventsStore().importEvents(eventRows, {
+          resolvedBySlug,
+          createWithRetry: (repository, input) =>
+            createRecordWithRetry(repository, input, rateLimiter),
+          onRowProcessed: () => {
+            if (importProgress.value) importProgress.value.processed++
+          },
+        })
+        added += eventsResult.added
+        failed += eventsResult.failed
+      }
     } finally {
       importProgress.value = null
     }
@@ -648,8 +740,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     importProgress.value = { processed: 0, total: null }
 
     try {
-      const favoritesToImport = await parseFavoritesImportFile(file)
-      return await importFavorites(favoritesToImport)
+      const backup = await parseBackupFile(file)
+      return await importFavorites(backup.mixes, backup.events)
     } catch (error) {
       if (error instanceof FavoriteImportError) {
         await favoritesUiStore.showAlert(
@@ -665,14 +757,21 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
+  // One export carries both domains (R22), so it is refused only when there is
+  // nothing at all to write out.
   async function exportFavorites() {
     const favoritesUiStore = useFavoritesUiStore()
-    if (favorites.value.length === 0) {
+    const eventsToExport = useEventsStore().events
+    if (favorites.value.length === 0 && eventsToExport.length === 0) {
       await favoritesUiStore.showAlert(i18n.global.t('export.no_favorites'), 'alert')
       return
     }
 
-    const jsonString = JSON.stringify(buildFavoritesExportPayload(favorites.value), null, 2)
+    const jsonString = JSON.stringify(
+      buildBackupExportPayload(favorites.value, eventsToExport),
+      null,
+      2,
+    )
     const blob = new Blob([jsonString], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')

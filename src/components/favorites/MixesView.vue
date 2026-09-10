@@ -27,22 +27,10 @@ function editFavorite(id: string) {
   editId.value = id
   showModal.value = true
 }
-
-async function handleImport(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  try {
-    await favoritesStore.importFromFile(file)
-  } finally {
-    input.value = ''
-  }
-}
 </script>
 
 <template>
-  <HeaderBar @openFilters="showSidebar = true" @importClick="$event && handleImport($event)" />
+  <HeaderBar @openFilters="showSidebar = true" />
 
   <div class="favorites-layout">
     <aside class="favorites-sidebar-desktop">

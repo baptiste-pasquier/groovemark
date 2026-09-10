@@ -71,7 +71,7 @@
     "search_placeholder": "Rechercher par événement ou lieu..."
   },
   "export": {
-    "no_favorites": "Il n'y a aucun favori à exporter."
+    "no_favorites": "Il n'y a rien à exporter pour le moment."
   },
   "grid": {
     "empty_no_favorites": "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !",
@@ -80,12 +80,13 @@
   "import": {
     "added": "{count} ajouté(s)",
     "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
-    "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
+    "none_or_invalid": "Le fichier ne contient aucun mix ni aucun événement.",
     "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
     "with_failed": "{failed} échec(s) lors de l'import, réessayez plus tard.",
     "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
     "error_invalid_json": "Le fichier JSON est invalide.",
     "error_invalid_structure": "Structure invalide",
+    "error_unsupported_format": "Ce fichier n'est pas une sauvegarde GrooveMark. Attendu : un objet JSON avec \"formatVersion\" : {version}, une clé \"mixes\" et une clé \"events\". Un export réalisé avant ce format est un simple tableau : placez-le sous \"mixes\" et ajoutez \"formatVersion\" : {version}.",
     "error_prefix": "Erreur lors de l'importation : "
   },
   "messages": {

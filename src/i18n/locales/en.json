@@ -71,7 +71,7 @@
     "search_placeholder": "Search by event or venue..."
   },
   "export": {
-    "no_favorites": "There are no favorites to export."
+    "no_favorites": "There is nothing to export yet."
   },
   "grid": {
     "empty_no_favorites": "You don't have any favorites yet. Add one to get started!",
@@ -80,12 +80,13 @@
   "import": {
     "added": "{count} added",
     "finished_zero_added": "Import finished. 0 added, {skipped} already present.",
-    "none_or_invalid": "No favorites in the file or invalid structure.",
+    "none_or_invalid": "The file holds no mix and no event.",
     "with_skipped": ", {skipped} already present (ignored).",
     "with_failed": "{failed} failed to import, try again later.",
     "error_invalid_array": "The JSON file is not a valid array.",
     "error_invalid_json": "The JSON file is invalid.",
     "error_invalid_structure": "Invalid structure",
+    "error_unsupported_format": "This file is not a GrooveMark backup. Expected a JSON object with \"formatVersion\": {version}, a \"mixes\" key and an \"events\" key. An export taken before this format was a bare array: wrap it under \"mixes\" and add \"formatVersion\": {version}.",
     "error_prefix": "Error during import: "
   },
   "messages": {

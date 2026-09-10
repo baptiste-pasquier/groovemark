@@ -85,8 +85,26 @@ async function handleLogout() {
 
 const emit = defineEmits<{
   (e: 'openFilters'): void
-  (e: 'importClick', evt: Event): void
 }>()
+
+// The import restores both domains from one file (R22), so it is an app-level
+// action rather than a mixes-destination one. It is handled here, where the
+// file input, the disabled state and the progress label already live, instead
+// of being emitted for each destination view to wire up -- only MixesView ever
+// did, which left the menu item dead on the events and artists tabs.
+async function handleImport(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  isMenuOpen.value = false
+  if (!file) return
+
+  try {
+    await favoritesStore.importFromFile(file)
+  } finally {
+    // Cleared so selecting the same file again still fires a change event.
+    input.value = ''
+  }
+}
 
 function toggleSort() {
   favoritesUiStore.toggleSort()
@@ -243,12 +261,7 @@ function openFilters() {
               class="hidden"
               accept=".json"
               :disabled="isImportDisabled"
-              @change="
-                (e) => {
-                  emit('importClick', e)
-                  isMenuOpen = false
-                }
-              "
+              @change="handleImport"
             />
             <button
               id="export-json-btn"

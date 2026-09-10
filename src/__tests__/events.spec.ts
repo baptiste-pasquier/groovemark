@@ -13,6 +13,7 @@ import type { EventPerformanceDraft } from '../stores/events'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
 import { LocalEventsRepository } from '../services/localEventsRepository'
+import { BATCH_MAX_REQUESTS } from '../utils/event'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
 import { sessionInit } from './mocks/sessionInit'
 import {
@@ -763,5 +764,89 @@ describe('Events Store', () => {
     await deletePromise
 
     expect(eventsStore.events.map((event) => event.id)).toEqual(['event-1'])
+  })
+
+  // ---- Restoring events from a backup file (R22, KTD2) ----------------------
+
+  it('reports an over-sized line-up as a failed row and writes no partial event (KTD2)', async () => {
+    signInAsGoogleUser()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    // One artist for every credited name, already known, so the refusal is
+    // about the batch bound and nothing else.
+    const lineUp = Array.from({ length: BATCH_MAX_REQUESTS }, (unused, index) => ({
+      artistName: `Act ${index}`,
+      verdict: null,
+    }))
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue(
+      lineUp.map((performance, index) => ({
+        id: `artist-${index}`,
+        displayName: performance.artistName,
+        slug: performance.artistName.toLowerCase(),
+      })) as never,
+    )
+
+    const init = sessionInit(true)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    const importPromise = favoritesStore.importFavorites(
+      [],
+      [
+        {
+          name: 'Too Long A Night',
+          dateAttended: '2026-07-12',
+          venue: 'Dour',
+          performances: lineUp,
+        },
+      ],
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+
+    // 1 event + 50 performances is 51 requests, one over the bound the
+    // repository refuses at -- refused, never split across transactions.
+    expect(await importPromise).toEqual({ added: 0, skipped: 0, failed: 1 })
+    expect(eventsStore.events).toEqual([])
+    expect(pocketbaseBatchApi.send).not.toHaveBeenCalled()
+  })
+
+  it('restores an event through the events repository from the import path', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.continueInLocalMode()
+    const init = sessionInit(false)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    const importPromise = favoritesStore.importFavorites(
+      [],
+      [
+        {
+          name: 'Nuits Sonores',
+          dateAttended: '2026-05-04',
+          venue: 'Les Subsistances',
+          performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+        },
+      ],
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+
+    expect(await importPromise).toEqual({ added: 1, skipped: 0, failed: 0 })
+    expect(eventsStore.events[0]?.performances[0]?.verdict).toBe('three-stars')
+    // The restore reaches storage through the same repository a save uses, so
+    // a reload finds the night again.
+    expect(getLocalStorageState()['groovemark:events:local']).toContain('Nuits Sonores')
   })
 })

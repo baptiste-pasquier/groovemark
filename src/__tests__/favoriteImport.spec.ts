@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -6,8 +6,15 @@ import type { RecordModel } from 'pocketbase'
 import i18n from '../i18n'
 import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
-import { buildFavoritesExportPayload, useFavoritesStore } from '../stores/favorites'
+import { useEventsStore } from '../stores/events'
+import {
+  buildBackupExportPayload,
+  buildFavoritesExportPayload,
+  buildImportArtistPopulation,
+  useFavoritesStore,
+} from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
+import { BACKUP_FORMAT_VERSION } from '../services/favoriteImport'
 import { localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
 import { sessionInit } from './mocks/sessionInit'
 import {
@@ -15,6 +22,7 @@ import {
   pocketbaseCollectionApi,
   resetPocketbaseMocks,
 } from './mocks/pocketbase'
+import type { MusicEvent } from '../types/event'
 import type { Favorite } from '../types/favorite'
 
 // Distinct from the mock's hardcoded `created` default (2024-01-01) so a test can't
@@ -822,5 +830,476 @@ describe('Favorite Import', () => {
     expect(result).toHaveLength(1)
     expect(result[0]).not.toHaveProperty('artistIds')
     expect(result[0]?.artists).toEqual(['Amelie Lens'])
+  })
+})
+
+// ---- The single backup file (R22, R23, R24) --------------------------------
+
+describe('Backup file format', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    resetLocalStorageMock()
+    resetPocketbaseMocks()
+    i18n.global.locale.value = 'en'
+  })
+
+  function backupFile(content: unknown): File {
+    return new File(
+      [typeof content === 'string' ? content : JSON.stringify(content)],
+      'backup.json',
+      {
+        type: 'application/json',
+      },
+    )
+  }
+
+  async function localSession() {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+    const init = sessionInit(false)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    return { artistsStore, eventsStore, favoritesStore, favoritesUiStore: useFavoritesUiStore() }
+  }
+
+  function exportedMix(id: string, url: string, artists: string[]): Favorite {
+    return {
+      id,
+      url,
+      title: `Mix ${id}`,
+      artists,
+      artistIds: ['ignored-identity'],
+      type: 'youtube',
+      thumbnail: 'https://img.test/thumbnail.jpg',
+      timestamps: [],
+      created: '2024-01-01T00:00:00.000Z',
+    }
+  }
+
+  function exportedEvent(
+    id: string,
+    name: string,
+    performances: MusicEvent['performances'],
+  ): MusicEvent {
+    return {
+      id,
+      name,
+      dateAttended: '2026-05-04',
+      venue: `${name} venue`,
+      performances,
+    }
+  }
+
+  function storedPerformance(
+    id: string,
+    eventId: string,
+    artistId: string,
+    artistName: string,
+    verdict: MusicEvent['performances'][number]['verdict'] = null,
+  ) {
+    return { id, eventId, artistId, artistName, verdict }
+  }
+
+  it('writes one envelope carrying an integer version, the mixes and the events (R22, R24)', () => {
+    const payload = buildBackupExportPayload(
+      [exportedMix('mix-1', 'https://youtube.com/watch?v=envelope1', ['Amelie Lens'])],
+      [
+        exportedEvent('event-1', 'Nuits Sonores', [
+          storedPerformance('perf-1', 'event-1', 'artist-1', 'Daft Punk', 'three-stars'),
+        ]),
+      ],
+    )
+
+    expect(payload.formatVersion).toBe(BACKUP_FORMAT_VERSION)
+    expect(Number.isInteger(payload.formatVersion)).toBe(true)
+    expect(Object.keys(payload).sort()).toEqual(['events', 'formatVersion', 'mixes'])
+    expect(payload.mixes[0]).not.toHaveProperty('artistIds')
+    expect(payload.events[0]?.performances).toEqual([
+      { artistName: 'Daft Punk', verdict: 'three-stars' },
+    ])
+    expect(payload.events[0]?.performances[0]).not.toHaveProperty('artistId')
+  })
+
+  it('round-trips mixes and events onto an empty account with every performance credited (AE11)', async () => {
+    const payload = buildBackupExportPayload(
+      [exportedMix('mix-1', 'https://youtube.com/watch?v=roundTrip1', ['Amelie Lens'])],
+      [
+        exportedEvent('event-1', 'Nuits Sonores', [
+          storedPerformance(
+            'perf-1',
+            'event-1',
+            'other-account-artist-1',
+            'Daft Punk',
+            'three-stars',
+          ),
+          storedPerformance('perf-2', 'event-1', 'other-account-artist-2', 'Anetha', null),
+        ]),
+      ],
+    )
+
+    const { artistsStore, eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(backupFile(payload))
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result).toEqual({ added: 2, skipped: 0, failed: 0 })
+    expect(eventsStore.events).toHaveLength(1)
+    expect(eventsStore.events[0]?.name).toBe('Nuits Sonores')
+    expect(
+      eventsStore.events[0]?.performances.map((performance) => performance.artistName),
+    ).toEqual(['Daft Punk', 'Anetha'])
+    // Every performance credits an artist resolved on this account, never the
+    // identity the file came with.
+    for (const performance of eventsStore.events[0]?.performances ?? []) {
+      expect(artistsStore.artists.some((artist) => artist.id === performance.artistId)).toBe(true)
+      expect(performance.artistId).not.toContain('other-account-artist')
+    }
+    expect(artistsStore.artists.map((artist) => artist.displayName).sort()).toEqual([
+      'Amelie Lens',
+      'Anetha',
+      'Daft Punk',
+    ])
+  })
+
+  it('refuses a file in the previous bare-array shape and names the envelope, changing nothing (AE10)', async () => {
+    const { artistsStore, eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile([exportedMix('legacy-1', 'https://youtube.com/watch?v=legacyArray1', ['Anetha'])]),
+    )
+    await flushPromises()
+
+    expect(favoritesUiStore.alertDialog.visible).toBe(true)
+    expect(favoritesUiStore.alertDialog.message).toContain('formatVersion')
+    expect(favoritesUiStore.alertDialog.message).toContain('mixes')
+    expect(favoritesUiStore.alertDialog.message).toContain('events')
+
+    favoritesUiStore.closeAlert()
+    expect(await importPromise).toBeNull()
+
+    expect(favoritesStore.favorites).toEqual([])
+    expect(eventsStore.events).toEqual([])
+    expect(artistsStore.artists).toEqual([])
+  })
+
+  it('refuses a file whose version is absent or unrecognized without reading its payload (R23)', async () => {
+    for (const envelope of [
+      { mixes: [{ id: 'no-version', url: 'https://youtube.com/watch?v=noVersion1' }], events: [] },
+      { formatVersion: 99, mixes: 'not even an array', events: [] },
+      { formatVersion: '1', mixes: [], events: [] },
+    ]) {
+      const { favoritesStore, favoritesUiStore } = await localSession()
+
+      const importPromise = favoritesStore.importFromFile(backupFile(envelope))
+      await flushPromises()
+
+      expect(favoritesUiStore.alertDialog.message).toContain('formatVersion')
+      favoritesUiStore.closeAlert()
+      expect(await importPromise).toBeNull()
+      expect(favoritesStore.favorites).toEqual([])
+
+      setActivePinia(createPinia())
+      resetLocalStorageMock()
+      resetPocketbaseMocks()
+    }
+  })
+
+  it('gives malformed JSON, an empty file and a non-array domain key their own errors', async () => {
+    const cases: { content: unknown; expected: string }[] = [
+      { content: 'not valid json', expected: 'The JSON file is invalid.' },
+      { content: '', expected: 'The JSON file is invalid.' },
+      {
+        content: { formatVersion: BACKUP_FORMAT_VERSION, mixes: {}, events: [] },
+        expected: 'The JSON file is not a valid array.',
+      },
+      {
+        content: {
+          formatVersion: BACKUP_FORMAT_VERSION,
+          mixes: [{ title: 'no id, no url' }],
+          events: [],
+        },
+        expected: 'Invalid structure',
+      },
+      {
+        content: {
+          formatVersion: BACKUP_FORMAT_VERSION,
+          mixes: [],
+          events: [{ name: 'Nuits Sonores' }],
+        },
+        expected: 'Invalid structure',
+      },
+    ]
+
+    for (const testCase of cases) {
+      const { favoritesStore, favoritesUiStore } = await localSession()
+
+      const importPromise = favoritesStore.importFromFile(backupFile(testCase.content))
+      await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(favoritesUiStore.alertDialog.message).toContain(testCase.expected)
+      favoritesUiStore.closeAlert()
+      expect(await importPromise).toBeNull()
+
+      setActivePinia(createPinia())
+      resetLocalStorageMock()
+      resetPocketbaseMocks()
+    }
+  })
+
+  it('creates the artist an imported event credits when the account does not have it', async () => {
+    const { artistsStore, eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [{ artistName: 'Brand New Live Act', verdict: 'one-star' }],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result).toEqual({ added: 1, skipped: 0, failed: 0 })
+    expect(artistsStore.artists.map((artist) => artist.displayName)).toEqual(['Brand New Live Act'])
+    expect(eventsStore.events[0]?.performances[0]?.artistId).toBe(artistsStore.artists[0]?.id)
+  })
+
+  it('folds two spellings of one name inside a line-up onto a single artist', async () => {
+    const { artistsStore, eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [
+              { artistName: 'Amelie Lens', verdict: 'three-stars' },
+              { artistName: 'amelie lens', verdict: 'two-stars' },
+            ],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(artistsStore.artists).toHaveLength(1)
+    const [first, second] = eventsStore.events[0]?.performances ?? []
+    expect(first?.artistId).toBe(second?.artistId)
+    expect(first?.artistId).toBe(artistsStore.artists[0]?.id)
+  })
+
+  it('leaves an event unimported rather than crediting fewer performers when an artist cannot be created', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    const init = sessionInit(true)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    artistsStore.artists.push({ id: 'known-1', displayName: 'Daft Punk', slug: 'daft punk' })
+
+    pocketbaseArtistsCollectionApi.create.mockRejectedValue({ status: 400, response: {} })
+    pocketbaseArtistsCollectionApi.getFirstListItem.mockRejectedValue({ status: 404 })
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [
+              { artistName: 'Daft Punk', verdict: 'three-stars' },
+              { artistName: 'Unresolvable Act', verdict: 'one-star' },
+            ],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result).toEqual({ added: 0, skipped: 0, failed: 1 })
+    expect(eventsStore.events).toEqual([])
+  })
+
+  it('refuses the whole file while the session is read-only', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    const init = sessionInit(false)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    expect(favoritesStore.isReadOnly).toBe(true)
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [exportedMix('mix-1', 'https://youtube.com/watch?v=readOnly1', ['Anetha'])],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [{ artistName: 'Daft Punk', verdict: null }],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+
+    expect(favoritesUiStore.alertDialog.message).toBe(
+      "You're offline. Favorites are read-only until the connection is restored.",
+    )
+    favoritesUiStore.closeAlert()
+
+    expect(await importPromise).toEqual({ added: 0, skipped: 2, failed: 0 })
+    expect(favoritesStore.favorites).toEqual([])
+    expect(eventsStore.events).toEqual([])
+  })
+
+  it('lets the mixes decide the spelling and leaves a live-only artist the performance spelling (KTD17)', async () => {
+    const { artistsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [exportedMix('mix-1', 'https://youtube.com/watch?v=election1', ['Amélie Lens'])],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [
+              { artistName: 'amelie lens', verdict: null },
+              { artistName: 'amelie lens', verdict: null },
+              { artistName: 'Nina Kraviz', verdict: null },
+            ],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    const byslug = new Map(artistsStore.artists.map((artist) => [artist.slug, artist.displayName]))
+    // Two casual performance spellings outvote the single mix-side one on
+    // count alone; KTD17 keeps them out of the election entirely.
+    expect(byslug.get('amelie lens')).toBe('Amélie Lens')
+    // The live-only artist has no mix-side name, so its performance spelling
+    // is the only candidate and wins.
+    expect(byslug.get('nina kraviz')).toBe('Nina Kraviz')
+  })
+
+  it('keeps the population election a pure projection over the two name sources (KTD17)', () => {
+    expect(
+      buildImportArtistPopulation(['Amélie Lens'], ['amelie lens', 'amelie lens', 'Nina Kraviz']),
+    ).toEqual(['Amélie Lens', 'Nina Kraviz'])
+    expect(buildImportArtistPopulation([], ['   '])).toEqual([])
+  })
+
+  it('counts every mix and every event row through the progress indicator', async () => {
+    const { favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [
+          exportedMix('mix-1', 'https://youtube.com/watch?v=progBoth001', ['Anetha']),
+          exportedMix('mix-2', 'https://youtube.com/watch?v=progBoth002', ['Anetha']),
+        ],
+        events: [
+          {
+            name: 'Dour Festival',
+            dateAttended: '2026-07-12',
+            venue: 'Dour',
+            performances: [{ artistName: 'Anetha', verdict: null }],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    const result = await importPromise
+
+    expect(result).toEqual({ added: 3, skipped: 0, failed: 0 })
+    expect(favoritesStore.importProgress).toBeNull()
+  })
+
+  it('exports an account holding events but no mix instead of refusing (R22)', async () => {
+    const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const saved = await eventsStore.saveEvent({
+      name: 'Nuits Sonores',
+      dateAttended: '2026-05-04',
+      venue: 'Les Subsistances',
+      performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+    })
+    expect(saved).toBe(true)
+    expect(favoritesStore.favorites).toEqual([])
+
+    const written: Blob[] = []
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      written.push(blob as Blob)
+      return 'blob:groovemark-backup'
+    })
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    await favoritesStore.exportFavorites()
+
+    expect(favoritesUiStore.alertDialog.visible).toBe(false)
+    expect(written).toHaveLength(1)
+
+    const payload = JSON.parse(await written[0].text())
+    expect(payload.formatVersion).toBe(BACKUP_FORMAT_VERSION)
+    expect(payload.mixes).toEqual([])
+    expect(payload.events[0]?.performances).toEqual([
+      { artistName: 'Daft Punk', verdict: 'three-stars' },
+    ])
+
+    vi.restoreAllMocks()
   })
 })

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -158,5 +158,39 @@ describe('HeaderBar', () => {
 
     expect(wrapper.text()).not.toContain('Offline (Read-only)')
     expect(wrapper.find('#import-json').attributes('disabled')).toBeUndefined()
+  })
+
+  it('runs the import from a non-mixes destination, not only from the mixes view', async () => {
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+
+    authStore.continueInLocalMode()
+
+    const importFromFile = vi
+      .spyOn(favoritesStore, 'importFromFile')
+      .mockResolvedValue({ added: 0, skipped: 0, failed: 0 })
+
+    const router = createTestRouter()
+    await router.push('/events')
+    await router.isReady()
+
+    const wrapper = mountHeaderBar(router)
+    await wrapper.find('#settings-menu-btn').trigger('click')
+
+    const input = wrapper.find('#import-json')
+    const file = new File(['{}'], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(importFromFile).toHaveBeenCalledTimes(1)
+    expect(importFromFile.mock.calls[0]?.[0]).toBe(file)
+  })
+
+  it('emits no import event, so no destination view has to wire the file up', () => {
+    const wrapper = mountHeaderBar()
+
+    expect(Object.keys(wrapper.vm.$options.emits ?? {})).not.toContain('importClick')
   })
 })

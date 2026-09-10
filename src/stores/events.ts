@@ -9,6 +9,7 @@ import type {
   MusicEvent,
   Verdict,
 } from '../types/event'
+import type { BackupEvent, BackupPerformance } from '../services/favoriteImport'
 import type { EventRecordInput, EventsRepository } from '../services/eventsRepository'
 import type { RepositoryMode, SessionInitOptions } from '../services/favoritesRepository'
 import { LocalEventsRepository } from '../services/localEventsRepository'
@@ -49,6 +50,55 @@ export interface EventDraft {
 interface ResolvedLineUp {
   resolved: Artist[]
   performances: EventRecordInput['performances']
+}
+
+// What the favorites store's import pass hands over when it restores the events
+// half of a backup file (R22). The artist population of the whole file is
+// already resolved there, in one pass, so two rows crediting the same name never
+// create two artists (KTD5) -- this store only looks names up in the map.
+// `createWithRetry` is that import's paced, retrying create: the events
+// repository stays private to this store, so the caller supplies the policy and
+// this store supplies the request, which is how an event restore obeys the same
+// rate limit the mixes half does (KTD8).
+export interface EventImportContext {
+  resolvedBySlug: Map<string, Artist>
+  createWithRetry: (
+    repository: Pick<EventsRepository, 'create'>,
+    input: EventRecordInput,
+  ) => Promise<MusicEvent>
+  onRowProcessed: () => void
+}
+
+// One imported line-up once every credited name has an identity on this
+// account, or null when a name resolved to nothing. R8 forbids a partially
+// credited event, so the caller leaves the whole row unimported rather than
+// writing it with fewer performers. A name empty once trimmed credits nobody
+// and is dropped, not a failure -- the rule the modal already follows (AE8).
+// Two spellings of one name inside a line-up resolve to one artist but stay two
+// performance rows, exactly as two typed rows would.
+function resolveImportedLineUp(
+  performances: BackupPerformance[],
+  resolvedBySlug: Map<string, Artist>,
+): ResolvedLineUp | null {
+  const resolved = new Map<string, Artist>()
+  const rows: EventRecordInput['performances'] = []
+
+  for (const performance of performances) {
+    const slug = normalizeArtistName(performance.artistName)
+    if (slug === null) continue
+
+    const artist = resolvedBySlug.get(slug)
+    if (!artist) return null
+
+    resolved.set(slug, artist)
+    rows.push({
+      artistId: artist.id,
+      artistName: artist.displayName,
+      verdict: performance.verdict,
+    })
+  }
+
+  return { resolved: [...resolved.values()], performances: rows }
 }
 
 // Order two events newest-first (R11). Dates are compared as strings, which is
@@ -321,6 +371,69 @@ export const useEventsStore = defineStore('events', () => {
     }
   }
 
+  // Restores the events half of a backup file (R22). Called only from the
+  // favorites store's import, which has already refused the whole file if the
+  // session is read-only -- one switch, checked once (KTD6) -- and which owns
+  // the added/skipped/failed accounting this returns into.
+  //
+  // An event is one batch rather than one create, and it respects the request
+  // bound the way the repository does: by refusing. The cloud repository's own
+  // `batch_too_large` guard rejects an over-sized line-up, that rejection lands
+  // here as a failed row, and the event is left unimported. Splitting it would
+  // write one night across several transactions, which is the partial line-up
+  // R8 forbids and the reason a transaction was chosen at all (KTD2).
+  async function importEvents(
+    rows: BackupEvent[],
+    context: EventImportContext,
+  ): Promise<{ added: number; failed: number }> {
+    if (!activeEventsRepository) {
+      throw new Error('Events repository has not been initialized.')
+    }
+    const repository = activeEventsRepository
+    const artistsStore = useArtistsStore()
+
+    let added = 0
+    let failed = 0
+
+    for (const row of rows) {
+      const lineUp = resolveImportedLineUp(row.performances ?? [], context.resolvedBySlug)
+
+      if (!lineUp) {
+        failed++
+        context.onRowProcessed()
+        continue
+      }
+
+      try {
+        const createdEvent = await context.createWithRetry(repository, {
+          name: row.name.trim(),
+          dateAttended: row.dateAttended,
+          venue: (row.venue ?? '').trim(),
+          performances: lineUp.performances,
+        })
+        loadedEvents.value.push(createdEvent)
+        cacheDirty = true
+
+        // Registered only once the event crediting them is confirmed saved,
+        // the same order a modal save follows.
+        lineUp.resolved.forEach((artist) => artistsStore.addResolvedArtist(artist))
+        added++
+      } catch (error) {
+        console.error('Error importing event:', error)
+        failed++
+      }
+
+      context.onRowProcessed()
+    }
+
+    if (added > 0) {
+      await artistsStore.persistArtistsCacheSnapshot()
+      await persistEventsCacheSnapshot()
+    }
+
+    return { added, failed }
+  }
+
   // Deletes one event, its line-up included (R26). The number of performances
   // the deletion carries off is *in* the confirmation rather than behind a
   // generic warning: they go with the event, and the operator has no way to
@@ -383,6 +496,7 @@ export const useEventsStore = defineStore('events', () => {
     performanceAggregateFor,
     initializeForCurrentSession,
     saveEvent,
+    importEvents,
     deleteEvent,
     $reset,
   }
