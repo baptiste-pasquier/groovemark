@@ -768,6 +768,80 @@ describe('Events Store', () => {
 
   // ---- Restoring events from a backup file (R22, KTD2) ----------------------
 
+  it('tells the operator a line-up is too long instead of asking them to try again (KTD2)', async () => {
+    signInAsGoogleUser()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const lineUp = Array.from({ length: BATCH_MAX_REQUESTS }, (unused, index) => ({
+      artistName: `Act ${index}`,
+      verdict: null,
+    }))
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue(
+      lineUp.map((performance, index) => ({
+        id: `artist-${index}`,
+        displayName: performance.artistName,
+        slug: performance.artistName.toLowerCase(),
+      })) as never,
+    )
+
+    const init = sessionInit(true)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+
+    const savePromise = eventsStore.saveEvent({
+      name: 'Too Long A Night',
+      dateAttended: '2026-07-12',
+      venue: 'Dour',
+      performances: lineUp,
+    })
+    await flushPromises()
+
+    // Retrying will never work, so "try again" is the wrong thing to say: the
+    // operator has to split the night, and only this message tells them.
+    expect(favoritesUiStore.alertDialog.message).toBe(
+      'This line-up is too long to save as one event. Split the night into two events.',
+    )
+    favoritesUiStore.closeAlert()
+    expect(await savePromise).toBe(false)
+  })
+
+  it('names the unapplied migration when the batch endpoint is disabled (KTD2)', async () => {
+    signInAsGoogleUser()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
+      { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft punk' },
+    ] as never)
+    // What a PocketBase instance answers when the endpoint is disabled: a 403,
+    // which is indistinguishable from any other write failure unless the
+    // repository's own code reaches the operator.
+    pocketbaseBatchApi.send.mockRejectedValue({ status: 403 })
+
+    const init = sessionInit(true)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+
+    const savePromise = eventsStore.saveEvent({
+      name: 'Nuits Sonores',
+      dateAttended: '2026-05-14',
+      venue: 'Les Subsistances',
+      performances: [{ artistName: 'Daft Punk', verdict: 'two-stars' }],
+    })
+    await flushPromises()
+
+    // Reading and listing events work on such an instance, so without the
+    // migration named this reads as a transient failure that never clears.
+    expect(favoritesUiStore.alertDialog.message).toContain('1789067402_enable_batch')
+    favoritesUiStore.closeAlert()
+    expect(await savePromise).toBe(false)
+  })
+
   it('reports an over-sized line-up as a failed row and writes no partial event (KTD2)', async () => {
     signInAsGoogleUser()
     const artistsStore = useArtistsStore()

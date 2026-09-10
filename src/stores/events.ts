@@ -13,6 +13,8 @@ import type { BackupEvent, BackupPerformance } from '../services/favoriteImport'
 import type { EventRecordInput, EventsRepository } from '../services/eventsRepository'
 import type { RepositoryMode, SessionInitOptions } from '../services/favoritesRepository'
 import { LocalEventsRepository } from '../services/localEventsRepository'
+import { FavoritesRepositoryError } from '../services/favoritesRepository'
+import { BATCH_MIGRATION_NAME } from '../services/pocketbaseEventsRepository'
 import { normalizeArtistName } from '../utils/artist'
 import {
   aggregateArtistPerformances,
@@ -316,6 +318,27 @@ export const useEventsStore = defineStore('events', () => {
     return { resolved: [...resolvedBySlug.values()], performances }
   }
 
+  // What a failed save tells the operator. Two of the repository's failures are
+  // not "try again": a line-up over the transaction's request bound never fits,
+  // however many times it is sent, and a batch endpoint left disabled by an
+  // unapplied migration refuses every event save on an instance whose reads and
+  // lists work perfectly (KTD2). Both are actionable, and only their own
+  // message says what the action is.
+  function saveFailureMessage(error: unknown): string {
+    if (error instanceof FavoritesRepositoryError) {
+      if (error.code === 'batch_too_large') {
+        return i18n.global.t('messages.error_line_up_too_long')
+      }
+      if (error.code === 'batch_unavailable') {
+        return i18n.global.t('messages.error_batch_unavailable', {
+          migration: BATCH_MIGRATION_NAME,
+        })
+      }
+    }
+
+    return i18n.global.t('messages.error_saving_event')
+  }
+
   // Creates or edits one event, line-up included, as a single save (R8).
   // Returns whether it saved, so the surface knows whether to close.
   async function saveEvent(draft: EventDraft): Promise<boolean> {
@@ -329,7 +352,7 @@ export const useEventsStore = defineStore('events', () => {
       lineUp = await resolvePerformanceArtists(draft.performances)
     } catch (error) {
       console.error('Error resolving performance artists:', error)
-      await favoritesUiStore.showAlert(i18n.global.t('messages.error_saving'), 'alert')
+      await favoritesUiStore.showAlert(i18n.global.t('messages.error_saving_event'), 'alert')
       return false
     }
 
@@ -366,7 +389,7 @@ export const useEventsStore = defineStore('events', () => {
       return true
     } catch (error) {
       console.error('Error saving event:', error)
-      await favoritesUiStore.showAlert(i18n.global.t('messages.error_saving'), 'alert')
+      await favoritesUiStore.showAlert(saveFailureMessage(error), 'alert')
       return false
     }
   }

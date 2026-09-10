@@ -19,7 +19,7 @@ const PERFORMANCES_SORT = 'position,created,id'
 // Named in the disabled-endpoint message: without this migration /api/batch
 // answers 403 and every event save fails, which is otherwise indistinguishable
 // from any other write failure (KTD2).
-const BATCH_MIGRATION_NAME = 'pb_migrations/1789067402_enable_batch.js'
+export const BATCH_MIGRATION_NAME = 'pb_migrations/1789067402_enable_batch.js'
 
 interface PocketbaseEvent {
   id: string
