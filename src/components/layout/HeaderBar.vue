@@ -42,6 +42,12 @@ const DESTINATIONS = [
 // while an artist page is open.
 const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : route.name))
 
+// Sorting the grid and filtering it by artist belong to the mixes destination
+// (R20). The header is rendered by each destination view, so without this the
+// events and artists tabs would offer a sort that orders mixes and a filter
+// that opens the mixes sidebar.
+const showsMixesControls = computed(() => activeDestination.value === 'mixes')
+
 // Compute display name for auth status
 const authDisplayName = computed(() => {
   if (authStore.authMode === 'google' && authStore.user) {
@@ -148,6 +154,7 @@ function openFilters() {
           </RouterLink>
         </nav>
         <button
+          v-if="showsMixesControls"
           id="sort-btn"
           class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="toggleSort"
@@ -163,6 +170,7 @@ function openFilters() {
           />
         </button>
         <button
+          v-if="showsMixesControls"
           id="filter-menu-btn"
           class="favorites-desktop-hidden rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="openFilters"

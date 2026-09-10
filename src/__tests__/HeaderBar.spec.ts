@@ -116,6 +116,35 @@ describe('HeaderBar', () => {
     expect(wrapper.get('#sort-btn').element.closest('.favorites-header-controls')).not.toBeNull()
   })
 
+  it('offers the grid sort and artist filter on the mixes destination only', async () => {
+    const router = createTestRouter()
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mountHeaderBar(router)
+    expect(wrapper.find('#sort-btn').exists()).toBe(true)
+    expect(wrapper.find('#filter-menu-btn').exists()).toBe(true)
+
+    for (const destination of ['/events', '/artists']) {
+      await router.push(destination)
+      await flushPromises()
+      expect(wrapper.find('#sort-btn').exists()).toBe(false)
+      expect(wrapper.find('#filter-menu-btn').exists()).toBe(false)
+    }
+  })
+
+  it('keeps the app-level settings menu on every destination', async () => {
+    const router = createTestRouter()
+
+    for (const destination of ['/', '/events', '/artists']) {
+      await router.push(destination)
+      await router.isReady()
+
+      const wrapper = mountHeaderBar(router)
+      expect(wrapper.find('#settings-menu-btn').exists()).toBe(true)
+    }
+  })
+
   it('does not show the offline badge when signed in online', async () => {
     const authStore = useAuthStore()
     const favoritesStore = useFavoritesStore()
