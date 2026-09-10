@@ -22,7 +22,19 @@
     "remove": "Supprimer",
     "press_enter_to_add": "Appuyez sur Entrée pour ajouter l'artiste."
   },
+  "event_modal": {
+    "add_performance": "+ Ajouter une performance",
+    "date_label": "Date de la soirée",
+    "line_up": "Programmation",
+    "name_label": "Nom de l'événement",
+    "name_placeholder": "ex : Nuits Sonores",
+    "title_add": "Ajouter un événement",
+    "title_edit": "Éditer l'événement",
+    "venue_label": "Lieu",
+    "venue_placeholder": "ex : Les Subsistances"
+  },
   "events": {
+    "add_new": "Nouvel événement",
     "empty_no_events": "Vous n'avez enregistré aucun événement pour le moment. Ajoutez-en un pour commencer !",
     "empty_no_results": "Aucun événement ne correspond à votre recherche.",
     "open": "Ouvrir cet événement",
@@ -71,6 +83,10 @@
     "artists": "Artistes",
     "events": "Événements",
     "mixes": "Mix"
+  },
+  "performance": {
+    "artist_placeholder": "Ajouter un artiste",
+    "remove": "Supprimer cette performance"
   },
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
