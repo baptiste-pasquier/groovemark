@@ -129,6 +129,25 @@ export function aggregateArtistPerformances(
   return aggregates
 }
 
+// Render a date attended for reading. The stored form is the bare day, and
+// `new Date('2026-05-04')` parses that as midnight UTC -- so formatting it in a
+// zone west of UTC prints the day before. The parts are read explicitly and
+// formatted in UTC instead, which keeps the printed day the day that was typed.
+// One owner, because the event card, the artist page and the artists table all
+// print it (KTD16).
+export function formatDayAttended(day: string, locale: string): string {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day)
+  if (!parts) return day
+
+  const [, year, month, date] = parts
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(date))))
+}
+
 // Mint a record id in PocketBase's own shape (KTD13): exactly fifteen
 // characters from [a-z0-9]. Every mode uses this one helper so an id has one
 // shape everywhere, and a batch can reference an event whose row the server

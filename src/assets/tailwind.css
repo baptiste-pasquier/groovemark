@@ -86,7 +86,7 @@ body {
     @apply layout-2col:hidden;
   }
 
-  .favorites-grid {
+  .card-grid {
     @apply layout-3col:grid-cols-[repeat(3,var(--layout-card-width))] layout-4col:grid-cols-[repeat(4,var(--layout-card-width))] grid grid-cols-1 gap-[var(--layout-grid-gap)] md:grid-cols-[repeat(2,var(--layout-card-width))] md:justify-center;
   }
 }

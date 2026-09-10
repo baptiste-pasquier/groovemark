@@ -1,10 +1,11 @@
 import { defineComponent, h } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import EventsGrid from '../components/events/EventsGrid.vue'
 import MixesView from '../components/favorites/MixesView.vue'
 import HeaderBar from '../components/layout/HeaderBar.vue'
 
-// The events, artists and artist surfaces land in later units of this phase.
+// The artists and artist surfaces land in later units of this phase.
 // Their routes exist now so every address already resolves; replace the
 // placeholder component with the real view when the surface is built.
 // A placeholder still renders the header, because every destination has to
@@ -18,7 +19,7 @@ function placeholderDestination(name: string) {
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'mixes', component: MixesView },
-  { path: '/events', name: 'events', component: placeholderDestination('EventsView') },
+  { path: '/events', name: 'events', component: EventsGrid },
   { path: '/artists', name: 'artists', component: placeholderDestination('ArtistsView') },
   // An artist address is keyed on the artist's slug. A slug is a folded display
   // name, not a URL token, so it travels percent-encoded: always build this

@@ -9,6 +9,7 @@ import {
   emptyArtistPerformanceAggregate,
   aggregateArtistPerformances,
   mintRecordId,
+  formatDayAttended,
 } from '../utils/event'
 import type { ArtistPerformance, Verdict } from '../types/event'
 
@@ -288,5 +289,31 @@ describe('event utils', () => {
       expect(BATCH_MAX_REQUESTS).toBe(50)
       expect(BATCH_TIMEOUT_SECONDS).toBe(3)
     })
+  })
+})
+
+describe('formatDayAttended', () => {
+  it('prints the stored day in the reader locale', () => {
+    expect(formatDayAttended('2026-07-12', 'fr')).toBe('12 juillet 2026')
+    expect(formatDayAttended('2026-07-12', 'en')).toBe('July 12, 2026')
+  })
+
+  // `new Date('2026-05-04')` is midnight UTC, so formatting it in a zone west
+  // of UTC prints 3 May. Formatting in UTC is what keeps the day it was typed.
+  it('does not shift the day for a reader west of UTC', () => {
+    const shifted = new Intl.DateTimeFormat('fr', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'America/Los_Angeles',
+    }).format(new Date('2026-05-04'))
+    expect(shifted).toBe('3 mai 2026')
+
+    expect(formatDayAttended('2026-05-04', 'fr')).toBe('4 mai 2026')
+  })
+
+  it('returns anything that is not a bare day unchanged', () => {
+    expect(formatDayAttended('', 'fr')).toBe('')
+    expect(formatDayAttended('2026-05-04 00:00:00.000Z', 'fr')).toBe('2026-05-04 00:00:00.000Z')
   })
 })

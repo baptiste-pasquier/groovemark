@@ -22,10 +22,11 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
   - `LocalFavoritesRepository` for local mode and authenticated offline cache
   - `PocketBaseArtistsRepository` / `LocalArtistsRepository` mirror the same split for artist identity
   - `selectRepositories()` returns both a favorites repository pair and an artists repository pair under one mode, from a single call
-- Favorites responsive layout is token-based:
+- Responsive layout is token-based:
   - Layout sizing tokens live in `src/assets/tailwind.css`
-  - Semantic layout classes such as `.app-shell`, `.favorites-header`, and `.favorites-grid`
-    are the source of truth for the favorites view
+  - Semantic layout classes such as `.app-shell`, `.favorites-header`, and `.card-grid`
+    are the source of truth for the card destinations. `.card-grid` carries the column
+    progression the mixes and events grids share; each grid keeps its own element id
   - See `docs/conventions/frontend-layout.md` before changing layout tokens or templates
 - localStorage keys are intentionally scoped:
   - `groovemark:favorites:local`

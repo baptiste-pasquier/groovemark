@@ -8,8 +8,8 @@ stale_after: 2026-12-10
 
 # Responsive Layout Notes
 
-This document explains the desktop and tablet layout sizing used by GrooveMark's
-favorites view.
+This document explains the desktop and tablet layout sizing used by GrooveMark's card
+destinations: the mixes view and the events view.
 
 ## Source Of Truth
 
@@ -114,7 +114,7 @@ Below `md` (`48rem` / `768px`):
 - `.favorites-header` is stacked vertically, then becomes a horizontal row at `sm`
 - `.favorites-main` stays fluid with `w-full`
 - `.favorites-mobile-controls` is visible above the grid
-- `.favorites-grid` uses `grid-cols-1`
+- `.card-grid` uses `grid-cols-1`
 
 This means the page is full-width, minus the shell padding.
 
@@ -125,7 +125,7 @@ From `md` (`48rem` / `768px`) up to `layout-2col` (`65.5rem`):
 - `.favorites-header` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-main` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-mobile-controls` is still visible
-- `.favorites-grid` becomes exactly `2` fixed-width cards
+- `.card-grid` becomes exactly `2` fixed-width cards
 - `.favorites-sidebar-desktop` is still hidden
 - `.favorites-desktop-hidden` keeps the mobile filter button visible
 
@@ -150,6 +150,29 @@ From `layout-2col` (`65.5rem`) and up:
 
 At this point the page is no longer centered around the `2`-column grid width, but around the
 full desktop shell width.
+
+## Shared Card Grid
+
+`.card-grid` is the single owner of the card column progression: one column below `md`, then
+`2`, `3` and `4` fixed-width columns at `md`, `layout-3col` and `layout-4col`. The mixes grid
+and the events grid both carry it, so one breakpoint change reaches both surfaces. The class is
+named after what it lays out rather than after either destination, and neither grid template
+carries a raw breakpoint literal.
+
+Each grid keeps its own element id, `#favorites-grid` and `#events-grid`, so a test or a script
+addresses one surface without addressing the layout.
+
+The two grids differ in one respect, deliberately:
+
+| Grid                    | Rendering                                                |
+| ----------------------- | -------------------------------------------------------- |
+| `FavoritesGrid` (mixes) | batches of 20 behind an `IntersectionObserver` sentinel  |
+| `EventsGrid` (events)   | every card in one pass, no batch counter and no sentinel |
+
+The mixes grid batches because a mixes collection reaches the card count where rendering all of
+them at once costs a phone visibly. A list of nights attended does not reach that scale, so the
+events grid iterates plainly. Batching the events grid is a change to make if that list ever
+grows that large, not an omission to correct.
 
 ## Destination Switcher
 
@@ -211,7 +234,8 @@ These classes translate the tokens into layout behavior:
 - `.favorites-sidebar-desktop`: desktop sidebar
 - `.favorites-main`: main content width before and after desktop sidebar
 - `.favorites-mobile-controls`: search/add controls above the grid before desktop sidebar
-- `.favorites-grid`: fixed-width card grid at 2/3/4 columns
+- `.card-grid`: shared fixed-width card grid at 2/3/4 columns, carried by both the mixes
+  grid and the events grid
 - `.favorites-header-controls`: wrapping header control row that holds the destination switcher
 - `.destination-switcher`: segmented track for the three destinations, full width below `md`
 - `.destination-tab`: one destination tab inside the track

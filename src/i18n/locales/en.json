@@ -22,6 +22,12 @@
     "remove": "Remove",
     "press_enter_to_add": "Press Enter to add the artist."
   },
+  "events": {
+    "empty_no_events": "You haven't recorded any event yet. Add one to get started!",
+    "empty_no_results": "No event matches your search.",
+    "open": "Open this event",
+    "search_placeholder": "Search by event or venue..."
+  },
   "export": {
     "no_favorites": "There are no favorites to export."
   },
