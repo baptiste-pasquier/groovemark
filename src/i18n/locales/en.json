@@ -36,6 +36,21 @@
     "stat_starred": "starred moments",
     "unavailable": "Your artists could not be loaded, so this page cannot be shown. It will be back once the connection is restored."
   },
+  "artists": {
+    "column_artist": "Artist",
+    "column_last_seen": "Last seen",
+    "column_mixes": "Mixes",
+    "column_moments": "Moments",
+    "column_performances": "Nights",
+    "column_starred": "Starred",
+    "column_verdict": "Verdict",
+    "empty_no_artists": "No artist is credited by a mix or a night yet. Keep a mix or record an event to fill this in.",
+    "empty_no_results": "No artist matches your search.",
+    "not_seen_live": "not seen live",
+    "search_placeholder": "Search by artist...",
+    "sort_by": "Sort by",
+    "unavailable": "Your artists could not be loaded, so this catalogue cannot be shown. It will be back once the connection is restored."
+  },
   "event_modal": {
     "add_performance": "+ Add a performance",
     "date_label": "Date attended",

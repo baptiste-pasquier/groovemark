@@ -1,27 +1,14 @@
-import { defineComponent, h } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import ArtistPage from '../components/artists/ArtistPage.vue'
+import ArtistsView from '../components/artists/ArtistsView.vue'
 import EventsGrid from '../components/events/EventsGrid.vue'
 import MixesView from '../components/favorites/MixesView.vue'
-import HeaderBar from '../components/layout/HeaderBar.vue'
-
-// The artists tab lands in a later unit of this phase. Its route exists now so
-// every address already resolves; replace the placeholder component with the
-// real view when the surface is built.
-// A placeholder still renders the header, because every destination has to
-// keep the destination switcher on screen or the visitor is stranded.
-function placeholderDestination(name: string) {
-  return defineComponent({
-    name,
-    render: () => h('div', { 'data-placeholder-destination': name }, [h(HeaderBar)]),
-  })
-}
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'mixes', component: MixesView },
   { path: '/events', name: 'events', component: EventsGrid },
-  { path: '/artists', name: 'artists', component: placeholderDestination('ArtistsView') },
+  { path: '/artists', name: 'artists', component: ArtistsView },
   // An artist address is keyed on the artist's slug. A slug is a folded display
   // name, not a URL token, so it travels percent-encoded: always build this
   // address from the route name and a `slug` param, never by concatenation.

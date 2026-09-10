@@ -36,6 +36,21 @@
     "stat_starred": "temps forts notés",
     "unavailable": "Vos artistes n'ont pas pu être chargés, cette page ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion."
   },
+  "artists": {
+    "column_artist": "Artiste",
+    "column_last_seen": "Vu le",
+    "column_mixes": "Mix",
+    "column_moments": "Temps forts",
+    "column_performances": "Soirées",
+    "column_starred": "Notés",
+    "column_verdict": "Verdict",
+    "empty_no_artists": "Aucun artiste n'est crédité par un mix ou une soirée pour le moment. Gardez un mix ou enregistrez un événement pour remplir cette liste.",
+    "empty_no_results": "Aucun artiste ne correspond à votre recherche.",
+    "not_seen_live": "jamais vu en live",
+    "search_placeholder": "Rechercher par artiste...",
+    "sort_by": "Trier par",
+    "unavailable": "Vos artistes n'ont pas pu être chargés, ce catalogue ne peut donc pas être affiché. Il reviendra dès le rétablissement de la connexion."
+  },
   "event_modal": {
     "add_performance": "+ Ajouter une performance",
     "date_label": "Date de la soirée",

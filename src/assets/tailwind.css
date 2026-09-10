@@ -16,6 +16,13 @@
      the break between "their mixes" and "seen live" reads as a section break
      rather than as one more row. */
   --layout-artist-section-gap: 2.5rem;
+  /* The artists table's own sizing. The card tokens above are computed from
+     sidebar width plus gaps plus a fixed card width, which describes nothing
+     about a table that reduces to two columns on a phone, so the table carries
+     its own three. */
+  --layout-table-cell-padding-x: 0.75rem;
+  --layout-table-cell-padding-y: 0.625rem;
+  --layout-table-name-min-width: 11rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
@@ -108,6 +115,56 @@ body {
 
   .artist-stats {
     @apply flex flex-wrap gap-[var(--layout-grid-gap)];
+  }
+
+  /* The artists tab stacks its controls and its table at the grid gap, so the
+     catalogue lines up with the card destinations' vertical rhythm. */
+  .artists-view {
+    @apply flex w-full min-w-0 flex-col gap-[var(--layout-grid-gap)];
+  }
+
+  .artists-controls {
+    @apply flex flex-col gap-[var(--layout-grid-gap)] sm:flex-row sm:items-center;
+  }
+
+  /* The compact select that changes the sort where the headers cannot: below
+     the first breakpoint only one value column is on screen, so clicking a
+     header can reverse that column but never choose another one. Once every
+     header is visible, the headers are the control and this disappears. */
+  .artists-sort-control {
+    @apply flex items-center gap-2 text-sm text-gray-500 md:hidden;
+  }
+
+  .artists-table {
+    @apply w-full table-auto border-collapse rounded-2xl bg-white text-left tabular-nums shadow-sm;
+  }
+
+  .artists-table-header {
+    @apply border-b border-gray-200 px-[var(--layout-table-cell-padding-x)] py-[var(--layout-table-cell-padding-y)] text-xs font-bold tracking-wider text-gray-500 uppercase;
+  }
+
+  .artists-table-cell {
+    @apply border-b border-gray-100 px-[var(--layout-table-cell-padding-x)] py-[var(--layout-table-cell-padding-y)] align-middle text-gray-700;
+  }
+
+  /* The performer's name is on screen at every width, and never narrows past
+     its own token, so a name stays readable when the row is two columns. */
+  .artists-name-column {
+    @apply table-cell;
+    min-width: var(--layout-table-name-min-width);
+  }
+
+  /* Every other column is a value column: hidden below the first breakpoint,
+     where the row reduces to the name and the active column (R18), and part of
+     the table from that breakpoint up. */
+  .artists-value-column {
+    @apply hidden md:table-cell;
+  }
+
+  /* ...and the active column is the one exception, on screen at every width.
+     It follows this rule rather than the one above, so it must stay after it. */
+  .artists-column-active {
+    @apply table-cell;
   }
 
   /* A credited artist's name, wherever it is credited: grey with a subtle

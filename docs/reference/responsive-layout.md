@@ -27,6 +27,10 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   --layout-card-width: 20rem;
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
+  --layout-artist-section-gap: 2.5rem;
+  --layout-table-cell-padding-x: 0.75rem;
+  --layout-table-cell-padding-y: 0.625rem;
+  --layout-table-name-min-width: 11rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
@@ -51,6 +55,12 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   `0.625rem = 10px`
 - `--layout-artist-section-gap`: gap between the artist page's two stacked halves.
   `2.5rem = 40px`
+- `--layout-table-cell-padding-x`: horizontal padding inside an artists-table cell.
+  `0.75rem = 12px`
+- `--layout-table-cell-padding-y`: vertical padding inside an artists-table cell.
+  `0.625rem = 10px`
+- `--layout-table-name-min-width`: floor on the artists table's name column.
+  `11rem = 176px`
 
 ## Shell Width Formula
 
@@ -211,6 +221,35 @@ Only the mixes grid inside the first half becomes multi-column, through `.card-g
 blue on hover -- for the mix card and the event card alike, so the two surfaces cannot drift
 apart.
 
+## Artists Table
+
+The artists tab is one table with two forms, driven by the same seven columns: artist, mixes,
+moments, starred moments, performances, most recent verdict and date last seen.
+
+- From `md` (`48rem` / `768px`) up, every column is a table column. `.artists-value-column`
+  carries the six value columns and `.artists-name-column` the performer's name, which never
+  narrows past `--layout-table-name-min-width`.
+- Below `md`, a row is the name plus the value of the active sort column and nothing else.
+  `.artists-value-column` hides a value column at that width, and `.artists-column-active`
+  puts the active one back on screen -- so it must stay **after** `.artists-value-column` in
+  `tailwind.css`, where source order decides between two component-layer rules of equal
+  specificity.
+- `.artists-sort-control` holds the compact select that changes the sort below `md`, and is
+  the one control that disappears from `md` up, where every header is a visible button.
+
+The active column is named once, in the artists-UI store's column descriptor. The header row,
+the cells and the select all read that descriptor, so the set of columns the table sorts by
+and the set the phone can switch between are the same set by construction.
+
+The table has its own three tokens rather than reusing the card destinations' ones: those are
+computed from sidebar width plus gaps plus a fixed card width, which describes nothing about a
+table that reduces to two columns. `.artists-view` still stacks the tab's controls and its
+table at `--layout-grid-gap`, so the catalogue keeps the vertical rhythm of the card
+destinations.
+
+The table itself never scrolls horizontally, and no width is read in JavaScript: the
+breakpoint lives only in these classes.
+
 ## Utility Scale Reminder
 
 Tailwind spacing is based on `0.25rem`.
@@ -261,6 +300,14 @@ These classes translate the tokens into layout behavior:
 - `.artist-section`: one half of the artist page
 - `.artist-stats`: the wrapping row of count tiles
 - `.credited-artist-link`: a credited artist's name, on the mix card and the event card
+- `.artists-view`: the artists tab's stacked shell
+- `.artists-controls`: the artists tab's search row
+- `.artists-sort-control`: the compact sort select, below `md` only
+- `.artists-table`: the artists table's own frame
+- `.artists-table-header` / `.artists-table-cell`: one header cell and one body cell
+- `.artists-name-column`: the performer's name column, on screen at every width
+- `.artists-value-column`: one of the six value columns, hidden below `md`
+- `.artists-column-active`: the active sort column, on screen at every width
 
 ## Editing Guidance
 
