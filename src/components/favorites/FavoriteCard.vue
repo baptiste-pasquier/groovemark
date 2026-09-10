@@ -2,7 +2,7 @@
 import { RouterLink } from 'vue-router'
 import { SquarePen, Trash2, Star, ExternalLink } from 'lucide-vue-next'
 import type { Favorite } from '../../types/favorite'
-import { normalizeArtistName } from '../../utils/artist'
+import { buildArtistRoute } from '../../utils/artist'
 import { buildTimestampLink } from '../../utils/favorite'
 import { isSafeHttpUrl } from '../../utils/url'
 
@@ -21,16 +21,9 @@ function timestampLink(time: string) {
   return buildTimestampLink(props.favorite, { time }) ?? '#'
 }
 
-// A credited name is a way into that artist's page (R12). The address is keyed
-// on the artist's slug, and a slug is a folded display name rather than a URL
-// token -- `AC/DC` folds to `ac/dc`, which only resolves once the router
-// percent-encodes it -- so it is built from the named route and a param, never
-// by concatenation (KTD14). The fold comes from the display name alone: a
-// favorite carries `artists` and `artistIds` as two independent lists, and
-// nothing promises they line up index for index.
-function artistRoute(name: string) {
-  return { name: 'artist', params: { slug: normalizeArtistName(name) ?? name } }
-}
+// A credited name is a way into that artist's page (R12), addressed from the
+// display name alone: a favorite carries `artists` and `artistIds` as two
+// independent lists, and nothing promises they line up index for index.
 </script>
 
 <template>
@@ -83,7 +76,7 @@ function artistRoute(name: string) {
             <template v-for="(name, index) in favorite.artists" :key="name">
               <span v-if="index > 0">, </span
               ><RouterLink
-                :to="artistRoute(name)"
+                :to="buildArtistRoute(name)"
                 class="mix-artist-link credited-artist-link"
                 @click.stop
                 >{{ name }}</RouterLink

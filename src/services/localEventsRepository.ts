@@ -1,6 +1,6 @@
 import type { MusicEvent, Performance } from '../types/event'
 import { mintRecordId } from '../utils/event'
-import { readStorage, writeStorageOrThrow } from './storage'
+import { createWriteQueue, readStorage, writeStorageOrThrow } from './storage'
 import type { EventRecordInput, EventsRepository, PerformanceRecordInput } from './eventsRepository'
 import { FavoritesRepositoryError } from './favoritesRepository'
 
@@ -57,25 +57,15 @@ function buildEvent(
 
 export class LocalEventsRepository implements EventsRepository {
   private storageKey: string
-  // Serializes every read-modify-write against this storage key, the way
-  // LocalArtistsRepository does. KTD3 stores every event under one key, so a
-  // save is list -> mutate -> rewrite-all with no storage-level lock: two
-  // saves racing between the read and the write would drop a whole night, not
-  // just a field. LocalFavoritesRepository has no such queue, so this is a
-  // deliberate choice rather than an inherited one.
-  private writeQueue: Promise<unknown> = Promise.resolve()
+  // KTD3 stores every event under one key, so a save is list -> mutate ->
+  // rewrite-all: two saves racing between the read and the write would drop a
+  // whole night, not just a field. LocalFavoritesRepository has no such queue,
+  // so taking the shared one here is a deliberate choice rather than an
+  // inherited one.
+  private enqueue = createWriteQueue()
 
   constructor(storageKey: string) {
     this.storageKey = storageKey
-  }
-
-  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.writeQueue.then(operation, operation)
-    this.writeQueue = result.then(
-      () => undefined,
-      () => undefined,
-    )
-    return result
   }
 
   async list(): Promise<MusicEvent[]> {

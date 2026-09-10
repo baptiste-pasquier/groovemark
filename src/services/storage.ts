@@ -130,3 +130,22 @@ export function removeStorage(key: string) {
     console.error(`Error removing storage key "${key}":`, error)
   }
 }
+
+// Serializes read-modify-write cycles against one storage key. A repository
+// that keeps a whole collection under a single key rewrites it in full on every
+// save -- list, mutate, replace -- with no storage-level lock, so two saves
+// racing between the read and the write would silently drop one writer's
+// record. Chaining every write through one promise makes each wait for the
+// previous to settle, whether it resolved or rejected.
+export function createWriteQueue() {
+  let queue: Promise<unknown> = Promise.resolve()
+
+  return function enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = queue.then(operation, operation)
+    queue = result.then(
+      () => undefined,
+      () => undefined,
+    )
+    return result
+  }
+}

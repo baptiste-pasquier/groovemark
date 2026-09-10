@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { SquarePen, Trash2, CalendarDays, MapPin } from 'lucide-vue-next'
 import VerdictBadge from './VerdictBadge.vue'
-import type { MusicEvent, Performance } from '../../types/event'
-import { normalizeArtistName } from '../../utils/artist'
+import type { MusicEvent } from '../../types/event'
+import { buildArtistRoute } from '../../utils/artist'
 import { formatDayAttended } from '../../utils/event'
 
 // `readOnly` disables both controls, the way the mix card's do: the store
@@ -25,18 +25,8 @@ const { t, locale } = useI18n()
 // formatting the bare day in a zone west of UTC would print the day before.
 const attendedOn = computed(() => formatDayAttended(props.event.dateAttended, locale.value))
 
-// An artist's address is keyed on the artist's slug, and a slug is a folded
-// display name rather than a URL token -- `AC/DC` folds to `ac/dc`, which only
-// ever resolves once the router percent-encodes it. So the address is built
-// from the named route and a param, never by concatenation (KTD14). The fold
-// is derived from the display name the performance already carries, which is
-// what keeps the card free of any dependency on the artists store.
-function artistRoute(performance: Performance) {
-  return {
-    name: 'artist',
-    params: { slug: normalizeArtistName(performance.artistName) ?? performance.artistName },
-  }
-}
+// The address is derived from the display name the performance already carries,
+// which is what keeps the card free of any dependency on the artists store.
 </script>
 
 <template>
@@ -94,7 +84,7 @@ function artistRoute(performance: Performance) {
         class="event-performance flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
       >
         <RouterLink
-          :to="artistRoute(performance)"
+          :to="buildArtistRoute(performance.artistName)"
           class="event-artist-link credited-artist-link min-w-0 truncate"
         >
           {{ performance.artistName }}

@@ -19,6 +19,17 @@ export function normalizeArtistName(rawName: string): string | null {
   return slug.length > 0 ? slug : null
 }
 
+// The address of an artist's page, from a credited name alone (KTD14). An
+// artist's address is keyed on their slug, and a slug is a folded display name
+// rather than a URL token -- `AC/DC` folds to `ac/dc`, which resolves only once
+// the router percent-encodes it -- so every link is built from the named route
+// and a param, never by concatenation. The fallback keeps the name itself when
+// it folds to nothing, so a link is always addressable and lands on the
+// documented not-found state rather than on the current page.
+export function buildArtistRoute(rawName: string) {
+  return { name: 'artist', params: { slug: normalizeArtistName(rawName) ?? rawName } }
+}
+
 // Count combining diacritical marks in the NFD form of a raw name, used to
 // decide which spelling is "accented" for the KTD5 tie-break.
 function countCombiningMarks(rawName: string): number {

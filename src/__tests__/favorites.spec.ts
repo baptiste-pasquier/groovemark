@@ -656,7 +656,7 @@ describe('Mixes read-only switch', () => {
     expect(favoritesStore.isReadOnly).toBe(true)
 
     const readOnlyMessage =
-      "You're offline. Favorites are read-only until the connection is restored."
+      "You're offline. Your changes are disabled until the connection is restored."
 
     const addPromise = favoritesStore.addOrUpdateFavorite({
       url: 'https://youtube.com/watch?v=offlineAdd01',

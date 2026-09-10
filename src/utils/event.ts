@@ -15,6 +15,18 @@ export const VERDICT_ORDER: Record<Verdict, number> = {
   'three-stars': 3,
 }
 
+// The accessible name of each verdict, keyed by the verdict itself. No verdict
+// name is ever written on screen -- a rated state is a glyph -- so these keys
+// are the only place those names exist, and both the display badge and the
+// editable picker read them from here rather than each holding a copy that an
+// i18n rename could leave behind.
+export const VERDICT_ARIA_KEYS: Record<Verdict, string> = {
+  dislike: 'verdict.aria.dislike',
+  'one-star': 'verdict.aria.one_star',
+  'two-stars': 'verdict.aria.two_stars',
+  'three-stars': 'verdict.aria.three_stars',
+}
+
 // KTD2's two bounds on the batch endpoint. The settings endpoint is
 // superuser-only, so the client cannot read these back from the server: the
 // repository's refuse-before-send guard and the settings migration's test both

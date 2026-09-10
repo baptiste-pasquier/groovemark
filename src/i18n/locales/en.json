@@ -101,7 +101,7 @@
     "error_deleting": "Error deleting favorite. Please try again.",
     "error_deleting_event": "Error deleting event. Please try again.",
     "error_session_init": "There was a problem starting your session. Please try again.",
-    "offline_read_only": "You're offline. Favorites are read-only until the connection is restored."
+    "offline_read_only": "You're offline. Your changes are disabled until the connection is restored."
   },
   "modal": {
     "add_timestamp": "+ Add a timestamp",
@@ -147,7 +147,7 @@
     "or": "or",
     "continue_local": "Continue in local mode",
     "local_mode_info": "In local mode, your data is stored only on this device.",
-    "offline_read_only_info": "Backend unavailable. You can browse your favorites, but changes are disabled until the connection is restored.",
+    "offline_read_only_info": "Backend unavailable. You can browse what is saved, but changes are disabled until the connection is restored.",
     "error_google_signin": "Failed to sign in with Google. Please try again.",
     "server_unavailable": "Server unavailable. Please try again later or continue in local mode."
   },

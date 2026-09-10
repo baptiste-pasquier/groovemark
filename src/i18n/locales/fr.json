@@ -101,7 +101,7 @@
     "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer.",
     "error_deleting_event": "Erreur lors de la suppression de l'événement. Veuillez réessayer.",
     "error_session_init": "Un problème est survenu lors du démarrage de votre session. Veuillez réessayer.",
-    "offline_read_only": "Vous êtes hors ligne. Les favoris sont en lecture seule jusqu'au rétablissement de la connexion."
+    "offline_read_only": "Vous êtes hors ligne. Les modifications sont désactivées jusqu'au rétablissement de la connexion."
   },
   "modal": {
     "add_timestamp": "+ Ajouter un timestamp",
@@ -147,7 +147,7 @@
     "or": "ou",
     "continue_local": "Continuer en mode local",
     "local_mode_info": "En mode local, vos données sont stockées uniquement sur cet appareil.",
-    "offline_read_only_info": "Backend indisponible. Vous pouvez consulter vos favoris, mais les modifications sont désactivées jusqu'au rétablissement de la connexion.",
+    "offline_read_only_info": "Backend indisponible. Vous pouvez consulter vos données, mais les modifications sont désactivées jusqu'au rétablissement de la connexion.",
     "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer.",
     "server_unavailable": "Serveur indisponible. Veuillez réessayer plus tard ou continuer en mode local."
   },

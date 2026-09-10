@@ -1,28 +1,16 @@
 import type { Artist } from '../types/artist'
-import { readStorage, writeStorage } from './storage'
+import { createWriteQueue, readStorage, writeStorage } from './storage'
 import type { ArtistRecordInput, ArtistsRepository } from './artistsRepository'
 import { FavoritesRepositoryError } from './favoritesRepository'
 
 export class LocalArtistsRepository implements ArtistsRepository {
   private storageKey: string
-  // Serializes every read-modify-write against this storage key. `create`
-  // and `createMany` both do list -> mutate -> replaceAll with no storage
-  // -level lock, so two calls racing between the read and the write would
-  // silently drop one writer's artist. Chaining every write through this
-  // promise makes each one wait for the previous to finish first.
-  private writeQueue: Promise<unknown> = Promise.resolve()
+  // `create` and `createMany` both do list -> mutate -> replaceAll, so every
+  // write goes through the shared queue.
+  private enqueue = createWriteQueue()
 
   constructor(storageKey: string) {
     this.storageKey = storageKey
-  }
-
-  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.writeQueue.then(operation, operation)
-    this.writeQueue = result.then(
-      () => undefined,
-      () => undefined,
-    )
-    return result
   }
 
   async list(): Promise<Artist[]> {

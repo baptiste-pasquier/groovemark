@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Star, ThumbsDown } from 'lucide-vue-next'
 
 import type { Verdict } from '../../types/event'
-import { VERDICT_ORDER, verdictRank } from '../../utils/event'
+import { VERDICT_ARIA_KEYS, VERDICT_ORDER, verdictRank } from '../../utils/event'
 
 // The one editable verdict control, used by the event modal alone (KTD16).
 // Above `md` it shows the four verdicts as four discrete buttons with only the
@@ -22,13 +22,6 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'update:modelValue', v: Verdict | null): void }>()
 
 const { t } = useI18n()
-
-const ARIA_KEYS: Record<Verdict, string> = {
-  dislike: 'verdict.aria.dislike',
-  'one-star': 'verdict.aria.one_star',
-  'two-stars': 'verdict.aria.two_stars',
-  'three-stars': 'verdict.aria.three_stars',
-}
 
 // The star steps in scale order, read from VERDICT_ORDER so the control never
 // restates the scale (R3: there is no fifth value to add).
@@ -85,7 +78,7 @@ function starButtonClass(verdict: Verdict) {
       data-verdict="dislike"
       :disabled="disabled"
       :aria-pressed="isActive('dislike')"
-      :aria-label="t(ARIA_KEYS.dislike)"
+      :aria-label="t(VERDICT_ARIA_KEYS.dislike)"
       :title="isActive('dislike') ? t('verdict.clear_hint') : undefined"
       :class="[
         BUTTON_CLASS,
@@ -106,7 +99,7 @@ function starButtonClass(verdict: Verdict) {
         :data-verdict="step.verdict"
         :disabled="disabled"
         :aria-pressed="isActive(step.verdict)"
-        :aria-label="t(ARIA_KEYS[step.verdict])"
+        :aria-label="t(VERDICT_ARIA_KEYS[step.verdict])"
         :title="isActive(step.verdict) ? t('verdict.clear_hint') : undefined"
         :class="starButtonClass(step.verdict)"
         @click="select(step.verdict)"
@@ -128,7 +121,7 @@ function starButtonClass(verdict: Verdict) {
         :data-verdict="step.verdict"
         :disabled="disabled"
         :aria-pressed="isActive(step.verdict)"
-        :aria-label="t(ARIA_KEYS[step.verdict])"
+        :aria-label="t(VERDICT_ARIA_KEYS[step.verdict])"
         :title="isActive(step.verdict) ? t('verdict.clear_hint') : undefined"
         :class="[BUTTON_CLASS, 'border-transparent px-1 py-1']"
         @click="select(step.verdict)"

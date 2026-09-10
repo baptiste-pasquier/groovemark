@@ -1190,7 +1190,7 @@ describe('Backup file format', () => {
     await flushPromises()
 
     expect(favoritesUiStore.alertDialog.message).toBe(
-      "You're offline. Favorites are read-only until the connection is restored.",
+      "You're offline. Your changes are disabled until the connection is restored.",
     )
     favoritesUiStore.closeAlert()
 

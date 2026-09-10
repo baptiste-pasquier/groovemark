@@ -27,7 +27,7 @@ import {
 import type { MusicEvent, Performance, Verdict } from '../types/event'
 
 const READ_ONLY_MESSAGE =
-  "You're offline. Favorites are read-only until the connection is restored."
+  "You're offline. Your changes are disabled until the connection is restored."
 
 function createUser(id: string): RecordModel {
   return {

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Star, ThumbsDown } from 'lucide-vue-next'
 
 import type { Verdict } from '../../types/event'
-import { VERDICT_ORDER } from '../../utils/event'
+import { VERDICT_ARIA_KEYS, VERDICT_ORDER } from '../../utils/event'
 
 // The one read-only rendering of a verdict, shared by the event card, the
 // artist page and the artists table (KTD16). The star count comes from
@@ -13,19 +13,14 @@ const props = defineProps<{ verdict: Verdict | null }>()
 
 const { t } = useI18n()
 
-const ARIA_KEYS: Record<Verdict, string> = {
-  dislike: 'verdict.aria.dislike',
-  'one-star': 'verdict.aria.one_star',
-  'two-stars': 'verdict.aria.two_stars',
-  'three-stars': 'verdict.aria.three_stars',
-}
-
 // A star verdict draws as many stars as its rank; dislike (rank 0) draws none.
 const starCount = computed(() => (props.verdict === null ? 0 : VERDICT_ORDER[props.verdict]))
 
 // No verdict is ever written out on screen: rated states are glyphs, and the
 // accessible name is the only place their names exist.
-const ariaLabel = computed(() => (props.verdict === null ? undefined : t(ARIA_KEYS[props.verdict])))
+const ariaLabel = computed(() =>
+  props.verdict === null ? undefined : t(VERDICT_ARIA_KEYS[props.verdict]),
+)
 </script>
 
 <template>
