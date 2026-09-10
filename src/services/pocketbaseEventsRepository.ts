@@ -8,15 +8,13 @@ const EVENTS_COLLECTION_NAME = 'events'
 const PERFORMANCES_COLLECTION_NAME = 'performances'
 
 // The list endpoint promises no order of its own, so one has to be asked for
-// (KTD3). `created` is the row's insertion moment and `id` makes the order
-// total, so a line-up reads the same way on every request and in the cache
-// mirror fed from it. It is not exactly entry order: `created` has millisecond
-// precision and one batch inserts its rows inside a single millisecond, so
-// rows of the same save tie and the id decides. Reproducing entry order after
-// a reload needs an order column on `performances`, which the collection does
-// not have; the order the modal itself reads back after a save is entry order,
-// because create/update return the submitted line-up.
-const PERFORMANCES_SORT = 'created,id'
+// (KTD3). It has to be `position`: a batch inserts every row of one save inside
+// the same millisecond, `created` has millisecond precision, so rows of a
+// line-up tie and the random id decides -- measured against the pinned server,
+// a five-row line-up typed 1,2,3,4,5 came back 1,3,4,2,5 under `created,id`.
+// `created,id` stays as the tiebreak so rows written before the position field
+// existed, which all read as 0, keep a total and stable order among themselves.
+const PERFORMANCES_SORT = 'position,created,id'
 
 // Named in the disabled-endpoint message: without this migration /api/batch
 // answers 403 and every event save fails, which is otherwise indistinguishable
@@ -37,6 +35,7 @@ interface PocketbasePerformance {
   artistId: string
   artistName: string
   verdict?: string
+  position?: number
   owner?: string
 }
 
@@ -148,24 +147,28 @@ function isBatchDisabled(error: unknown): boolean {
 // The absent verdict travels as '' rather than null: it is what the select
 // field stores either way, so the request body matches the row the server ends
 // up holding.
-function performanceCreateBody(performance: Performance) {
+function performanceCreateBody(performance: Performance, position: number) {
   return {
     id: performance.id,
     eventId: performance.eventId,
     artistId: performance.artistId,
     artistName: performance.artistName,
     verdict: performance.verdict ?? '',
+    position,
     owner: pb.authStore.model?.id,
   }
 }
 
 // An update leaves `eventId` and `owner` unset: the row cannot change event or
 // owner, and the update rule only correlates a relation it was actually sent.
-function performanceUpdateBody(performance: Performance) {
+// `position` is rewritten on every update, not only on create: removing or
+// reordering a row shifts the index of every row after it.
+function performanceUpdateBody(performance: Performance, position: number) {
   return {
     artistId: performance.artistId,
     artistName: performance.artistName,
     verdict: performance.verdict ?? '',
+    position,
   }
 }
 
@@ -214,9 +217,11 @@ export class PocketBaseEventsRepository implements EventsRepository {
       venue: input.venue,
       owner: pb.authStore.model?.id,
     })
-    for (const performance of diff.performances) {
-      batch.collection(PERFORMANCES_COLLECTION_NAME).create(performanceCreateBody(performance))
-    }
+    diff.performances.forEach((performance, position) => {
+      batch
+        .collection(PERFORMANCES_COLLECTION_NAME)
+        .create(performanceCreateBody(performance, position))
+    })
 
     await this.send(batch, 'Could not save the event in PocketBase.')
 
@@ -241,14 +246,14 @@ export class PocketBaseEventsRepository implements EventsRepository {
       dateAttended: input.dateAttended,
       venue: input.venue,
     })
-    for (const performance of diff.performances) {
+    diff.performances.forEach((performance, position) => {
       const rows = batch.collection(PERFORMANCES_COLLECTION_NAME)
       if (diff.updatedIds.has(performance.id)) {
-        rows.update(performance.id, performanceUpdateBody(performance))
+        rows.update(performance.id, performanceUpdateBody(performance, position))
       } else {
-        rows.create(performanceCreateBody(performance))
+        rows.create(performanceCreateBody(performance, position))
       }
-    }
+    })
     for (const deletedId of diff.deletedIds) {
       batch.collection(PERFORMANCES_COLLECTION_NAME).delete(deletedId)
     }

@@ -301,10 +301,64 @@ describe('PocketBaseEventsRepository', () => {
     await repository.list()
 
     // The list endpoint guarantees no order of its own, so the sort has to be
-    // asked for (KTD3).
+    // asked for -- and it has to lead on position, because a batch writes every
+    // row of one save inside the same millisecond, so `created` ties and the
+    // random id would decide the order a line-up reads in (KTD3).
     expect(pocketbasePerformancesCollectionApi.getFullList).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: 'created,id' }),
+      expect.objectContaining({ sort: 'position,created,id' }),
     )
+  })
+
+  it('stamps each row with its index in the submitted line-up on create', async () => {
+    const repository = new PocketBaseEventsRepository()
+
+    const created = await repository.create(eventInput())
+
+    const rows = pocketbaseBatchApi.requests.filter(
+      (request) => request.collection === 'performances',
+    )
+    expect(rows.map((request) => (request.data as { position: number }).position)).toEqual([
+      0, 1, 2,
+    ])
+    // The stamped order is the order the caller submitted, not the order the
+    // ids happen to sort in.
+    expect(rows.map((request) => (request.data as { id: string }).id)).toEqual(
+      created.performances.map((performance) => performance.id),
+    )
+  })
+
+  it('restamps every row on update, because removing one shifts the rest', async () => {
+    const repository = new PocketBaseEventsRepository()
+    pocketbasePerformancesCollectionApi.getFullList.mockResolvedValue([
+      serverPerformance({ id: 'stored-1', artistId: 'artist-1', artistName: 'Daft Punk' }),
+      serverPerformance({ id: 'stored-2', artistId: 'artist-2', artistName: 'Justice' }),
+      serverPerformance({ id: 'stored-3', artistId: 'artist-3', artistName: 'Air' }),
+    ])
+
+    // The first stored row is dropped and the survivors swap places, so every
+    // remaining row's index changes.
+    await repository.update('event-1', {
+      name: 'Nuits Sonores 2026',
+      dateAttended: '2026-05-15',
+      venue: 'Halle Tony Garnier',
+      performances: [
+        { id: 'stored-3', artistId: 'artist-3', artistName: 'Air', verdict: null },
+        { id: 'stored-2', artistId: 'artist-2', artistName: 'Justice', verdict: 'two-stars' },
+      ],
+    })
+
+    const rows = pocketbaseBatchApi.requests.filter(
+      (request) => request.collection === 'performances' && request.method === 'update',
+    )
+    expect(
+      rows.map((request) => ({
+        id: request.id,
+        position: (request.data as { position: number }).position,
+      })),
+    ).toEqual([
+      { id: 'stored-3', position: 0 },
+      { id: 'stored-2', position: 1 },
+    ])
   })
 
   it('reads the same performance order as the cache mirror it feeds', async () => {

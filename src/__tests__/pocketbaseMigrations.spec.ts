@@ -6,6 +6,7 @@ import { BATCH_MAX_REQUESTS, BATCH_TIMEOUT_SECONDS, VERDICT_ORDER } from '../uti
 const CREATED_EVENTS = '1789067400_created_events.js'
 const CREATED_PERFORMANCES = '1789067401_created_performances.js'
 const ENABLE_BATCH = '1789067402_enable_batch.js'
+const PERFORMANCES_POSITION = '1789067403_updated_performances_position.js'
 const UPDATED_FAVORITES_ARTIST_IDS = '1788815925_updated_favorites.js'
 
 const EVENTS_COLLECTION_ID = 'pbc_1093733721'
@@ -277,8 +278,35 @@ describe('PocketBase migrations', () => {
       // PocketBase applies migrations in filename order and reverts them in
       // reverse, so this ordering is also what makes the down direction legal:
       // performances is dropped before the events collection it references.
-      const applied = [CREATED_EVENTS, CREATED_PERFORMANCES, ENABLE_BATCH]
+      const applied = [CREATED_EVENTS, CREATED_PERFORMANCES, ENABLE_BATCH, PERFORMANCES_POSITION]
       expect([...applied].sort()).toEqual(applied)
+    })
+
+    it('removes the position field when the position migration is reverted', () => {
+      const down = extractDownFunction(readMigrationSource(PERFORMANCES_POSITION))
+      expect(down).toContain(`findCollectionByNameOrId('${PERFORMANCES_COLLECTION_ID}')`)
+      expect(down).toContain('collection.fields.removeById(')
+    })
+  })
+
+  describe('performance order', () => {
+    // A batch writes every row of one save inside the same millisecond, and
+    // `created` has millisecond precision -- so rows of a line-up tie and the
+    // random id decides the order a read returns them in. Measured against the
+    // pinned server, a five-row line-up typed 1,2,3,4,5 came back 1,3,4,2,5.
+    // A client-set position is what lets a cloud read reproduce entry order,
+    // which the repository interface promises in both modes (KTD3).
+    it('adds an integer position field to performances', () => {
+      const field = extractFieldBlock(readMigrationSource(PERFORMANCES_POSITION), 'position')
+      expect(field).toContain("type: 'number'")
+      expect(field).toContain('onlyInt: true')
+      expect(field).toContain('min: 0')
+    })
+
+    it('targets the performances collection rather than events', () => {
+      const source = readMigrationSource(PERFORMANCES_POSITION)
+      expect(source).toContain(`findCollectionByNameOrId('${PERFORMANCES_COLLECTION_ID}')`)
+      expect(source).not.toContain(EVENTS_COLLECTION_ID)
     })
   })
 })

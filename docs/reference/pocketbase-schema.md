@@ -187,11 +187,14 @@ This collection stores one artist's appearance at one event, with at most one ve
 | artistId   | Relation(artists) | Yes      | Single-select (`maxSelect: 1`) relation to the credited artist; `cascadeDelete: false`                 |
 | artistName | Text              | Yes      | The credited artist's display name, denormalized so an exported event reads without the artist records |
 | verdict    | Select            | No       | One of `dislike`, `one-star`, `two-stars`, `three-stars`; empty means no verdict, not a lowest step    |
+| position   | Number            | No       | The row's zero-based index in its event's line-up, set by the client (`onlyInt`, `min: 0`)             |
 | owner      | Relation(users)   | Yes      | Authenticated user who owns the performance                                                            |
 | created    | DateTime (auto)   | Yes      | Auto-generated creation timestamp                                                                      |
 | updated    | DateTime (auto)   | Yes      | Auto-generated last update timestamp                                                                   |
 
 Indexes on `(owner, eventId)` and `(owner, artistId)` back the two ways a performance is read: the line-up of one event, and one artist's live history.
+
+Read a line-up with `sort: 'position,created,id'`. `position` is required for correctness, not for tidiness: a batch writes every row of one save inside the same millisecond and `created` has millisecond precision, so rows of one line-up tie and the random id would decide the order. `created,id` remains as the tiebreak, which keeps rows written before `position` existed -- all of them reading as `0` -- in a total, stable order among themselves. A client sets `position` from the row's index in the submitted line-up, and rewrites it for every row on each save, because removing or reordering one row shifts the index of the rest. `position` was added by `pocketbase/pb_migrations/1789067403_updated_performances_position.js`.
 
 `owner` is a denormalized copy of the owning account, matching the other collections, and the relation guard below is what keeps it consistent with the event and artist the row points at.
 
