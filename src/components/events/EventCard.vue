@@ -80,7 +80,7 @@ function artistRoute(performance: Performance) {
       >
         <RouterLink
           :to="artistRoute(performance)"
-          class="event-artist-link min-w-0 truncate text-blue-600 hover:underline"
+          class="event-artist-link credited-artist-link min-w-0 truncate"
         >
           {{ performance.artistName }}
         </RouterLink>

@@ -12,6 +12,10 @@
   --layout-card-width: 20rem;
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
+  /* Separates the artist page's two stacked halves. Wider than the grid gap, so
+     the break between "their mixes" and "seen live" reads as a section break
+     rather than as one more row. */
+  --layout-artist-section-gap: 2.5rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
@@ -88,6 +92,29 @@ body {
 
   .card-grid {
     @apply layout-3col:grid-cols-[repeat(3,var(--layout-card-width))] layout-4col:grid-cols-[repeat(4,var(--layout-card-width))] grid grid-cols-1 gap-[var(--layout-grid-gap)] md:grid-cols-[repeat(2,var(--layout-card-width))] md:justify-center;
+  }
+
+  /* The artist page's two halves are stacked sections at every width: they are
+     read one after the other, and neither is a sidebar to the other. Only the
+     mixes grid inside the first half becomes multi-column, through .card-grid,
+     which owns that progression for every destination. */
+  .artist-page {
+    @apply flex w-full min-w-0 flex-col gap-[var(--layout-artist-section-gap)];
+  }
+
+  .artist-section {
+    @apply flex flex-col gap-[var(--layout-grid-gap)];
+  }
+
+  .artist-stats {
+    @apply flex flex-wrap gap-[var(--layout-grid-gap)];
+  }
+
+  /* A credited artist's name, wherever it is credited: grey with a subtle
+     underline, blue on hover. One class for the mix card and the event card,
+     so the two cannot drift apart. */
+  .credited-artist-link {
+    @apply text-gray-500 underline decoration-gray-300 decoration-1 underline-offset-2 transition-colors hover:text-blue-600 hover:decoration-blue-400;
   }
 }
 

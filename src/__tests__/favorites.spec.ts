@@ -272,9 +272,9 @@ describe('Favorites Store', () => {
     expect(favoritesStore.favorites[0]?.artistIds).toEqual([])
 
     expect(() => favoritesUiStore.filteredFavorites).not.toThrow()
-    expect(() => favoritesUiStore.favoritesCountByArtist).not.toThrow()
+    expect(() => favoritesUiStore.mixAggregatesByArtist).not.toThrow()
     expect(favoritesUiStore.filteredFavorites.map((favorite) => favorite.id)).toContain('legacy-1')
-    expect(favoritesUiStore.favoritesCountByArtist).toEqual({})
+    expect(favoritesUiStore.mixAggregatesByArtist).toEqual({})
   })
 
   it('deletes a favorite when confirmed in a normal (non-read-only) mode', async () => {

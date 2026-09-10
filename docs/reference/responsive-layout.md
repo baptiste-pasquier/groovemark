@@ -49,6 +49,8 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   `0.1875rem = 3px`
 - `--layout-switcher-radius`: outer corner radius of the destination switcher track.
   `0.625rem = 10px`
+- `--layout-artist-section-gap`: gap between the artist page's two stacked halves.
+  `2.5rem = 40px`
 
 ## Shell Width Formula
 
@@ -194,6 +196,21 @@ The switcher itself has two forms, driven by one class:
 a small shadow. The active tab also carries `aria-current="page"`, so the state does not depend
 on colour alone. An artist page keeps the artists tab marked.
 
+## Artist Page
+
+The artist page is two stacked sections at every width: the mixes crediting the performer, then
+the performances seen live. Neither is a sidebar to the other, so no breakpoint reflows them
+side by side. `.artist-page` stacks them with `--layout-artist-section-gap`, which is wider than
+the grid gap so the break between the halves reads as a section break rather than one more row.
+
+`.artist-section` stacks a heading, its counts and its list at the grid gap. `.artist-stats`
+wraps the three count tiles, so they sit on one line when there is room and wrap on a phone.
+Only the mixes grid inside the first half becomes multi-column, through `.card-grid`.
+
+`.credited-artist-link` carries the credited-name treatment -- grey with a subtle underline,
+blue on hover -- for the mix card and the event card alike, so the two surfaces cannot drift
+apart.
+
 ## Utility Scale Reminder
 
 Tailwind spacing is based on `0.25rem`.
@@ -240,6 +257,10 @@ These classes translate the tokens into layout behavior:
 - `.destination-switcher`: segmented track for the three destinations, full width below `md`
 - `.destination-tab`: one destination tab inside the track
 - `.destination-tab-active`: the current destination's tab
+- `.artist-page`: the artist page's stacked-section shell
+- `.artist-section`: one half of the artist page
+- `.artist-stats`: the wrapping row of count tiles
+- `.credited-artist-link`: a credited artist's name, on the mix card and the event card
 
 ## Editing Guidance
 

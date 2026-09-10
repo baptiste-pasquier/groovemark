@@ -54,7 +54,7 @@ function setFilter(a: string) {
           class="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-normal text-gray-500"
           :class="{ 'bg-blue-100 text-blue-700': favoritesUiStore.currentFilter === artist.id }"
         >
-          {{ favoritesUiStore.favoritesCountByArtist[artist.id] || 0 }}
+          {{ favoritesUiStore.mixAggregateFor(artist.id).mixCount }}
         </span>
       </button>
     </li>

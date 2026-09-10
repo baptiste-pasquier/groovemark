@@ -77,7 +77,7 @@ describe('Favorites UI Store', () => {
     expect(favoritesUiStore.allArtistNames).toEqual(['Amelie Lens'])
   })
 
-  it('counts favorites by artist id', () => {
+  it('aggregates mixes kept, moments and starred moments by artist id', () => {
     const artistsStore = useArtistsStore()
     const favoritesStore = useFavoritesStore()
     const favoritesUiStore = useFavoritesUiStore()
@@ -86,11 +86,39 @@ describe('Favorites UI Store', () => {
     artistsStore.artists = [artist]
 
     favoritesStore.favorites = [
-      createFavorite('fav-1', { artists: ['Amelie Lens'], artistIds: ['artist-a'] }),
-      createFavorite('fav-2', { artists: ['AMELIE LENS'], artistIds: ['artist-a'] }),
+      createFavorite('fav-1', {
+        artists: ['Amelie Lens'],
+        artistIds: ['artist-a'],
+        timestamps: [
+          { label: 'Drop', time: '01:30', rated: true },
+          { label: 'Outro', time: '58:00', rated: false },
+        ],
+      }),
+      createFavorite('fav-2', {
+        artists: ['AMELIE LENS'],
+        artistIds: ['artist-a'],
+        timestamps: [{ label: 'Intro', time: '00:10', rated: false }],
+      }),
     ]
 
-    expect(favoritesUiStore.favoritesCountByArtist['artist-a']).toBe(2)
+    expect(favoritesUiStore.mixAggregateFor('artist-a')).toEqual({
+      artistId: 'artist-a',
+      mixCount: 2,
+      momentCount: 3,
+      starredMomentCount: 1,
+    })
+    // An artist no current favorite credits reads as a zero row rather than
+    // an absent one, so a surface printing three counts has three to print.
+    expect(favoritesUiStore.mixAggregateFor('artist-unknown')).toEqual({
+      artistId: 'artist-unknown',
+      mixCount: 0,
+      momentCount: 0,
+      starredMomentCount: 0,
+    })
+    expect(favoritesUiStore.mixesFor('artist-a').map((favorite) => favorite.id)).toEqual([
+      'fav-1',
+      'fav-2',
+    ])
   })
 
   it('filters by artist id regardless of what spelling was typed when each favorite was saved', () => {
