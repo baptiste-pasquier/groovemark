@@ -2,7 +2,10 @@ import { vi, type Mock } from 'vitest'
 
 function createCollectionApi() {
   return {
-    getFullList: vi.fn(() => Promise.resolve([])),
+    // Annotated rather than inferred: an inferred `Promise<never[]>` makes
+    // every `getFullList.mockResolvedValue([record])` in a spec need an
+    // `as never`, which the code style keeps for DOM and storage casts only.
+    getFullList: vi.fn((): Promise<Record<string, unknown>[]> => Promise.resolve([])),
     create: vi.fn((data) =>
       Promise.resolve({
         id: 'mock-id',
@@ -88,14 +91,84 @@ function resetCollectionApi(api: CollectionApi) {
   })
 }
 
+// One batch request as the double recorded it: the SDK's batch builder returns
+// nothing from create/update/delete, so a spec can only see what a save sent by
+// reading this log.
+export interface MockBatchRequest {
+  method: 'create' | 'update' | 'delete'
+  collection: string
+  id?: string
+  data?: Record<string, unknown>
+}
+
+// A single batch handle whose request log is emptied by each `createBatch()`
+// call, so a spec reads exactly the requests of the save it just drove instead
+// of every save in the file. `requests` is mutated in place, never reassigned,
+// so the exported reference stays live.
+function createBatchApi() {
+  const requests: MockBatchRequest[] = []
+
+  const collection = vi.fn((name: string) => ({
+    create: vi.fn((data: Record<string, unknown>) => {
+      requests.push({
+        method: 'create',
+        collection: name,
+        id: typeof data?.id === 'string' ? data.id : undefined,
+        data,
+      })
+    }),
+    update: vi.fn((id: string, data: Record<string, unknown>) => {
+      requests.push({ method: 'update', collection: name, id, data })
+    }),
+    delete: vi.fn((id: string) => {
+      requests.push({ method: 'delete', collection: name, id })
+    }),
+  }))
+
+  const send = vi.fn(() =>
+    Promise.resolve(requests.map((request) => ({ status: 200, body: { id: request.id } }))),
+  )
+
+  return { requests, collection, send }
+}
+
+type BatchApi = ReturnType<typeof createBatchApi>
+
+function resetBatchApi(api: BatchApi) {
+  api.requests.length = 0
+  api.collection.mockClear()
+  api.send.mockReset()
+  api.send.mockImplementation(() =>
+    Promise.resolve(api.requests.map((request) => ({ status: 200, body: { id: request.id } }))),
+  )
+}
+
 const favoritesCollectionApi = createCollectionApi()
 const artistsCollectionApi = createCollectionApi()
+const eventsCollectionApi = createCollectionApi()
+const performancesCollectionApi = createCollectionApi()
+const batchApi = createBatchApi()
+
+// Every collection with its own double. A name absent from this map falls
+// through to favorites, which is why `mocks/pocketbase.spec.ts` asserts that
+// each routed collection gets a distinct handle: an unrouted collection would
+// otherwise share the favorites double and its queued responses.
+const collectionApis: Record<string, CollectionApi> = {
+  favorites: favoritesCollectionApi,
+  artists: artistsCollectionApi,
+  events: eventsCollectionApi,
+  performances: performancesCollectionApi,
+}
 
 export const mockPocketbase = {
   collection: vi.fn(
     (name?: string): MockCollectionHandle =>
-      name === 'artists' ? artistsCollectionApi : favoritesCollectionApi,
+      (name && collectionApis[name]) || favoritesCollectionApi,
   ),
+  createBatch: vi.fn(() => {
+    batchApi.requests.length = 0
+    return batchApi
+  }),
   // Real PocketBase interpolates {:param} placeholders; tests never assert on
   // the resulting string, so a simple pass-through is enough to let
   // `findBySlug`'s `pb.filter(...)` call succeed instead of throwing.
@@ -124,7 +197,11 @@ vi.mock('pocketbase', () => ({
 export function resetPocketbaseMocks() {
   resetCollectionApi(favoritesCollectionApi)
   resetCollectionApi(artistsCollectionApi)
+  resetCollectionApi(eventsCollectionApi)
+  resetCollectionApi(performancesCollectionApi)
+  resetBatchApi(batchApi)
   mockPocketbase.collection.mockClear()
+  mockPocketbase.createBatch.mockClear()
   mockPocketbase.health.check.mockReset()
   mockPocketbase.health.check.mockResolvedValue({ code: 200 })
   mockPocketbase.authStore.isValid = false
@@ -137,3 +214,6 @@ export function resetPocketbaseMocks() {
 
 export const pocketbaseCollectionApi = favoritesCollectionApi
 export const pocketbaseArtistsCollectionApi = artistsCollectionApi
+export const pocketbaseEventsCollectionApi = eventsCollectionApi
+export const pocketbasePerformancesCollectionApi = performancesCollectionApi
+export const pocketbaseBatchApi = batchApi

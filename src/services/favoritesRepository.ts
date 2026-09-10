@@ -8,6 +8,7 @@ import { LocalArtistsRepository } from './localArtistsRepository'
 import { PocketBaseArtistsRepository } from './pocketbaseArtistsRepository'
 import type { EventsRepository } from './eventsRepository'
 import { LocalEventsRepository } from './localEventsRepository'
+import { PocketBaseEventsRepository } from './pocketbaseEventsRepository'
 
 export type RepositoryMode = 'local' | 'google-cloud' | 'google-cache'
 
@@ -23,7 +24,19 @@ export interface FavoriteRecordInput {
 }
 
 export class FavoritesRepositoryError extends Error {
-  code: 'invalid_context' | 'read_failed' | 'write_failed' | 'unavailable'
+  // 'batch_too_large' and 'batch_unavailable' belong to the cloud events
+  // repository: an event saves as one batch transaction (KTD2), so a line-up
+  // over the server's request count is refused before anything is sent, and a
+  // batch endpoint left disabled by an unapplied migration is a deployment
+  // problem the operator can fix -- neither is the generic 'write_failed' a
+  // surface would report as "could not save".
+  code:
+    | 'invalid_context'
+    | 'read_failed'
+    | 'write_failed'
+    | 'unavailable'
+    | 'batch_too_large'
+    | 'batch_unavailable'
   cause?: unknown
 
   constructor(
@@ -170,11 +183,7 @@ export function selectRepositories(context: FavoritesRepositoryContext): Reposit
     cacheRepository,
     activeArtistsRepository: new PocketBaseArtistsRepository(),
     cacheArtistsRepository,
-    // TODO: swap in PocketBaseEventsRepository once the cloud events
-    // repository exists. Until then an online session reads events from its
-    // own cache mirror and refuses every write, rather than writing cloud
-    // events into the cache key where the next mirror would drop them.
-    activeEventsRepository: createReadOnlyEventsRepository(cacheEventsRepository),
+    activeEventsRepository: new PocketBaseEventsRepository(),
     cacheEventsRepository,
     mode: 'google-cloud',
   }
