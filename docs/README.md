@@ -60,7 +60,7 @@ Every maintained doc appears here. A doc missing from this list fails CI.
 ### `explanation/`
 
 - [`architecture.md`](explanation/architecture.md) — bootstrap flow, app states, persistence
-  model, import flow
+  model, events and performances, navigation, backup flow
 
 ### `how-to/`
 
@@ -69,16 +69,17 @@ Every maintained doc appears here. A doc missing from this list fails CI.
   configuration, CI/CD, troubleshooting
 - [`authentication-setup.md`](how-to/authentication-setup.md) — Google SSO and local mode
   setup, troubleshooting, security practices
-- [`pocketbase-setup.md`](how-to/pocketbase-setup.md) — PocketBase install, collection and
-  API rule setup
+- [`pocketbase-setup.md`](how-to/pocketbase-setup.md) — PocketBase install, collection, API
+  rule and batch-endpoint setup
 - [`demo-preview.md`](how-to/demo-preview.md) — regenerating the README demo GIF
 
 ### `reference/`
 
-- [`pocketbase-schema.md`](reference/pocketbase-schema.md) — `favorites` collection fields,
-  API rules, storage keys
+- [`pocketbase-schema.md`](reference/pocketbase-schema.md) — fields and API rules for the
+  `favorites`, `artists`, `events` and `performances` collections, instance settings, value
+  shapes on read, storage keys
 - [`responsive-layout.md`](reference/responsive-layout.md) — layout tokens, shell width
-  formulas, breakpoint behavior
+  formulas, breakpoint behavior, destination switcher, artist page, artists table
 
 ### `conventions/`
 

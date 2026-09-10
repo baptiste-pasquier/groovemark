@@ -17,11 +17,27 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
   - `useFavoritesUiStore` owns search, sort, filters, and dialog state
   - `useAuthStore` owns auth mode and PocketBase session state
   - `useArtistsStore` owns artist identity: load, resolve-or-create, cache mirror
-- Favorites persistence is repository-based:
+  - `useEventsStore` owns events domain data and the per-artist performance views
+  - `useEventsUiStore` owns the events tab's search
+  - `useArtistsUiStore` owns slug lookup and the artists table's sort, search and column descriptor
+- The read-only switch is `useAppStore.isReadOnly`, derived over every domain's load-failure flag
+  and every domain's effective post-fallback mode. `useFavoritesStore.isReadOnly` is a
+  pass-through. Do not push a read-only flag from a domain store, and do not add a second switch
+- Persistence is repository-based:
   - `PocketBaseFavoritesRepository` for authenticated online sessions
   - `LocalFavoritesRepository` for local mode and authenticated offline cache
   - `PocketBaseArtistsRepository` / `LocalArtistsRepository` mirror the same split for artist identity
-  - `selectRepositories()` returns both a favorites repository pair and an artists repository pair under one mode, from a single call
+  - `PocketBaseEventsRepository` / `LocalEventsRepository` do the same for events, and the
+    interface speaks in whole events -- no caller ever assembles a performance row
+  - `selectRepositories()` returns a favorites, an artists and an events repository pair under one
+    mode, from a single call; `useAppStore` calls it once per session and hands the same selection
+    to all three domain stores
+- Navigation is `vue-router` 4, HTML5 history with the base the build injects:
+  - three destinations (`mixes`, `events`, `artists`) plus an artist page keyed on the artist's slug
+  - build an artist address from the named route and a `slug` param, never by concatenation -- a
+    slug is a folded display name and can carry a slash
+  - the boot state machine stays the outer gate: `booting` and `unauthenticated` short-circuit
+    before any route renders
 - Responsive layout is token-based:
   - Layout sizing tokens live in `src/assets/tailwind.css`
   - Semantic layout classes such as `.app-shell`, `.favorites-header`, and `.card-grid`
@@ -33,6 +49,9 @@ Stack: Vue 3, Pinia v3, Tailwind CSS v4, PocketBase, vue-i18n, Vite 7.
   - `groovemark:favorites:google:<userId>`
   - `groovemark:artists:local`
   - `groovemark:artists:google:<userId>`
+  - `groovemark:events:local`
+  - `groovemark:events:google:<userId>`
+  - Events are stored whole, performances nested; a line-up is never a key of its own
   - Do not reintroduce a shared `favorites` key
 
 ## Build / Lint / Test Commands
@@ -188,11 +207,16 @@ const allArtists = computed(() => {
 
 #### Store Responsibilities
 
-- `useAppStore`: bootstrapping only (`booting | unauthenticated | ready`, backend availability)
-- `useFavoritesStore`: favorites CRUD, repository selection, import/export, cache sync
-- `useFavoritesUiStore`: filtered lists, sort/filter/search state, alert/confirm dialogs
+- `useAppStore`: bootstrapping (`booting | unauthenticated | ready`, backend availability), the one repository selection handed to every domain store, and the one read-only switch
+- `useFavoritesStore`: favorites CRUD, backup import/export, cache sync
+- `useFavoritesUiStore`: filtered lists, sort/filter/search state, per-artist mix aggregates, alert/confirm dialogs
 - `useArtistsStore`: artist identity load, resolve-or-create, cache mirror
-- `useArtistsStore` loads from bootstrap independently of `useFavoritesStore`; do not load it from inside `useFavoritesStore`
+- `useEventsStore`: events load, whole-event save, delete, the events half of an import, and the per-artist performance views and aggregates
+- `useEventsUiStore`: the events tab's search and its filtered list
+- `useArtistsUiStore`: slug lookup for the artist address, and the artists table's rows, sort, search and column descriptor
+- `useArtistsStore` and `useEventsStore` load from bootstrap independently of `useFavoritesStore`; do not load either from inside another domain store
+- Each destination keeps its own search state; do not share a search ref between two destinations
+- A per-artist number is read from the store that owns it (`useEventsStore` for the live half, `useFavoritesUiStore` for the mixes half); do not re-derive one in a component or in the artists-UI store
 - Do not move dialog state back into `useFavoritesStore`
 - Do not put locale initialization inside view components; keep it in services/bootstrap
 
@@ -208,17 +232,20 @@ src/
   __tests__/           # Unit tests (centralized, not co-located)
     mocks/             # Test mocks (e.g., PocketBase mock)
   components/          # Vue components by feature domain
+    artists/           # Artist page, artists table and its view
     auth/              # Authentication UI
-    favorites/         # Favorite cards, grid, search, add button
+    events/            # Event cards, grid, search, verdict badge and picker
+    favorites/         # Favorite cards, grid, search, add button, mixes view
     filters/           # Artist sidebar and list
-    layout/            # Header bar
-    modals/            # Dialogs (alert, confirm, favorite edit)
+    layout/            # Header bar and destination switcher
+    modals/            # Dialogs (alert, confirm, favorite edit, event edit)
   i18n/locales/        # en.json, fr.json
-  services/            # PocketBase client, repositories, storage/locale/import helpers
-  stores/              # Pinia stores (app, artists, auth, favorites, favoritesUi)
+  router/              # Route table (destinations and the artist address)
+  services/            # PocketBase client, repositories, storage/locale/backup helpers
+  stores/              # Pinia stores (app, artists, artistsUi, auth, events, eventsUi, favorites, favoritesUi)
   types/               # TypeScript interfaces and shared app/auth aliases
   assets/              # Global CSS (Tailwind base)
-  utils/               # Pure utility functions (URL, favorite helpers)
+  utils/               # Pure utility functions (URL, favorite, artist, event helpers)
 ```
 
 ### Storage and PocketBase Rules
@@ -227,9 +254,15 @@ src/
 - Client assumptions rely on an `owner` relation field and user-scoped API rules:
   - `@request.auth.id != "" && owner = @request.auth.id` for list/view/update/delete
 - The `artists` collection follows the same owner-scoped pattern (`owner` relation, list/view/update/delete rule, plus a create-owner guard), with a unique index on `(owner, slug)`.
+- The `events` and `performances` collections follow that same owner-scoped pattern. Two additions are load bearing:
+  - `performances.eventId` cascades on delete and `performances.artistId` does not -- a line-up dies with its night, an artist outlives its performances
+  - the `performances` create and update rules also correlate each submitted relation id with the caller, so a row cannot reference another account's event or artist
+- Saving an event uses `/api/batch`, which a settings migration enables; the client mirrors its two bounds in `src/utils/event.ts`. Keep the migration and those constants in step.
+- Read a line-up with `sort: 'position,created,id'` -- rows written in one batch share a `created` timestamp. Restamp `position` on every row of every save.
 - Authenticated offline fallback uses the user-scoped local cache, not local-mode storage.
+- A backup file is one versioned envelope (`{ formatVersion, mixes, events }`); an import refuses anything that does not declare a version it knows, and no relation id is ever exported.
 - If updating import/export or migration behavior, preserve separation between:
-  - local mode favorites
+  - local mode data
   - authenticated user cache
 
 ## Docker

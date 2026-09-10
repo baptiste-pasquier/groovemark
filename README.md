@@ -29,12 +29,17 @@ precise timestamps, powered by PocketBase with a local offline fallback.
 
 - 🎵 **Save Mixes**: Save favorite YouTube and SoundCloud mixes
 - ⏱️ **Timestamps**: Add timestamps to mark important parts of your mixes
+- 🎪 **Events**: Record a night you attended -- its name, date and venue -- with the line-up you
+  saw and a verdict on each performance
+- 👤 **Artist Pages**: Every credited artist has their own page: the mixes you kept crediting
+  them, and the nights you saw them live led by your most recent rated verdict
+- 📋 **Artists Catalogue**: A sortable table of every performer a mix or a night credits
 - 🏷️ **Artist Filtering**: Organize your collection by artists
-- 🔍 **Search**: Quickly find specific mixes
+- 🔍 **Search**: Quickly find specific mixes, events or artists
 - 🔐 **Authentication**: Sign in with Google SSO or continue in local mode
 - ☁️ **Cloud Sync**: Authenticated sessions sync favorites through PocketBase
 - 🔌 **Offline Support**: Local mode stores data in browser localStorage
-- 💾 **Import/Export**: Backup and restore favorites as JSON
+- 💾 **Import/Export**: Back up mixes and events together in one versioned JSON file
 - 🐳 **Docker Deployment**: Ready for local and CI/CD-based deployments
 
 ## Architecture
@@ -43,9 +48,11 @@ GrooveMark is built as a modern Single Page Application (SPA) with a
 Backend-as-a-Service (BaaS) architecture.
 
 - **Frontend**: A Vue 3 application that handles the UI, state management, and business
-  logic. It communicates with the backend via the PocketBase SDK.
+  logic. It communicates with the backend via the PocketBase SDK. It has three destinations --
+  mixes, events and artists -- plus an addressable page per artist, so a performer's page can be
+  linked and reopened directly.
 - **Backend**: PocketBase serves as the all-in-one backend, providing:
-  - **Database**: SQLite-based data storage for favorites and users.
+  - **Database**: SQLite-based data storage for mixes, artists, events, performances and users.
   - **Authentication**: Handles Google SSO and session management.
   - **API**: REST API for data synchronization.
 - **Offline Capability**: The application switches between PocketBase (online) and
@@ -74,16 +81,17 @@ new doc belongs.
 - **[Development Guide](./docs/how-to/development.md)** - Local setup, IDE notes, and
   development commands
 - **[Architecture Notes](./docs/explanation/architecture.md)** - Bootstrap flow, persistence
-  model, and import behavior
+  model, events and navigation, and backup behavior
 - **[Responsive Layout Notes](./docs/reference/responsive-layout.md)** - Layout tokens, shell
-  width formulas, and breakpoint reasoning for the favorites view
+  width formulas, and breakpoint reasoning for the card destinations, the artist page and the
+  artists table
 - **[Demo Preview](./docs/how-to/demo-preview.md)** - README demo GIF details and
   regeneration workflow
 - **[Changelog](./CHANGELOG.md)** - Notable project changes and documentation updates
 - **[PocketBase Setup](./docs/how-to/pocketbase-setup.md)** - Backend installation,
   collection setup, rules, and environment configuration
-- **[Pocketbase Schema](./docs/reference/pocketbase-schema.md)** - Favorites collection
-  schema and migration notes
+- **[Pocketbase Schema](./docs/reference/pocketbase-schema.md)** - Collection schemas, API
+  rules, instance settings and migration notes
 - **[Authentication Setup](./docs/how-to/authentication-setup.md)** - Google SSO and local
   mode guide
 - **[Docker Deployment](./docs/how-to/docker-deployment.md)** - Docker Compose, production

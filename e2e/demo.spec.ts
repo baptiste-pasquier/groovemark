@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
-import { demoFavorites, demoMetadata } from './fixtures/demoFavorites'
+import { demoArtists, demoEvents, demoFavorites, demoMetadata } from './fixtures/demoFavorites'
 
 const DEMO_PAUSE_MS = 350
 const demoFrameDir = process.env.PLAYWRIGHT_DEMO_FRAME_DIR
@@ -28,11 +28,21 @@ test.use({ locale: 'en-US' })
 test.setTimeout(45_000)
 
 test('records the README demo flow', async ({ context, page }) => {
-  await context.addInitScript((favorites) => {
-    window.localStorage.clear()
-    window.localStorage.setItem('groovemark_locale', 'en')
-    window.localStorage.setItem('groovemark:favorites:local', JSON.stringify(favorites))
-  }, demoFavorites)
+  // Three keys, because the demo now walks all three destinations. The artist
+  // records are what make a credited name reach a real artist page: a mix
+  // credits an artist by relation id, and an event card folds the display name
+  // it carries into the address, so a missing record lands on the not-found
+  // page instead.
+  await context.addInitScript(
+    (seed) => {
+      window.localStorage.clear()
+      window.localStorage.setItem('groovemark_locale', 'en')
+      window.localStorage.setItem('groovemark:favorites:local', JSON.stringify(seed.favorites))
+      window.localStorage.setItem('groovemark:artists:local', JSON.stringify(seed.artists))
+      window.localStorage.setItem('groovemark:events:local', JSON.stringify(seed.events))
+    },
+    { favorites: demoFavorites, artists: demoArtists, events: demoEvents },
+  )
 
   await page.route('https://noembed.com/embed?*', async (route) => {
     await route.fulfill({
@@ -86,4 +96,35 @@ test('records the README demo flow', async ({ context, page }) => {
   await expect(page.getByText('Anetha | Techno DJ Set | SECTION. | November 2025')).toBeHidden()
   await settleFrame(page)
   await captureFrame(page, '06-filtered.png')
+
+  // The events destination: one card per attended night, newest first, each
+  // with its full line-up and one badge per verdict. Addressed by the tab's
+  // data attribute rather than its label, so the frame does not depend on the
+  // active locale.
+  await page.locator('[data-destination="events"]').click()
+  await expect(page.locator('#events-grid')).toBeVisible()
+  await expect(page.locator('.event-card')).toHaveCount(2)
+  await expect(page.locator('.event-card').first()).toContainText('Dour Festival')
+  await settleFrame(page)
+  await captureFrame(page, '07-events.png')
+
+  // A credited name is the way into that performer's own page, from the event
+  // card as much as from a mix card.
+  await page.locator('.event-artist-link').filter({ hasText: 'Anetha' }).first().click()
+  await expect(page.locator('.artist-page-name')).toHaveText('Anetha')
+  // Both halves are filled: one mix kept, and both nights she was seen at.
+  await expect(page.locator('.artist-stat-value').first()).toHaveText('1')
+  await expect(page.locator('.artist-performance')).toHaveCount(2)
+  await expect(page.locator('[data-destination="artists"]')).toHaveAttribute('aria-current', 'page')
+  await settleFrame(page)
+  await captureFrame(page, '08-artist-page.png')
+
+  // The live half, brought into frame: at the page's scroll top it sits below
+  // the mixes grid, so the frame that exists to show both halves would show
+  // only the heading of the second one.
+  await page.locator('#artist-live').scrollIntoViewIfNeeded()
+  await expect(page.locator('.artist-latest-verdict')).toBeVisible()
+  await expect(page.locator('.artist-performance').last()).toBeVisible()
+  await settleFrame(page)
+  await captureFrame(page, '09-artist-live.png')
 })

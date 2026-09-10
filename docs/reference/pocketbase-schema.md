@@ -194,7 +194,7 @@ This collection stores one artist's appearance at one event, with at most one ve
 
 Indexes on `(owner, eventId)` and `(owner, artistId)` back the two ways a performance is read: the line-up of one event, and one artist's live history.
 
-Read a line-up with `sort: 'position,created,id'`. `position` is required for correctness, not for tidiness: a batch writes every row of one save inside the same millisecond and `created` has millisecond precision, so rows of one line-up tie and the random id would decide the order. `created,id` remains as the tiebreak, which keeps rows written before `position` existed -- all of them reading as `0` -- in a total, stable order among themselves. A client sets `position` from the row's index in the submitted line-up, and rewrites it for every row on each save, because removing or reordering one row shifts the index of the rest. `position` was added by `pocketbase/pb_migrations/1789067403_updated_performances_position.js`.
+Read a line-up with `sort: 'position,created,id'`. `position` is required for correctness, not for tidiness: a batch writes every row of one save inside the same millisecond and `created` has millisecond precision, so rows of one line-up tie and the random id would decide the order. `created,id` remains as the tiebreak, which keeps rows written before `position` existed -- all of them reading as `0` -- in a total, stable order among themselves. A client sets `position` from the row's index in the submitted line-up, and rewrites it for every row on each save, because removing or reordering one row shifts the index of the rest. `position` was added by `pocketbase/pb_migrations/1789067403_updated_performances_position.js`. The server behaviour behind this sort order is recorded in [What PocketBase 0.40.2 actually does with a batch, a select, a date and a relation guard](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
 
 `owner` is a denormalized copy of the owning account, matching the other collections, and the relation guard below is what keeps it consistent with the event and artist the row points at.
 
@@ -208,7 +208,19 @@ The owner-scoped rules match the other collections, and the create and update ru
 - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id) && (@request.body.eventId:isset = false || (@collection.events.id ?= @request.body.eventId && @collection.events.owner ?= @request.auth.id)) && (@request.body.artistId:isset = false || (@collection.artists.id ?= @request.body.artistId && @collection.artists.owner ?= @request.auth.id))`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
-The update rule guards each relation only when the request submits it, so an edit that touches the verdict alone does not have to resubmit `eventId` or `artistId`.
+The update rule guards each relation only when the request submits it, so an edit that touches the verdict alone does not have to resubmit `eventId` or `artistId`. Each `?=` comparison correlates within one matched row, and the lookup resolves an event created by an earlier request of the same batch, which is what makes creating an event and its line-up in one transaction legal -- see [the server-behaviour journal entry](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
+
+## Value Shapes On Read
+
+Three stored values do not come back in the shape the client sent. `PocketBaseEventsRepository` normalises each at the read boundary, so a surface reads one shape whichever persistence mode produced it.
+
+| Value                  | What the server returns                                           | The interface's canonical form            |
+| ---------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| `performances.verdict` | `''` for an absent verdict, whether the write sent `''` or `null` | `null`                                    |
+| `events.dateAttended`  | `2026-05-04 00:00:00.000Z` for a written `2026-05-04`             | the bare `YYYY-MM-DD` day                 |
+| A line-up's order      | every row of one batch carrying the same `created` timestamp      | `position`, with `created,id` as tiebreak |
+
+An empty `verdict` read as-is satisfies every `verdict !== null` test downstream, so the mapping to `null` is a correctness requirement rather than a convenience. The evidence for all three is in [the server-behaviour journal entry](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
 
 ## Instance Settings
 
@@ -232,6 +244,10 @@ Current browser storage keys:
 - `groovemark:favorites:google:<userId>`
 - `groovemark:artists:local`
 - `groovemark:artists:google:<userId>`
+- `groovemark:events:local`
+- `groovemark:events:google:<userId>`
+
+The events keys hold whole events with their performances nested, so a line-up is never a key of its own.
 
 The app also contains a legacy migration path for the old `favorites` key when entering
 local mode.
