@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
 import i18n from '../i18n'
 import type { Artist } from '../types/artist'
 import type { Favorite, Timestamp } from '../types/favorite'
@@ -16,6 +16,7 @@ import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import type { ArtistsRepository } from '../services/artistsRepository'
 import { createSessionGuard } from '../utils/sessionGuard'
+import { useAppStore } from './app'
 import { useArtistsStore } from './artists'
 import { useAuthStore } from './auth'
 import { useFavoritesUiStore } from './favoritesUi'
@@ -285,10 +286,18 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const repositoryMode = ref<RepositoryMode>('local')
   const initialized = ref(false)
   const importProgress = ref<{ processed: number; total: number | null } | null>(null)
-  const degradedReadOnly = ref(false)
-  const isReadOnly = computed(
-    () => repositoryMode.value === 'google-cache' || degradedReadOnly.value,
-  )
+  // This domain's load-failure flag, one of the inputs the app store's single
+  // read-only switch reads (KTD6). It is not a read-only flag of its own: the
+  // decision is not made here.
+  const loadFailed = ref(false)
+  // A pass-through onto that one switch, kept so the mixes surfaces keep
+  // reading their read-only state from the store they already talk to. It
+  // holds no state of its own. Two details follow from the app store reading
+  // this store back: `useAppStore()` is resolved lazily inside the body,
+  // because resolving it eagerly at setup time would recurse, and the type is
+  // annotated rather than inferred, because the cycle has to be pinned
+  // somewhere.
+  const isReadOnly: ComputedRef<boolean> = computed(() => useAppStore().isReadOnly)
 
   let activeRepository: FavoritesRepository | null = null
   let cacheRepository: LocalFavoritesRepository | null = null
@@ -309,7 +318,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     isLoading.value = true
     initialized.value = true
-    degradedReadOnly.value = false
+    loadFailed.value = false
 
     const selection = options.selection
     activeRepository = selection.activeRepository
@@ -322,10 +331,23 @@ export const useFavoritesStore = defineStore('favorites', () => {
       await persistCacheSnapshot()
     } catch (error) {
       console.error('Error initializing favorites:', error)
+      loadFailed.value = true
 
       if (repositoryMode.value === 'google-cloud' && cacheRepository) {
-        favorites.value = await cacheRepository.list()
-        activeRepository = cacheRepository
+        // The cache read is guarded too. Bootstrap awaits the three domain
+        // loads together and only then decides anything, so a rejection here
+        // skips that and lands in recoverFromSessionError -- which signs the
+        // operator out. A failed cloud load whose cache is also unreadable
+        // must cost the mixes list, never the session.
+        try {
+          favorites.value = await cacheRepository.list()
+          activeRepository = cacheRepository
+        } catch (cacheError) {
+          console.error('Error loading favorites from cache fallback:', cacheError)
+          favorites.value = []
+        }
+        // Running on the cache either way -- populated or empty -- so the mode
+        // reported upward to the read-only switch says so.
         repositoryMode.value = 'google-cache'
       } else {
         favorites.value = []
@@ -338,10 +360,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function persistCacheSnapshot() {
     if (!cacheRepository) return
     await cacheRepository.replaceAll(favorites.value)
-  }
-
-  function setDegradedReadOnly(value: boolean) {
-    degradedReadOnly.value = value
   }
 
   function buildFavoriteRecordInput(
@@ -671,7 +689,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     repositoryMode.value = 'local'
     initialized.value = false
     importProgress.value = null
-    degradedReadOnly.value = false
+    loadFailed.value = false
     activeRepository = null
     cacheRepository = null
     importArtistsRepository = null
@@ -684,9 +702,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
     repositoryMode,
     initialized,
     importProgress,
+    loadFailed,
     isReadOnly,
     initializeForCurrentSession,
-    setDegradedReadOnly,
     addOrUpdateFavorite,
     deleteFavorite,
     importFavorites,

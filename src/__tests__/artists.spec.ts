@@ -172,7 +172,8 @@ describe('Artists Store', () => {
     // recreate artists that already exist server-side (see
     // docs/explanation/architecture.md).
     expect(artistsStore.loadFailed).toBe(true)
-    favoritesStore.setDegradedReadOnly(artistsStore.loadFailed)
+    // The one read-only switch lives in the app store and reads this flag
+    // directly (KTD6), so nothing has to push it into the favorites store.
     expect(favoritesStore.isReadOnly).toBe(true)
   })
 

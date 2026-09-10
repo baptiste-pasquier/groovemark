@@ -56,7 +56,8 @@ export const useArtistsStore = defineStore('artists', () => {
     } catch (error) {
       console.error('Error initializing artists:', error)
       // A failed load never shows an empty artist list and always puts the
-      // session into read-only mode (via loadFailed -> degradedReadOnly):
+      // session into read-only mode (loadFailed is one of the app store's
+      // read-only inputs):
       // a writable UI over a stale or empty resolution index would recreate
       // artists that already exist server-side and collide with the
       // (owner, slug) unique index. See docs/explanation/architecture.md.

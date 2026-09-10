@@ -1,12 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
+import i18n from '../i18n'
+import { useAppStore } from '../stores/app'
 import { useArtistsStore } from '../stores/artists'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
+import { LocalFavoritesRepository } from '../services/localFavoritesRepository'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
 import type { FavoriteRecordInput } from '../services/favoritesRepository'
 import { getLocalStorageState, localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
@@ -584,5 +587,154 @@ describe('PocketBaseFavoritesRepository', () => {
     expect(favorite?.artists).toEqual([])
     expect(favorite?.artistIds).toEqual([])
     expect(favorite?.timestamps).toEqual([])
+  })
+})
+
+// Characterization of the read-only switch as it behaved before it moved to
+// the app store (U5). Every assertion here was green against the favorites
+// store owning `degradedReadOnly` itself, so a regression in the move shows
+// up as a failing assertion rather than as a silent change of behaviour.
+describe('Mixes read-only switch', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setActivePinia(createPinia())
+    resetLocalStorageMock()
+    resetPocketbaseMocks()
+    i18n.global.locale.value = 'en'
+  })
+
+  function signInAsGoogleUser() {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+    return authStore
+  }
+
+  it('puts the mixes half in read-only when the artists load fails', async () => {
+    signInAsGoogleUser()
+    const appStore = useAppStore()
+    const favoritesStore = useFavoritesStore()
+
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValue(new Error('artists unreachable'))
+
+    await appStore.handleAuthenticatedSession()
+
+    expect(appStore.status).toBe('ready')
+    expect(favoritesStore.isReadOnly).toBe(true)
+  })
+
+  it('puts the mixes half in read-only when the favorites load fails and artists load fine', async () => {
+    signInAsGoogleUser()
+    const appStore = useAppStore()
+    const artistsStore = useArtistsStore()
+    const favoritesStore = useFavoritesStore()
+
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
+      { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft-punk' },
+    ] as never)
+    pocketbaseCollectionApi.getFullList.mockRejectedValue(new Error('favorites unreachable'))
+
+    await appStore.handleAuthenticatedSession()
+
+    expect(appStore.status).toBe('ready')
+    expect(artistsStore.loadFailed).toBe(false)
+    expect(favoritesStore.isReadOnly).toBe(true)
+  })
+
+  it('refuses adding, editing, deleting and importing a mix with the offline message', async () => {
+    signInAsGoogleUser()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+
+    localStorage.setItem(
+      'groovemark:favorites:google:user-1',
+      JSON.stringify([createFavorite('cached-1', 'https://youtube.com/watch?v=cached')]),
+    )
+
+    await favoritesStore.initializeForCurrentSession(sessionInit(false))
+    expect(favoritesStore.isReadOnly).toBe(true)
+
+    const readOnlyMessage =
+      "You're offline. Favorites are read-only until the connection is restored."
+
+    const addPromise = favoritesStore.addOrUpdateFavorite({
+      url: 'https://youtube.com/watch?v=offlineAdd01',
+      title: 'Offline add',
+      artists: [],
+      timestamps: [],
+      thumbnail: '',
+    })
+    await flushPromises()
+    expect(favoritesUiStore.alertDialog.message).toBe(readOnlyMessage)
+    favoritesUiStore.closeAlert()
+    expect(await addPromise).toBe(false)
+
+    const editPromise = favoritesStore.addOrUpdateFavorite({
+      id: 'cached-1',
+      url: 'https://youtube.com/watch?v=cached',
+      title: 'Renamed offline',
+      artists: [],
+      timestamps: [],
+      thumbnail: '',
+    })
+    await flushPromises()
+    expect(favoritesUiStore.alertDialog.message).toBe(readOnlyMessage)
+    favoritesUiStore.closeAlert()
+    expect(await editPromise).toBe(false)
+
+    const deletePromise = favoritesStore.deleteFavorite('cached-1')
+    await flushPromises()
+    expect(favoritesUiStore.alertDialog.message).toBe(readOnlyMessage)
+    favoritesUiStore.closeAlert()
+    await deletePromise
+
+    const importPromise = favoritesStore.importFavorites([
+      createFavorite('offline-import-1', 'https://youtube.com/watch?v=offlineImport01'),
+    ])
+    await flushPromises()
+    expect(favoritesUiStore.alertDialog.message).toBe(readOnlyMessage)
+    favoritesUiStore.closeAlert()
+    expect(await importPromise).toEqual({ added: 0, skipped: 1, failed: 0 })
+
+    expect(favoritesStore.favorites).toEqual([
+      createFavorite('cached-1', 'https://youtube.com/watch?v=cached'),
+    ])
+  })
+
+  it('leaves the session signed in and read-only when the favorites cache is unreadable too', async () => {
+    signInAsGoogleUser()
+    const appStore = useAppStore()
+    const authStore = useAuthStore()
+    const favoritesStore = useFavoritesStore()
+
+    pocketbaseCollectionApi.getFullList.mockRejectedValue(new Error('favorites unreachable'))
+    vi.spyOn(LocalFavoritesRepository.prototype, 'list').mockRejectedValue(
+      new Error('favorites cache unreadable'),
+    )
+
+    await appStore.handleAuthenticatedSession()
+
+    expect(appStore.status).toBe('ready')
+    expect(authStore.authMode).toBe('google')
+    expect(favoritesStore.favorites).toEqual([])
+    expect(favoritesStore.isReadOnly).toBe(true)
+  })
+
+  it('clears read-only once a degraded session reloads healthy', async () => {
+    signInAsGoogleUser()
+    const appStore = useAppStore()
+    const favoritesStore = useFavoritesStore()
+
+    pocketbaseArtistsCollectionApi.getFullList.mockRejectedValueOnce(
+      new Error('artists unreachable'),
+    )
+
+    await appStore.handleAuthenticatedSession()
+    expect(favoritesStore.isReadOnly).toBe(true)
+
+    await appStore.handleAuthenticatedSession()
+
+    expect(favoritesStore.isReadOnly).toBe(false)
   })
 })
