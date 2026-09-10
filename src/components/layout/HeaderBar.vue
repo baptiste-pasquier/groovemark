@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
 import { useFavoritesStore } from '../../stores/favorites'
@@ -27,8 +28,19 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 const { t, locale } = useI18n()
+const route = useRoute()
 
 const isMenuOpen = ref(false)
+
+const DESTINATIONS = [
+  { name: 'mixes', label: 'nav.mixes' },
+  { name: 'events', label: 'nav.events' },
+  { name: 'artists', label: 'nav.artists' },
+] as const
+
+// The artist page belongs to the artists destination, so its tab stays marked
+// while an artist page is open.
+const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : route.name))
 
 // Compute display name for auth status
 const authDisplayName = computed(() => {
@@ -121,7 +133,20 @@ function openFilters() {
           {{ authDisplayName }}
         </span>
       </div>
-      <div class="flex items-center space-x-2">
+      <div class="favorites-header-controls">
+        <nav class="destination-switcher" :aria-label="t('nav.aria_label')">
+          <RouterLink
+            v-for="destination in DESTINATIONS"
+            :key="destination.name"
+            :to="{ name: destination.name }"
+            :data-destination="destination.name"
+            class="destination-tab"
+            :class="{ 'destination-tab-active': activeDestination === destination.name }"
+            :aria-current="activeDestination === destination.name ? 'page' : undefined"
+          >
+            {{ t(destination.label) }}
+          </RouterLink>
+        </nav>
         <button
           id="sort-btn"
           class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"

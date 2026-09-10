@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import App from '../App.vue'
 import i18n from '../i18n'
+import { routes } from '../router'
 import { useAppStore } from '../stores/app'
 import { useAuthStore } from '../stores/auth'
 import { useFavoritesStore } from '../stores/favorites'
@@ -31,18 +33,26 @@ describe('App', () => {
       appStore.status = 'unauthenticated'
     })
 
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    await router.push('/')
+    await router.isReady()
+
     const wrapper = mount(App, {
       global: {
-        plugins: [pinia, i18n],
+        plugins: [pinia, i18n, router],
       },
     })
 
     expect(wrapper.text()).toContain('Loading GrooveMark...')
+    expect(wrapper.find('.app-shell').exists()).toBe(false)
+    expect(wrapper.find('nav').exists()).toBe(false)
 
     resolveBootstrap?.()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Welcome to GrooveMark')
+    expect(wrapper.find('.app-shell').exists()).toBe(false)
+    expect(wrapper.find('nav').exists()).toBe(false)
   })
 })
 

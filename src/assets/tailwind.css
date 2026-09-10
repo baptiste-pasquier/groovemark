@@ -13,6 +13,8 @@
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-switcher-padding: 0.1875rem;
+  --layout-switcher-radius: 0.625rem;
 }
 
 @layer base {
@@ -49,6 +51,22 @@ body {
 
   .favorites-header {
     @apply layout-2col:mx-0 layout-2col:w-full mb-8 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:w-[var(--layout-grid-width-2col)];
+  }
+
+  .favorites-header-controls {
+    @apply flex flex-wrap items-center justify-center gap-2 md:justify-end;
+  }
+
+  .destination-switcher {
+    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto;
+  }
+
+  .destination-tab {
+    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none;
+  }
+
+  .destination-tab-active {
+    @apply bg-white font-semibold text-gray-900 shadow-sm;
   }
 
   .favorites-sidebar-desktop {

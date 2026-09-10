@@ -28,6 +28,8 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-switcher-padding: 0.1875rem;
+  --layout-switcher-radius: 0.625rem;
 }
 ```
 
@@ -43,6 +45,10 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   `1.5rem = 24px`
 - `--layout-grid-width-2col`: width of two cards plus one grid gap.
   `20rem * 2 + 1.5rem = 41.5rem`
+- `--layout-switcher-padding`: inner padding of the destination switcher track.
+  `0.1875rem = 3px`
+- `--layout-switcher-radius`: outer corner radius of the destination switcher track.
+  `0.625rem = 10px`
 
 ## Shell Width Formula
 
@@ -145,6 +151,26 @@ From `layout-2col` (`65.5rem`) and up:
 At this point the page is no longer centered around the `2`-column grid width, but around the
 full desktop shell width.
 
+## Destination Switcher
+
+The three top-level destinations (mixes, events, artists) are one segmented control, the same
+object at every width. It lives in the header's control row, so it shares that row with the
+sort button, the mobile filter button, the settings menu and the sign-out button.
+
+`.favorites-header-controls` wraps that row, so the switcher never pushes the other controls
+off screen: below `md` it takes a whole line and the buttons wrap onto the next one.
+
+The switcher itself has two forms, driven by one class:
+
+- Below `md` (`48rem` / `768px`): `.destination-switcher` is `w-full` and each
+  `.destination-tab` is `flex-1`, so the three tabs span the full width and share it equally.
+- From `md` and up: the track is `w-auto` and each tab is `flex-none`, so the tabs size to
+  their labels and the switcher sits inline beside the other header controls.
+
+`.destination-tab-active` marks the current destination with a white fill, a heavier weight and
+a small shadow. The active tab also carries `aria-current="page"`, so the state does not depend
+on colour alone. An artist page keeps the artists tab marked.
+
 ## Utility Scale Reminder
 
 Tailwind spacing is based on `0.25rem`.
@@ -186,6 +212,10 @@ These classes translate the tokens into layout behavior:
 - `.favorites-main`: main content width before and after desktop sidebar
 - `.favorites-mobile-controls`: search/add controls above the grid before desktop sidebar
 - `.favorites-grid`: fixed-width card grid at 2/3/4 columns
+- `.favorites-header-controls`: wrapping header control row that holds the destination switcher
+- `.destination-switcher`: segmented track for the three destinations, full width below `md`
+- `.destination-tab`: one destination tab inside the track
+- `.destination-tab-active`: the current destination's tab
 
 ## Editing Guidance
 

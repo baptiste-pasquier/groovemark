@@ -60,6 +60,12 @@
     "title_add": "Ajouter un favori",
     "title_edit": "Éditer le favori"
   },
+  "nav": {
+    "aria_label": "Sections principales",
+    "artists": "Artistes",
+    "events": "Événements",
+    "mixes": "Mix"
+  },
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
     "time_placeholder": "Temps (ex: 23:45)"
