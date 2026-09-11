@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import './mocks/pocketbase'
+import { nextTick } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -97,6 +98,15 @@ async function commitArtist(wrapper: Wrapper, rowIndex: number, name: string) {
   await input.setValue(name)
   await input.trigger('keydown', { key: 'Enter' })
   await flushPromises()
+}
+
+// Types an artist name and leaves it uncommitted: the operator never pressed
+// Enter and went straight for another control. This is the ordinary path, not
+// a race.
+async function typeArtistWithoutEnter(wrapper: Wrapper, rowIndex: number, name: string) {
+  const field = wrapper.findAllComponents(ArtistTagsInput)[rowIndex]
+  expect(field, `no artist field on performance row ${rowIndex}`).toBeTruthy()
+  await field.find('input').setValue(name)
 }
 
 async function chooseVerdict(wrapper: Wrapper, rowIndex: number, verdict: Verdict) {
@@ -292,6 +302,66 @@ describe('EventModal', () => {
     )
     expect(wrapper.find('.performance-row').text()).toContain('Anetha')
     expect(readStoredEvents()).toEqual([])
+  })
+
+  it('keeps a performance whose artist was typed but never committed with Enter', async () => {
+    await enterLocalMode()
+    const wrapper = mountEventModal()
+
+    await fillEventFields(wrapper, { name: 'Nuits Sonores', dateAttended: '2026-05-04' })
+    await typeArtistWithoutEnter(wrapper, 0, 'Anetha')
+    // Choosing the verdict clicks outside the artist field, which is what
+    // blurs it without committing the typed name.
+    await chooseVerdict(wrapper, 0, 'three-stars')
+
+    await submit(wrapper)
+
+    const [event] = readStoredEvents()
+    expect(event.performances).toHaveLength(1)
+    expect(event.performances[0].artistName).toBe('Anetha')
+    expect(event.performances[0].verdict).toBe('three-stars')
+    expect(readStoredArtists().map((artist) => artist.displayName)).toEqual(['Anetha'])
+    expect(closedOnce(wrapper)).toBe(true)
+  })
+
+  it('keeps every row when only one of several artists was left uncommitted', async () => {
+    await enterLocalMode()
+    const wrapper = mountEventModal()
+
+    await fillEventFields(wrapper, { name: 'Nuits Sonores', dateAttended: '2026-05-04' })
+    await addPerformanceRow(wrapper)
+
+    await commitArtist(wrapper, 0, 'Anetha')
+    await typeArtistWithoutEnter(wrapper, 1, 'Trym')
+
+    await submit(wrapper)
+
+    const [event] = readStoredEvents()
+    expect(event.performances.map((performance) => performance.artistName)).toEqual([
+      'Anetha',
+      'Trym',
+    ])
+  })
+
+  it('withholds Cancel while a save is in flight, so it cannot close a later draft', async () => {
+    await enterLocalMode()
+    // A save that never settles: the operator is looking at the modal mid-save.
+    vi.spyOn(LocalEventsRepository.prototype, 'create').mockReturnValue(
+      new Promise<MusicEvent>(() => {}),
+    )
+    const wrapper = mountEventModal()
+
+    await fillEventFields(wrapper, { name: 'Nuits Sonores', dateAttended: '2026-05-04' })
+    expect(wrapper.find('#event-cancel-btn').attributes('disabled')).toBeUndefined()
+
+    await wrapper.find('form').trigger('submit')
+    await nextTick()
+
+    expect(wrapper.find('#event-save-btn').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('#event-cancel-btn').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('#event-cancel-btn').trigger('click')
+    expect(closedOnce(wrapper)).toBe(false)
   })
 
   it('refuses an empty date attended (R1, KTD10)', async () => {

@@ -1,5 +1,17 @@
+<script lang="ts">
+import type { InjectionKey } from 'vue'
+
+// A surface that saves everything under it in one action collects the artist
+// fields mounted beneath it here, so a name typed but never committed with
+// Enter can be committed at submit time instead of being dropped. A field
+// mounted outside such a surface registers with nobody.
+export const ARTIST_TAGS_COMMIT_REGISTRY: InjectionKey<Set<() => void>> = Symbol(
+  'artistTagsCommitRegistry',
+)
+</script>
+
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AlertCircle } from 'lucide-vue-next'
 
@@ -27,6 +39,7 @@ const showUnfinishedInputWarning = ref(false)
 const highlightedIndex = ref<number>(-1)
 const wrapper = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLInputElement | null>(null)
+const commitRegistry = inject(ARTIST_TAGS_COMMIT_REGISTRY, null)
 
 watch(
   () => props.modelValue,
@@ -58,6 +71,7 @@ function addTag(raw?: string) {
   }
   input.value = ''
   highlightedIndex.value = -1
+  showUnfinishedInputWarning.value = false
   focusInput()
 }
 
@@ -143,13 +157,25 @@ function handleClickOutside(ev: MouseEvent) {
   }
 }
 
+// An unfinished draft is still the operator's work: committing it is what the
+// Enter they did not press would have done. A click outside blurs this field
+// before the surrounding form submits, so without this the typed name would
+// never reach the payload. Empty input, nothing to commit.
+function commitPending() {
+  if (input.value.trim()) addTag()
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  commitRegistry?.add(commitPending)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  commitRegistry?.delete(commitPending)
 })
+
+defineExpose({ commitPending })
 </script>
 
 <template>

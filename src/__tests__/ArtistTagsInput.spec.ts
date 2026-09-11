@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import ArtistTagsInput from '../components/favorites/ArtistTagsInput.vue'
 import i18n from '../i18n'
@@ -100,6 +101,57 @@ describe('ArtistTagsInput', () => {
 
     const suggestionTexts = wrapper.findAll('ul li span').map((el) => el.text())
     expect(suggestionTexts).toContain('Amélie Lens')
+  })
+
+  // The surface around this field saves everything at once, so it needs a way
+  // to turn a draft the operator never pressed Enter on into a real value.
+  describe('commitPending', () => {
+    it('commits a name typed but never committed with Enter', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: [],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+      await input.setValue('Anetha')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      const field = wrapper.vm as unknown as { commitPending: () => void }
+      field.commitPending()
+      await nextTick()
+
+      const emitted = wrapper.emitted('update:modelValue')
+      expect(emitted?.[emitted.length - 1]?.[0]).toEqual(['Anetha'])
+      expect((wrapper.find('input').element as HTMLInputElement).value).toBe('')
+      expect(wrapper.findAll('span > span').map((chip) => chip.text())).toEqual(['Anetha'])
+    })
+
+    it('commits nothing when the field holds no draft', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: ['Anetha'],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      await wrapper.find('input').setValue('   ')
+      const field = wrapper.vm as unknown as { commitPending: () => void }
+      field.commitPending()
+      await nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.findAll('span > span').map((chip) => chip.text())).toEqual(['Anetha'])
+    })
   })
 
   describe('single-value mode', () => {

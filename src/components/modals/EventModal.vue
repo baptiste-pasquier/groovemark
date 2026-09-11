@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarDays, MapPin, Music } from 'lucide-vue-next'
 
+import { ARTIST_TAGS_COMMIT_REGISTRY } from '../favorites/ArtistTagsInput.vue'
 import PerformanceRow from '../events/PerformanceRow.vue'
 import { useEventsStore } from '../../stores/events'
 import { useFavoritesUiStore } from '../../stores/favoritesUi'
@@ -37,6 +38,13 @@ const dateAttended = ref('')
 const venue = ref('')
 const performanceRows = ref<PerformanceRowState[]>([])
 const isSaving = ref(false)
+
+// Every artist field under this form registers its uncommitted draft here. The
+// document click that blurs such a field fires before the submit button acts,
+// so a name typed without an Enter would otherwise reach the store empty and
+// take its whole row with it -- the artist and the verdict chosen for them.
+const pendingArtistCommits = new Set<() => void>()
+provide(ARTIST_TAGS_COMMIT_REGISTRY, pendingArtistCommits)
 
 function createEmptyPerformanceRow(): PerformanceRowState {
   return { _id: crypto.randomUUID(), artistName: '', verdict: null }
@@ -125,6 +133,11 @@ async function save() {
 
   isSaving.value = true
   try {
+    // An unfinished artist draft counts as an implicit Enter at submit time:
+    // the operator typed it, so it belongs to the event rather than being
+    // dropped in silence. Committing is synchronous, so the rows below are
+    // already up to date.
+    pendingArtistCommits.forEach((commitPending) => commitPending())
     // The client-only row key is stripped here; row-level validation is not
     // repeated, because the store owns dropping a row that credits nobody and
     // resolving each name to an identity (R5, AE7).
@@ -250,10 +263,16 @@ function close() {
             </button>
           </div>
           <div class="flex justify-end space-x-2">
+            <!-- Cancel is withheld while a save is in flight, like Save: this
+                 surface is mounted once and reused, so a cancel mid-save would
+                 let a fresh draft be opened and then closed under the operator
+                 when the first save resolved. With both withheld, nothing can
+                 close this modal until the save reports back. -->
             <button
               type="button"
               id="event-cancel-btn"
-              class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+              class="rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isSaving"
               @click="close"
             >
               {{ t('modal.cancel') }}
