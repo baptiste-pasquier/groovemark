@@ -283,6 +283,29 @@ describe('PocketBaseEventsRepository', () => {
     expect(event.performances[1].verdict).toBe('one-star')
   })
 
+  // The allowlist has to be an own-property test: `'__proto__' in VERDICT_ORDER`
+  // is true, so a prototype key would read back as a verdict no surface can
+  // render and take the events tab down with it.
+  it('reads a verdict off the prototype chain back as null', async () => {
+    const repository = new PocketBaseEventsRepository()
+    pocketbaseEventsCollectionApi.getFullList.mockResolvedValue([serverEvent()])
+    pocketbasePerformancesCollectionApi.getFullList.mockResolvedValue([
+      serverPerformance({ id: 'performance-1', verdict: '__proto__' }),
+      serverPerformance({ id: 'performance-2', verdict: 'toString' }),
+      serverPerformance({ id: 'performance-3', verdict: 'constructor' }),
+      serverPerformance({ id: 'performance-4', verdict: 'two-stars' }),
+    ])
+
+    const [event] = await repository.list()
+
+    expect(event.performances.map((performance) => performance.verdict)).toEqual([
+      null,
+      null,
+      null,
+      'two-stars',
+    ])
+  })
+
   it('normalises the date the server returns to the bare day', async () => {
     const repository = new PocketBaseEventsRepository()
     pocketbaseEventsCollectionApi.getFullList.mockResolvedValue([

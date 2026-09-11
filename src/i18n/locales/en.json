@@ -86,7 +86,7 @@
     "error_invalid_array": "The JSON file is not a valid array.",
     "error_invalid_json": "The JSON file is invalid.",
     "error_invalid_structure": "Invalid structure",
-    "error_unsupported_format": "This file is not a GrooveMark backup. Expected a JSON object with \"formatVersion\": {version}, a \"mixes\" key and an \"events\" key. An export taken before this format was a bare array: wrap it under \"mixes\" and add \"formatVersion\": {version}.",
+    "error_unsupported_format": "This file is not a GrooveMark backup. Expected a JSON object with \"formatVersion\": {version}, and a \"mixes\" key, an \"events\" key, or both (a key left out reads as empty). An export taken before this format was a bare array: wrap it under \"mixes\" and add \"formatVersion\": {version}.",
     "error_prefix": "Error during import: "
   },
   "messages": {

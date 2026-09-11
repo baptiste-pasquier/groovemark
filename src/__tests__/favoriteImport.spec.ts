@@ -1055,6 +1055,104 @@ describe('Backup file format', () => {
     }
   })
 
+  // A backup is hand-edited -- the rejection message tells an operator to bring
+  // an older file forward by hand -- so the verdict allowlist is an
+  // untrusted-input boundary. A prototype key is not a verdict, and storing one
+  // verbatim takes down every surface that renders a verdict.
+  it('reads a verdict off the prototype chain as no verdict, never verbatim', async () => {
+    for (const smuggled of ['__proto__', 'toString', 'constructor', 'valueOf', '']) {
+      const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+      const importPromise = favoritesStore.importFromFile(
+        backupFile({
+          formatVersion: BACKUP_FORMAT_VERSION,
+          mixes: [],
+          events: [
+            {
+              name: 'Nuits Sonores',
+              dateAttended: '2026-07-12',
+              venue: 'Les Subsistances',
+              performances: [{ artistName: 'Daft Punk', verdict: smuggled }],
+            },
+          ],
+        }),
+      )
+      await flushPromises()
+      favoritesUiStore.closeAlert()
+      await importPromise
+
+      expect(eventsStore.events[0]?.performances[0]?.verdict).toBeNull()
+
+      setActivePinia(createPinia())
+      resetLocalStorageMock()
+      resetPocketbaseMocks()
+    }
+  })
+
+  it('refuses an event whose dateAttended is not a real bare day (KTD10)', async () => {
+    for (const dateAttended of [
+      'soon',
+      '2026-5-4',
+      '2026-05-04T00:00:00.000Z',
+      '2026-05-04 00:00:00.000Z',
+      '',
+      '2026-13-45',
+      '2026-02-30',
+    ]) {
+      const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+      const importPromise = favoritesStore.importFromFile(
+        backupFile({
+          formatVersion: BACKUP_FORMAT_VERSION,
+          mixes: [],
+          events: [
+            {
+              name: 'Nuits Sonores',
+              dateAttended,
+              venue: 'Les Subsistances',
+              performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+            },
+          ],
+        }),
+      )
+      await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(favoritesUiStore.alertDialog.message).toContain('Invalid structure')
+      favoritesUiStore.closeAlert()
+      expect(await importPromise).toBeNull()
+      expect(eventsStore.events).toEqual([])
+
+      setActivePinia(createPinia())
+      resetLocalStorageMock()
+      resetPocketbaseMocks()
+    }
+  })
+
+  it('accepts a leap day and every other real bare day', async () => {
+    const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    const importPromise = favoritesStore.importFromFile(
+      backupFile({
+        formatVersion: BACKUP_FORMAT_VERSION,
+        mixes: [],
+        events: [
+          {
+            name: 'Leap Night',
+            dateAttended: '2024-02-29',
+            venue: 'Les Subsistances',
+            performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+          },
+        ],
+      }),
+    )
+    await flushPromises()
+    favoritesUiStore.closeAlert()
+    await importPromise
+
+    expect(eventsStore.events[0]?.dateAttended).toBe('2024-02-29')
+  })
+
   it('creates the artist an imported event credits when the account does not have it', async () => {
     const { artistsStore, eventsStore, favoritesStore, favoritesUiStore } = await localSession()
 

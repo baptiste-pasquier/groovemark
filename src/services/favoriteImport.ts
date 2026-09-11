@@ -1,6 +1,6 @@
 import type { Verdict } from '../types/event'
+import { isVerdict } from '../utils/event'
 import type { Favorite } from '../types/favorite'
-import { VERDICT_ORDER } from '../utils/event'
 
 // One backup file carries both domains (R22), so this module owns the file's
 // whole shape -- the envelope written on export and the one read back on
@@ -110,13 +110,29 @@ function isInvalidMix(item: unknown): boolean {
   return typeof candidate.id !== 'string' || typeof candidate.url !== 'string'
 }
 
+// The bare day is the repository interface's canonical form (KTD10), and both
+// halves of this test earn their place. The shape test keeps local mode from
+// storing a string the cloud's date field would have refused, which is what
+// makes the two modes disagree about what a valid backup is; without it a
+// 'soon' imports, then sorts above every real date and renders raw. The
+// round-trip then refuses a day the calendar does not have -- '2026-02-30'
+// matches the regex, and Date rolls it silently into '2026-03-02', so an
+// operator's typo would land on a night that is not the one they meant.
+function isValidDayAttended(value: unknown): boolean {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
 function isInvalidEvent(item: unknown): boolean {
   if (!item || typeof item !== 'object') {
     return true
   }
 
   const candidate = item as Partial<BackupEvent>
-  if (typeof candidate.name !== 'string' || typeof candidate.dateAttended !== 'string') {
+  if (typeof candidate.name !== 'string' || !isValidDayAttended(candidate.dateAttended)) {
     return true
   }
   if (candidate.performances !== undefined && !Array.isArray(candidate.performances)) {
@@ -136,7 +152,7 @@ function isInvalidEvent(item: unknown): boolean {
 // four values reads as no verdict rather than leaking a value no surface can
 // render -- the same rule the cloud repository applies at its own read boundary.
 function toVerdict(value: unknown): Verdict | null {
-  return typeof value === 'string' && value in VERDICT_ORDER ? (value as Verdict) : null
+  return isVerdict(value) ? value : null
 }
 
 function toBackupEvent(item: unknown): BackupEvent {
@@ -169,7 +185,7 @@ export async function parseBackupFile(file: File): Promise<ParsedBackup> {
   // matches: no payload of an unrecognized shape is ever read partially (R23).
   if (!declaresRecognizedVersion(parsedContent)) {
     throw new FavoriteImportError(
-      `Unrecognized backup format: expected a JSON object with "formatVersion": ${BACKUP_FORMAT_VERSION}, "mixes" and "events".`,
+      `Unrecognized backup format: expected a JSON object with "formatVersion": ${BACKUP_FORMAT_VERSION}, and "mixes", "events", or both.`,
       'unsupported_format',
     )
   }

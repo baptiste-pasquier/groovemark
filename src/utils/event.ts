@@ -15,6 +15,17 @@ export const VERDICT_ORDER: Record<Verdict, number> = {
   'three-stars': 3,
 }
 
+// Narrows an untrusted value to a verdict. `value in VERDICT_ORDER` looks like
+// the same test and is not: it walks the prototype chain, so '__proto__' and
+// 'toString' pass it. Such a value reaches a surface as a verdict no glyph
+// exists for and throws inside vue-i18n at render time, taking the events tab
+// and the artist page down with no in-app recovery -- so every untrusted
+// boundary (the backup file, the cloud read) narrows through this one owner
+// rather than keeping its own copy of the four values.
+export function isVerdict(value: unknown): value is Verdict {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(VERDICT_ORDER, value)
+}
+
 // The accessible name of each verdict, keyed by the verdict itself. No verdict
 // name is ever written on screen -- a rated state is a glyph -- so these keys
 // are the only place those names exist, and both the display badge and the

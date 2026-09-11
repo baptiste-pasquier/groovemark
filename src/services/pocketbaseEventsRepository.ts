@@ -1,6 +1,6 @@
 import pb from './pocketbase'
 import type { MusicEvent, Performance, Verdict } from '../types/event'
-import { BATCH_MAX_REQUESTS, mintRecordId, VERDICT_ORDER } from '../utils/event'
+import { BATCH_MAX_REQUESTS, isVerdict, mintRecordId } from '../utils/event'
 import type { EventRecordInput, EventsRepository, PerformanceRecordInput } from './eventsRepository'
 import { FavoritesRepositoryError } from './favoritesRepository'
 
@@ -48,7 +48,7 @@ type BatchHandle = ReturnType<typeof pb.createBatch>
 // tab (R14, AE1). Anything outside the four values maps to null too, rather
 // than leaking a value no surface can render.
 function toVerdict(value: string | undefined): Verdict | null {
-  return value && value in VERDICT_ORDER ? (value as Verdict) : null
+  return isVerdict(value) ? value : null
 }
 
 // `dateAttended` is a date field, so the server stores and returns the day the
