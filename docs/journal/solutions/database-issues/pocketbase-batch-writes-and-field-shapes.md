@@ -113,9 +113,13 @@ Both normalisations happen at the read boundary in
 `src/services/pocketbaseEventsRepository.ts` (`toVerdict`, `toDayAttended`), not in the
 surfaces, so every consumer sees one shape regardless of which mode produced it.
 
-The relation guard was proven with a second account owning its own event: a row referencing the
-caller's own event and artist is accepted, and a foreign event id, a foreign artist id and a
-submitted foreign owner are each rejected. An event plus three performance rows commit in one
+The relation guard was proven with a second account owning **both** its own event and its own
+artist, which is the only configuration where an uncorrelated guard would show: an attacker who
+owns nothing satisfies neither clause, so a rejection would prove nothing. Four cases were run
+against that account. A row referencing the caller's own event and artist is accepted -- the
+case that distinguishes a working guard from one that fails to evaluate and so rejects
+everything. A foreign event id, a foreign artist id, and a submitted foreign owner are each
+rejected, as is a nonexistent event id. An event plus three performance rows commit in one
 batch, so the lookup does see the event created earlier in the same transaction; and a
 mid-batch rejection leaves no event and no row.
 

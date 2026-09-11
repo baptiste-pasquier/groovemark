@@ -216,6 +216,11 @@ const allArtists = computed(() => {
 - `useArtistsUiStore`: slug lookup for the artist address, and the artists table's rows, sort, search and column descriptor
 - `useArtistsStore` and `useEventsStore` load from bootstrap independently of `useFavoritesStore`; do not load either from inside another domain store
 - Each destination keeps its own search state; do not share a search ref between two destinations
+- Leaving a destination clears that destination's search, through the single `router.afterEach`
+  guard in `src/router/index.ts` -- not an unmount hook in each view. A search box is uncontrolled
+  while its term lives in an app-scoped store, so without this a returning view shows an empty box
+  over a filtered list. Only the search is cleared: the artists sort and the mixes artist filter
+  stay visible in their own controls, so neither can lie about what is filtering
 - A per-artist number is read from the store that owns it (`useEventsStore` for the live half, `useFavoritesUiStore` for the mixes half); do not re-derive one in a component or in the artists-UI store
 - Do not move dialog state back into `useFavoritesStore`
 - Do not put locale initialization inside view components; keep it in services/bootstrap
@@ -259,6 +264,14 @@ src/
   - the `performances` create and update rules also correlate each submitted relation id with the caller, so a row cannot reference another account's event or artist
 - Saving an event uses `/api/batch`, which a settings migration enables; the client mirrors its two bounds in `src/utils/event.ts`. Keep the migration and those constants in step.
 - Read a line-up with `sort: 'position,created,id'` -- rows written in one batch share a `created` timestamp. Restamp `position` on every row of every save.
+- One rule decides which local write reports a refusal, and both halves are load bearing. A write
+  the caller must act on **throws** (`writeStorageOrThrow`, as the events and artists repositories
+  do): the storage key is rewritten whole, so a refused write discards the record just created and
+  a silent success makes it vanish on the next load. A redundant **mirror** of data already saved
+  elsewhere swallows and logs, and never sits inside the `try` that decides whether a load
+  succeeded -- otherwise a device that cannot cache turns a healthy session read-only. The
+  favorites repository still swallows on its primary path; that is a known gap, not a pattern to
+  copy.
 - Authenticated offline fallback uses the user-scoped local cache, not local-mode storage.
 - A backup file is one versioned envelope (`{ formatVersion, mixes, events }`); an import refuses anything that does not declare a version it knows, and no relation id is ever exported.
 - If updating import/export or migration behavior, preserve separation between:
