@@ -305,6 +305,30 @@ describe('selectRepositories with events', () => {
   })
 })
 
+// Both read boundaries have to hand out the same shape. The cloud one defaults
+// an absent venue; this pins that the local one does too.
+describe('the local read boundary fills in what a hand-written cache entry omits', () => {
+  beforeEach(() => {
+    resetLocalStorageMock()
+  })
+
+  it('reads an entry with no venue as an empty one rather than letting the search throw', async () => {
+    const storageKey = getEventsStorageKey('local')
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify([{ id: 'event-1', name: 'Dour Festival', dateAttended: '2026-07-12' }]),
+    )
+
+    const [stored] = await new LocalEventsRepository(storageKey).list()
+
+    expect(stored.venue).toBe('')
+    expect(stored.performances).toEqual([])
+    // The events search calls `event.venue.toLowerCase()` with no guard, so an
+    // absent venue would throw while the operator is typing.
+    expect(() => stored.venue.toLowerCase()).not.toThrow()
+  })
+})
+
 // Which write surface reports a refused write is one rule, not a per-repository
 // taste: a write the caller must act on throws, a redundant mirror swallows and
 // logs. This pinned the old inconsistency, where artists swallowed a primary

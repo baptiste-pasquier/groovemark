@@ -5,11 +5,16 @@ import type { EventRecordInput, EventsRepository, PerformanceRecordInput } from 
 import { FavoritesRepositoryError } from './favoritesRepository'
 
 // Cache data written by hand, or by a shape older than the nested performances
-// list, can arrive without the array. Defaulting it here, at the read
-// boundary, keeps every `performances` access downstream safe without the same
-// guard scattered through the stores and the UI.
+// list, can arrive without the array or without a venue. Defaulting both here,
+// at the read boundary, keeps every access downstream safe without the same
+// guard scattered through the stores and the UI -- the events search reads
+// `event.venue.toLowerCase()` with no guard of its own, so an absent venue
+// throws while the operator is typing. The cloud boundary already defaults the
+// same field (`venue: record.venue ?? ''`); the two must agree on the shape
+// they hand out, or a cache entry reads differently from the row it mirrors.
 function normalizeStoredEvent(event: MusicEvent): MusicEvent {
-  return event.performances ? event : { ...event, performances: [] }
+  if (event.performances && typeof event.venue === 'string') return event
+  return { ...event, venue: event.venue ?? '', performances: event.performances ?? [] }
 }
 
 function buildPerformance(
