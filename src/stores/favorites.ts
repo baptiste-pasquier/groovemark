@@ -767,6 +767,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
       return
     }
 
+    // An export is the operator's escape hatch, so a degraded session must not
+    // lose it -- but a half that failed to load reads as an empty array here,
+    // and the file would assert that half is empty rather than unknown. The
+    // difference only shows when the backup is restored, long after the fact,
+    // so it is named now and the choice left to the operator.
+    if (loadFailed.value || useEventsStore().loadFailed) {
+      const confirmed = await favoritesUiStore.showConfirm(i18n.global.t('export.confirm_degraded'))
+      if (!confirmed) return
+    }
+
     const jsonString = JSON.stringify(
       buildBackupExportPayload(favorites.value, eventsToExport),
       null,

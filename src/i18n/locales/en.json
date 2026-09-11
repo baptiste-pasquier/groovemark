@@ -71,7 +71,8 @@
     "search_placeholder": "Search by event or venue..."
   },
   "export": {
-    "no_favorites": "There is nothing to export yet."
+    "no_favorites": "There is nothing to export yet.",
+    "confirm_degraded": "Part of this session could not be loaded, so a backup taken now would be incomplete and would silently claim the missing half is empty. Export anyway?"
   },
   "grid": {
     "empty_no_favorites": "You don't have any favorites yet. Add one to get started!",

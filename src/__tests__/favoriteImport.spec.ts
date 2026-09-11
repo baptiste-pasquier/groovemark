@@ -1366,6 +1366,42 @@ describe('Backup file format', () => {
     expect(favoritesStore.importProgress).toBeNull()
   })
 
+  it('names a degraded session before writing a backup that would claim a half is empty', async () => {
+    const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+    await eventsStore.saveEvent({
+      name: 'Nuits Sonores',
+      dateAttended: '2026-05-04',
+      venue: 'Les Subsistances',
+      performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+    })
+
+    // The mixes half failed to load, so `favorites` is empty because it is
+    // unknown -- not because the operator keeps none.
+    favoritesStore.loadFailed = true
+
+    const written: Blob[] = []
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      written.push(blob as Blob)
+      return 'blob:groovemark-backup'
+    })
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const exportPromise = favoritesStore.exportFavorites()
+    await flushPromises()
+
+    expect(favoritesUiStore.confirmDialog.visible).toBe(true)
+    favoritesUiStore.respondConfirm(false)
+    await exportPromise
+
+    // Declining writes no file at all: a backup the operator was warned about
+    // and refused must not land on disk anyway.
+    expect(written).toHaveLength(0)
+
+    vi.restoreAllMocks()
+  })
+
   it('exports an account holding events but no mix instead of refusing (R22)', async () => {
     const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
 

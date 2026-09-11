@@ -71,7 +71,8 @@
     "search_placeholder": "Rechercher par événement ou lieu..."
   },
   "export": {
-    "no_favorites": "Il n'y a rien à exporter pour le moment."
+    "no_favorites": "Il n'y a rien à exporter pour le moment.",
+    "confirm_degraded": "Une partie de cette session n'a pas pu etre chargee : une sauvegarde prise maintenant serait incomplete et affirmerait en silence que la moitie manquante est vide. Exporter quand meme ?"
   },
   "grid": {
     "empty_no_favorites": "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !",
