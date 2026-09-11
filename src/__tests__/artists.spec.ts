@@ -4,10 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import type { RecordModel } from 'pocketbase'
 import { useAppStore } from '../stores/app'
 import { useArtistsStore } from '../stores/artists'
+import { useArtistsUiStore } from '../stores/artistsUi'
 import { useAuthStore } from '../stores/auth'
+import { useEventsUiStore } from '../stores/eventsUi'
 import { useFavoritesStore } from '../stores/favorites'
 import { FavoritesRepositoryError, selectRepositories } from '../services/favoritesRepository'
-import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
+import { getLocalStorageState, localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
 import { sessionInit } from './mocks/sessionInit'
 import {
   pocketbaseArtistsCollectionApi,
@@ -123,6 +125,69 @@ describe('Artists Store', () => {
     expect(artistsStore.initialized).toBe(false)
     expect(favoritesStore.favorites).toEqual([])
     expect(favoritesStore.initialized).toBe(false)
+  })
+
+  it('keeps a healthy cloud session writable when the device refuses the cache mirror', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+    const appStore = useAppStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
+      { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft-punk' },
+    ] as never)
+
+    const originalSetItem = localStorageMock.setItem.getMockImplementation()
+    localStorageMock.setItem.mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+
+    try {
+      await artistsStore.initializeForCurrentSession(sessionInit(true))
+    } finally {
+      localStorageMock.setItem.mockImplementation(originalSetItem!)
+    }
+
+    // The load itself succeeded. A device that cannot keep an offline copy
+    // loses the offline copy -- not the artists it just fetched, and not the
+    // right to write for the rest of the session.
+    expect(artistsStore.artists).toEqual([createArtist('artist-1', 'Daft Punk', 'daft-punk')])
+    expect(artistsStore.loadFailed).toBe(false)
+    expect(appStore.isReadOnly).toBe(false)
+  })
+
+  it('resolves the artists cache mirror when the device refuses the write', async () => {
+    const authStore = useAuthStore()
+    const artistsStore = useArtistsStore()
+
+    authStore.authMode = 'google'
+    authStore.isAuthenticated = true
+    authStore.user = createUser('user-1')
+
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([] as never)
+    await artistsStore.initializeForCurrentSession(sessionInit(true))
+    artistsStore.addResolvedArtist(createArtist('artist-9', 'Anetha', 'anetha'))
+
+    const originalSetItem = localStorageMock.setItem.getMockImplementation()
+    localStorageMock.setItem.mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+
+    let thrown: unknown
+    try {
+      await artistsStore.persistArtistsCacheSnapshot()
+    } catch (error) {
+      thrown = error
+    } finally {
+      localStorageMock.setItem.mockImplementation(originalSetItem!)
+    }
+
+    // The mirror runs on the import path, where its caller has no catch of its
+    // own: rejecting here would surface as an unhandled rejection mid-import.
+    expect(thrown).toBeUndefined()
   })
 
   it('leaves the session read-only without signing out when loading artists fails', async () => {
@@ -281,6 +346,28 @@ describe('Artists Store', () => {
     // (resolveArtistCredits, via addOrUpdateFavorite) only does that once
     // the favorite crediting it has actually been saved.
     expect(artistsStore.artists).toEqual([])
+  })
+
+  it('clears the events and artists UI state on sign-out', () => {
+    const artistsUiStore = useArtistsUiStore()
+    const eventsUiStore = useEventsUiStore()
+    const appStore = useAppStore()
+
+    eventsUiStore.setSearch('warehouse')
+    artistsUiStore.setSearch('daft')
+    artistsUiStore.setSort('performances')
+
+    expect(eventsUiStore.searchTerm).toBe('warehouse')
+    expect(artistsUiStore.searchTerm).toBe('daft')
+    expect(artistsUiStore.sortColumn).toBe('performances')
+    expect(artistsUiStore.sortDirection).toBe('desc')
+
+    appStore.handleSignedOut()
+
+    expect(eventsUiStore.searchTerm).toBe('')
+    expect(artistsUiStore.searchTerm).toBe('')
+    expect(artistsUiStore.sortColumn).toBe('artist')
+    expect(artistsUiStore.sortDirection).toBe('asc')
   })
 
   it('clears a prior degraded read-only state on sign-out and on a fresh healthy session', async () => {

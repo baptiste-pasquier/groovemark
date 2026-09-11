@@ -3,8 +3,10 @@ import { computed, ref, type ComputedRef } from 'vue'
 import i18n from '../i18n'
 import type { AppStatus } from '../types/app'
 import { useArtistsStore } from './artists'
+import { useArtistsUiStore } from './artistsUi'
 import { useAuthStore } from './auth'
 import { useEventsStore } from './events'
+import { useEventsUiStore } from './eventsUi'
 import { useFavoritesStore } from './favorites'
 import { useFavoritesUiStore } from './favoritesUi'
 import { PocketBaseFavoritesRepository } from '../services/pocketbaseFavoritesRepository'
@@ -17,7 +19,9 @@ export const useAppStore = defineStore('app', () => {
 
   const authStore = useAuthStore()
   const artistsStore = useArtistsStore()
+  const artistsUiStore = useArtistsUiStore()
   const eventsStore = useEventsStore()
+  const eventsUiStore = useEventsUiStore()
   const favoritesStore = useFavoritesStore()
   const favoritesUiStore = useFavoritesUiStore()
   const pocketBaseRepository = new PocketBaseFavoritesRepository()
@@ -124,9 +128,16 @@ export const useAppStore = defineStore('app', () => {
     void favoritesUiStore.showAlert(i18n.global.t('messages.error_session_init'), 'alert')
   }
 
+  // Every store holding session state is reset here, the UI ones included. A
+  // search box left set would survive into the next account on the same device
+  // and silently filter its list, because the inputs are uncontrolled and would
+  // still render empty; the artists table would likewise keep the previous
+  // session's sort.
   function handleSignedOut(): void {
     artistsStore.$reset()
+    artistsUiStore.$reset()
     eventsStore.$reset()
+    eventsUiStore.$reset()
     favoritesStore.$reset()
     favoritesUiStore.$reset()
     status.value = 'unauthenticated'
