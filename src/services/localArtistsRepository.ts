@@ -1,5 +1,5 @@
 import type { Artist } from '../types/artist'
-import { createWriteQueue, readStorage, writeStorage } from './storage'
+import { createWriteQueue, readStorage, writeStorageOrThrow } from './storage'
 import type { ArtistRecordInput, ArtistsRepository } from './artistsRepository'
 import { FavoritesRepositoryError } from './favoritesRepository'
 
@@ -79,7 +79,20 @@ export class LocalArtistsRepository implements ArtistsRepository {
     return artists.find((artist) => artist.slug === slug) ?? null
   }
 
+  // Writes through the throwing helper rather than the swallowing one: the key
+  // holds every artist and is rewritten whole, so a refused write discards the
+  // artist just created while `create` reports success. The caller has to hear
+  // about that instead of finding a log line after the event was credited.
   async replaceAll(artists: Artist[]) {
-    writeStorage(this.storageKey, artists)
+    try {
+      writeStorageOrThrow(this.storageKey, artists)
+    } catch (error) {
+      console.error(`Error persisting artists to storage key "${this.storageKey}":`, error)
+      throw new FavoritesRepositoryError(
+        'Could not save the artist on this device.',
+        'write_failed',
+        { cause: error },
+      )
+    }
   }
 }

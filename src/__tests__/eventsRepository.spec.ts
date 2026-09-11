@@ -305,20 +305,21 @@ describe('selectRepositories with events', () => {
   })
 })
 
-// The events repository needed a write helper that propagates, so `writeStorage`
-// was rewritten to wrap the new throwing one. Its existing callers still rely on
-// the swallow-and-log behaviour, so pin it here: an artists write the browser
-// refuses must resolve, log, and leave the key alone.
-describe('writeStorage for its existing callers', () => {
+// Which write surface reports a refused write is one rule, not a per-repository
+// taste: a write the caller must act on throws, a redundant mirror swallows and
+// logs. This pinned the old inconsistency, where artists swallowed a primary
+// write and reported success for a record that was never stored; it now pins
+// the rule. The remaining swallowing caller is the favorites repository, which
+// no change here touches.
+describe('a refused write reaches the caller that must act on it', () => {
   beforeEach(() => {
     resetLocalStorageMock()
   })
 
-  it('still swallows and logs a rejected write instead of throwing', async () => {
+  it('rejects an artist create the browser refused, rather than reporting success', async () => {
     const storageKey = getArtistsStorageKey('local')
     const repository = new LocalArtistsRepository(storageKey)
     const originalSetItem = localStorageMock.setItem.getMockImplementation()
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     localStorageMock.setItem.mockImplementation(() => {
       throw new DOMException('Quota exceeded', 'QuotaExceededError')
@@ -333,13 +334,10 @@ describe('writeStorage for its existing callers', () => {
       localStorageMock.setItem.mockImplementation(originalSetItem!)
     }
 
-    expect(thrown).toBeUndefined()
-    expect(consoleError).toHaveBeenCalledWith(
-      `Error persisting storage key "${storageKey}":`,
-      expect.any(DOMException),
-    )
+    // Silence here is what let an artist vanish between crediting it on a night
+    // and reloading the page.
+    expect(thrown).toBeInstanceOf(FavoritesRepositoryError)
+    expect((thrown as FavoritesRepositoryError).code).toBe('write_failed')
     expect(getLocalStorageState()[storageKey]).toBeUndefined()
-
-    consoleError.mockRestore()
   })
 })

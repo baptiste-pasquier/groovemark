@@ -222,11 +222,6 @@ export const useEventsStore = defineStore('events', () => {
 
     try {
       loadedEvents.value = await activeEventsRepository.list()
-      // In cache mode the cache *is* the source, so mirroring would rewrite
-      // the key it was just read from for nothing.
-      if (options.selection.mode !== 'google-cache') {
-        await cacheEventsRepository.replaceAll(loadedEvents.value)
-      }
     } catch (error) {
       console.error('Error initializing events:', error)
       // Neither this failure nor the fallback's own may reject: bootstrap
@@ -253,6 +248,17 @@ export const useEventsStore = defineStore('events', () => {
     } finally {
       isLoading.value = false
     }
+
+    // The boot mirror sits outside the load's try on purpose: it copies a list
+    // the cloud already holds, so a device that refuses the write (quota,
+    // private browsing) must not discard a healthy load, raise loadFailed and
+    // turn the whole session read-only (KTD6) over a redundant copy. Only a
+    // cloud load has anything to mirror -- `effectiveMode` already says
+    // 'google-cache' when the load fell back, so a fallback never writes.
+    if (effectiveMode.value === 'google-cloud') {
+      cacheDirty = true
+      await persistEventsCacheSnapshot()
+    }
   }
 
   // Swallows a refused write and logs it: the event itself is already saved
@@ -260,6 +266,14 @@ export const useEventsStore = defineStore('events', () => {
   // cannot cache must not make a successful save report failure -- that would
   // send the operator back to the modal to save the same night twice.
   async function persistEventsCacheSnapshot() {
+    // Only a cloud session has a cache distinct from what it writes through:
+    // in local and cache mode `selectRepositories` hands back the same
+    // LocalEventsRepository on the same key, so mirroring here would rewrite
+    // the whole key from memory right after the repository's own
+    // read-modify-write -- undoing the write queue that exists so a concurrent
+    // tab's night is never dropped, and, at boot, overwriting a blob the read
+    // merely failed to parse.
+    if (effectiveMode.value !== 'google-cloud') return
     if (!cacheEventsRepository || !cacheDirty) return
     try {
       await cacheEventsRepository.replaceAll(loadedEvents.value)
@@ -417,8 +431,10 @@ export const useEventsStore = defineStore('events', () => {
 
     let added = 0
     let failed = 0
+    // Set once a row fails for a reason every remaining row would repeat.
+    let batchUnavailableMessage: string | null = null
 
-    for (const row of rows) {
+    for (const [index, row] of rows.entries()) {
       const lineUp = resolveImportedLineUp(row.performances ?? [], context.resolvedBySlug)
 
       if (!lineUp) {
@@ -444,14 +460,41 @@ export const useEventsStore = defineStore('events', () => {
       } catch (error) {
         console.error('Error importing event:', error)
         failed++
+        // A batch endpoint left disabled by an unapplied migration refuses
+        // every event identically (KTD2), so the rows after this one would
+        // only collect the same rejection. Keep the message that names the
+        // migration: a bare failure count reads as a corrupt backup file, and
+        // sends the operator to fix the wrong thing.
+        if (error instanceof FavoritesRepositoryError && error.code === 'batch_unavailable') {
+          batchUnavailableMessage = saveFailureMessage(error)
+        }
       }
 
       context.onRowProcessed()
+
+      if (batchUnavailableMessage) {
+        // The rows never attempted still count as failed and still report as
+        // processed, so the import's tally and its progress describe the whole
+        // file rather than the part that ran.
+        const abandoned = rows.length - index - 1
+        failed += abandoned
+        for (let remaining = 0; remaining < abandoned; remaining++) {
+          context.onRowProcessed()
+        }
+        break
+      }
     }
 
     if (added > 0) {
       await artistsStore.persistArtistsCacheSnapshot()
       await persistEventsCacheSnapshot()
+    }
+
+    // Said before the import's own summary, which counts rows but cannot name
+    // a cause -- the two alerts queue, so the operator reads the fixable
+    // deployment setting first.
+    if (batchUnavailableMessage) {
+      await useFavoritesUiStore().showAlert(batchUnavailableMessage, 'alert')
     }
 
     return { added, failed }

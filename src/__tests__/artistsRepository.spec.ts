@@ -4,7 +4,7 @@ import { LocalArtistsRepository } from '../services/localArtistsRepository'
 import { PocketBaseArtistsRepository } from '../services/pocketbaseArtistsRepository'
 import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { getArtistsStorageKey } from '../services/storage'
-import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
+import { getLocalStorageState, localStorageMock, resetLocalStorageMock } from './mocks/localStorage'
 import {
   mockPocketbase,
   pocketbaseArtistsCollectionApi,
@@ -109,6 +109,36 @@ describe('LocalArtistsRepository', () => {
 
     const stored = await repository.list()
     expect(stored).toHaveLength(3)
+  })
+
+  // A refused localStorage write (quota exceeded, Safari private browsing)
+  // discards the artist just created: the key holds every artist and is
+  // rewritten whole. Reporting success here would credit an artist on an event
+  // that is gone on the next reload.
+  it('rejects create when the storage write is refused', async () => {
+    const storageKey = getArtistsStorageKey('local')
+    const repository = new LocalArtistsRepository(storageKey)
+
+    localStorageMock.setItem.mockImplementationOnce(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError')
+    })
+
+    await expect(
+      repository.create({ displayName: 'Daft Punk', slug: 'daft-punk' }),
+    ).rejects.toBeInstanceOf(FavoritesRepositoryError)
+  })
+
+  it('rejects createMany when the storage write is refused', async () => {
+    const storageKey = getArtistsStorageKey('local')
+    const repository = new LocalArtistsRepository(storageKey)
+
+    localStorageMock.setItem.mockImplementationOnce(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError')
+    })
+
+    await expect(
+      repository.createMany([{ displayName: 'Daft Punk', slug: 'daft-punk' }]),
+    ).rejects.toBeInstanceOf(FavoritesRepositoryError)
   })
 
   it('createMany shares the same write lock as create, so the two cannot race each other', async () => {

@@ -12,6 +12,7 @@ import { useEventsStore } from '../stores/events'
 import type { EventPerformanceDraft } from '../stores/events'
 import { useFavoritesStore } from '../stores/favorites'
 import { useFavoritesUiStore } from '../stores/favoritesUi'
+import { FavoritesRepositoryError } from '../services/favoritesRepository'
 import { LocalEventsRepository } from '../services/localEventsRepository'
 import { BATCH_MAX_REQUESTS } from '../utils/event'
 import { getLocalStorageState, resetLocalStorageMock } from './mocks/localStorage'
@@ -158,6 +159,66 @@ describe('Events Store', () => {
     expect(getLocalStorageState()['groovemark:events:google:user-1']).toBe(
       JSON.stringify([cachedEvent]),
     )
+  })
+
+  it('keeps a healthy cloud load writable when the device refuses the cache mirror', async () => {
+    signInAsGoogleUser()
+    const appStore = useAppStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    pocketbaseEventsCollectionApi.getFullList.mockResolvedValue([serverEvent()])
+    pocketbasePerformancesCollectionApi.getFullList.mockResolvedValue([serverPerformance()])
+    // What a full quota or a private window does to the mirror: the write is
+    // refused -- and the repository throws rather than swallows -- while the
+    // cloud list it was copying is perfectly fine.
+    vi.spyOn(LocalEventsRepository.prototype, 'replaceAll').mockRejectedValue(
+      new FavoritesRepositoryError('Could not save the event on this device.', 'write_failed'),
+    )
+
+    await appStore.handleAuthenticatedSession()
+
+    expect(eventsStore.events.map((event) => event.name)).toEqual(['Nuits Sonores'])
+    expect(eventsStore.loadFailed).toBe(false)
+    expect(eventsStore.effectiveMode).toBe('google-cloud')
+    // The cache only copies what the cloud already holds, so failing to write
+    // it must not cost the operator every edit for the rest of the session.
+    expect(favoritesStore.isReadOnly).toBe(false)
+  })
+
+  it('keeps the night a second tab saved while mirroring a local-mode save', async () => {
+    const authStore = useAuthStore()
+    authStore.continueInLocalMode()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+
+    const init = sessionInit(false)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+
+    // A second tab on the same device saves its own night after this one
+    // loaded, so the key now holds an event this tab has never seen.
+    localStorage.setItem(
+      'groovemark:events:local',
+      JSON.stringify([storedEvent('other-tab-1', 'Other Tab Night', '2026-02-02')]),
+    )
+
+    const saved = await eventsStore.saveEvent({
+      name: 'Nuits Sonores',
+      dateAttended: '2026-05-04',
+      venue: 'Les Subsistances',
+      performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+    })
+
+    expect(saved).toBe(true)
+    // In local mode the cache *is* the repository that just saved, on the same
+    // key, so a mirror would rewrite it from memory and drop the other tab's
+    // night -- exactly what the repository's write queue exists to prevent.
+    const stored = JSON.parse(
+      getLocalStorageState()['groovemark:events:local'] ?? '[]',
+    ) as MusicEvent[]
+    expect(stored.map((event) => event.name)).toEqual(['Other Tab Night', 'Nuits Sonores'])
   })
 
   it('signing out resets the store and leaves no event in memory', async () => {
@@ -888,6 +949,61 @@ describe('Events Store', () => {
     expect(await importPromise).toEqual({ added: 0, skipped: 0, failed: 1 })
     expect(eventsStore.events).toEqual([])
     expect(pocketbaseBatchApi.send).not.toHaveBeenCalled()
+  })
+
+  it('names the disabled batch endpoint once and stops re-sending the rest of the file (KTD2)', async () => {
+    signInAsGoogleUser()
+    const artistsStore = useArtistsStore()
+    const eventsStore = useEventsStore()
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    pocketbaseArtistsCollectionApi.getFullList.mockResolvedValue([
+      { id: 'artist-1', displayName: 'Daft Punk', slug: 'daft punk' },
+    ] as never)
+    pocketbaseBatchApi.send.mockRejectedValue({ status: 403 })
+
+    const init = sessionInit(true)
+    await artistsStore.initializeForCurrentSession(init)
+    await eventsStore.initializeForCurrentSession(init)
+    await favoritesStore.initializeForCurrentSession(init)
+
+    const importPromise = favoritesStore.importFavorites(
+      [],
+      [
+        {
+          name: 'First Night',
+          dateAttended: '2026-05-04',
+          venue: 'Les Subsistances',
+          performances: [{ artistName: 'Daft Punk', verdict: null }],
+        },
+        {
+          name: 'Second Night',
+          dateAttended: '2026-05-05',
+          venue: 'Le Sucre',
+          performances: [{ artistName: 'Daft Punk', verdict: null }],
+        },
+      ],
+    )
+    await flushPromises()
+
+    // A bare failure count reads as a corrupt backup file, and sends the
+    // operator to fix the wrong thing: only this message names the migration.
+    expect(favoritesUiStore.alertDialog.message).toContain('1789067402_enable_batch')
+    favoritesUiStore.closeAlert()
+    await flushPromises()
+
+    // The import's own summary follows, and still counts the row that was
+    // never attempted rather than losing it.
+    expect(favoritesUiStore.alertDialog.message).toContain('2 failed to import')
+    favoritesUiStore.closeAlert()
+
+    expect(await importPromise).toEqual({ added: 0, skipped: 0, failed: 2 })
+    expect(eventsStore.events).toEqual([])
+    // Every remaining row would be refused identically, so only the first was
+    // ever sent.
+    expect(pocketbaseBatchApi.send).toHaveBeenCalledTimes(1)
   })
 
   it('restores an event through the events repository from the import path', async () => {
