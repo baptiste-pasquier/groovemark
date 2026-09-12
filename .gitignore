@@ -40,3 +40,6 @@ playwright-report/
 # Pocketbase
 pocketbase/pocketbase
 pb_data/
+
+# Visual brainstorming companion (superpowers)
+.superpowers/
