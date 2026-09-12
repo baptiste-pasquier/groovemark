@@ -132,7 +132,14 @@ function isInvalidEvent(item: unknown): boolean {
   }
 
   const candidate = item as Partial<BackupEvent>
-  if (typeof candidate.name !== 'string' || !isValidDayAttended(candidate.dateAttended)) {
+  // `events.name` is required server-side, so a blank name is a row the cloud
+  // refuses on create while local mode, which has no such rule, would store a
+  // nameless card the operator cannot tell apart from any other. Refused here
+  // instead, where the whole file is still in hand and the problem can be named.
+  if (typeof candidate.name !== 'string' || candidate.name.trim() === '') {
+    return true
+  }
+  if (!isValidDayAttended(candidate.dateAttended)) {
     return true
   }
   if (candidate.performances !== undefined && !Array.isArray(candidate.performances)) {

@@ -1129,6 +1129,42 @@ describe('Backup file format', () => {
     }
   })
 
+  // PocketBase's `events.name` is required, so a blank name is a row the cloud
+  // will refuse anyway -- and local mode, which has no such rule, would store a
+  // nameless card instead. Refusing the file names the problem while the
+  // operator still has it in hand.
+  it('refuses an event whose name is blank, which the events collection requires', async () => {
+    for (const name of ['', '   ', '\n']) {
+      const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
+
+      const importPromise = favoritesStore.importFromFile(
+        backupFile({
+          formatVersion: BACKUP_FORMAT_VERSION,
+          mixes: [],
+          events: [
+            {
+              name,
+              dateAttended: '2026-07-12',
+              venue: 'Les Subsistances',
+              performances: [{ artistName: 'Daft Punk', verdict: 'three-stars' }],
+            },
+          ],
+        }),
+      )
+      await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(favoritesUiStore.alertDialog.message).toContain('Invalid structure')
+      favoritesUiStore.closeAlert()
+      expect(await importPromise).toBeNull()
+      expect(eventsStore.events).toEqual([])
+
+      setActivePinia(createPinia())
+      resetLocalStorageMock()
+      resetPocketbaseMocks()
+    }
+  })
+
   it('accepts a leap day and every other real bare day', async () => {
     const { eventsStore, favoritesStore, favoritesUiStore } = await localSession()
 
