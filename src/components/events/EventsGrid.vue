@@ -51,7 +51,7 @@ defineExpose({ openEventId, showEventModal })
 <template>
   <HeaderBar />
 
-  <main>
+  <main class="card-grid-body">
     <!-- A failed load leaves the list empty because it is unknown, not because
          nothing was ever recorded, and the tab cannot say the second. The
          controls go with the list: a degraded session is read-only everywhere,

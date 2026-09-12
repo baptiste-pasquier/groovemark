@@ -24,6 +24,8 @@ All notable changes to this project should be documented in this file.
 - The search field, the date sort and the create button sit in the same row on all three tabs.
 - The events tab can be read oldest-first.
 - The phone header is two rows shorter.
+- Fixed the events tab's controls row starting at the page edge while the cards below it stayed
+  centred, so the search field and the first card now share a left edge as they do on the other tabs.
 - Every control on that row — the search field, the sort and filter buttons, and the create button —
   is now the same height (44px), instead of three heights between 38px and 48px.
 

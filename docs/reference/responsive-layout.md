@@ -322,6 +322,11 @@ These classes translate the tokens into layout behavior:
 - `.view-controls-search`: the search field and the controls that read with it (sort, and the
   phone-only artist filter on the mixes tab) on one line at every width.
 - `.view-controls-action`: the create button, full width on a phone and label-width from `sm`.
+- `.card-grid-body`: the box a `.card-grid` sits in together with whatever is laid out over it,
+  sized to the grid's own width at each breakpoint (`--layout-grid-width-2col` / `-3col` / `-4col`).
+  Without it the grid stays centred while the controls row above starts at the shell's edge, and
+  the two stop sharing a left edge. The mixes tab uses `.mixes-body` instead, which also has a
+  sidebar to account for.
 - `.view-control-button`: an icon button on the controls row — the date sort on both card
   destinations, the phone-only artist filter on the mixes tab. Square, sized by
   `--layout-control-height`.

@@ -33,6 +33,8 @@
      can drift apart. 2.75rem is the touch target WCAG 2.2 asks for. */
   --layout-control-height: 2.75rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-grid-width-3col: calc(var(--layout-card-width) * 3 + var(--layout-grid-gap) * 2);
+  --layout-grid-width-4col: calc(var(--layout-card-width) * 4 + var(--layout-grid-gap) * 3);
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
 }
@@ -117,6 +119,17 @@ body {
 
   .favorites-desktop-hidden {
     @apply layout-2col:hidden;
+  }
+
+  /* The box a .card-grid sits in, together with whatever is laid out over it.
+     .card-grid centres fixed-width columns, so a wider box leaves the grid
+     centred while the controls row above it starts at the box's left edge --
+     the two stop sharing a left edge. Matching the box to the grid's own width
+     at each breakpoint keeps them aligned and makes the grid's centring a
+     no-op. The mixes tab solves the same problem through .mixes-body, which
+     also has a sidebar to account for. */
+  .card-grid-body {
+    @apply layout-3col:w-[var(--layout-grid-width-3col)] layout-4col:w-[var(--layout-grid-width-4col)] mx-auto flex w-full flex-col md:w-[var(--layout-grid-width-2col)];
   }
 
   .card-grid {

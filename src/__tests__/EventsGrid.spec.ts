@@ -270,6 +270,38 @@ describe('EventsGrid', () => {
     expect(wrapper.text()).toContain('No event matches your search')
   })
 
+  it('gives the controls row and the grid one left edge at every column count', async () => {
+    await seedLocalEvents()
+    const { wrapper } = await mountEventsGrid()
+
+    // The row and the grid have to be inside the same box, or the grid's own
+    // centring pulls it away from the row above it.
+    const box = wrapper.get('.card-grid-body')
+    expect(box.element.contains(wrapper.get('.view-controls').element)).toBe(true)
+    expect(box.element.contains(wrapper.get('#events-grid').element)).toBe(true)
+
+    // ...and that box has to be exactly as wide as the grid at each
+    // breakpoint. Asserting the two progressions agree, rather than asserting
+    // three widths, is what catches a fifth column added without a width to
+    // match it.
+    const boxRule = layoutRuleFor('card-grid-body')
+    const gridRule = layoutRuleFor('card-grid')
+
+    const columnsAt: [string, string][] = [
+      ['md:', '2'],
+      ['layout-3col:', '3'],
+      ['layout-4col:', '4'],
+    ]
+
+    for (const [variant, columns] of columnsAt) {
+      expect(gridRule).toContain(
+        `${variant}grid-cols-[repeat(${columns},var(--layout-card-width))]`,
+      )
+      expect(boxRule).toContain(`${variant}w-[var(--layout-grid-width-${columns}col)]`)
+      expect(TAILWIND_CSS).toContain(`--layout-grid-width-${columns}col: calc(`)
+    }
+  })
+
   it('caps the search field at one token and sizes every control on the row by another', () => {
     expect(TAILWIND_CSS).toContain('--layout-search-max-width: 24rem;')
 
