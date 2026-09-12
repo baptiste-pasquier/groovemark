@@ -171,4 +171,70 @@ describe('Events UI Store', () => {
     expect(eventsUiStore.searchTerm).toBe('')
     expect(eventsUiStore.filteredEvents).toHaveLength(3)
   })
+
+  it('starts newest-first, matching the order the domain store returns', async () => {
+    await seedLocalEvents()
+    const eventsUiStore = useEventsUiStore()
+
+    expect(eventsUiStore.sortOrder).toBe('newest')
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('reverses the list when the sort is toggled, and back when it is toggled again', async () => {
+    await seedLocalEvents()
+    const eventsUiStore = useEventsUiStore()
+
+    eventsUiStore.toggleSort()
+
+    expect(eventsUiStore.sortOrder).toBe('oldest')
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['old', 'mid', 'new'])
+
+    eventsUiStore.toggleSort()
+
+    expect(eventsUiStore.sortOrder).toBe('newest')
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('reverses what the search left, not the whole list', async () => {
+    await seedLocalEvents([
+      ...SEEDED_EVENTS,
+      storedEvent('also-dour', 'Dour Warm-up', '2025-07-14', 'Dour Grounds'),
+    ])
+    const eventsUiStore = useEventsUiStore()
+
+    eventsUiStore.setSearch('dour')
+    eventsUiStore.toggleSort()
+
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['also-dour', 'new'])
+  })
+
+  it('never reorders the domain store, which stays the canonical date ordering (R11)', async () => {
+    const eventsStore = await seedLocalEvents()
+    const eventsUiStore = useEventsUiStore()
+
+    eventsUiStore.toggleSort()
+
+    expect(eventsStore.events.map((event) => event.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('restores the newest-first order on reset', async () => {
+    await seedLocalEvents()
+    const eventsUiStore = useEventsUiStore()
+
+    eventsUiStore.toggleSort()
+    eventsUiStore.$reset()
+
+    expect(eventsUiStore.sortOrder).toBe('newest')
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('keeps the sort when only the search is cleared, as the route guard does on leave', async () => {
+    await seedLocalEvents()
+    const eventsUiStore = useEventsUiStore()
+
+    eventsUiStore.toggleSort()
+    eventsUiStore.setSearch('')
+
+    expect(eventsUiStore.sortOrder).toBe('oldest')
+  })
 })
