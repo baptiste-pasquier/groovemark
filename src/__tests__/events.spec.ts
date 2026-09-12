@@ -861,9 +861,9 @@ describe('Events Store', () => {
     await flushPromises()
 
     // Retrying will never work, so "try again" is the wrong thing to say: the
-    // operator has to split the night, and only this message tells them.
+    // operator has to split the event, and only this message tells them.
     expect(favoritesUiStore.alertDialog.message).toBe(
-      'This line-up is too long to save as one event. Split the night into two events.',
+      'This line-up is too long to save as one event. Split it into two events.',
     )
     favoritesUiStore.closeAlert()
     expect(await savePromise).toBe(false)

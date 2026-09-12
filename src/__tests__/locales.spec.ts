@@ -38,3 +38,29 @@ describe('Locale key parity', () => {
     expect(missingFrom(partialKeys, completeKeys)).toEqual([])
   })
 })
+
+// An attended event is one record, and each locale had two names for it: the
+// tab, the modal and every message said "event" / "événement", while the
+// artists column, the artist page and the line-up error said "night" /
+// "soirée". Nothing on screen told the reader they were the same thing. One
+// name per locale, guarded here so the other cannot drift back in with the next
+// string that needs writing.
+function stringAt(messages: Messages, key: string): string {
+  return key.split('.').reduce<string | Messages>((node, part) => {
+    return (node as Messages)[part]
+  }, messages) as string
+}
+
+function keysMatching(messages: Messages, pattern: RegExp): string[] {
+  return leafKeys(messages).filter((key) => pattern.test(stringAt(messages, key)))
+}
+
+describe('Each locale names an attended event one way', () => {
+  it('says event in English, never night', () => {
+    expect(keysMatching(en as Messages, /\bnights?\b/i)).toEqual([])
+  })
+
+  it('says événement in French, never soirée', () => {
+    expect(keysMatching(fr as Messages, /soir[ée]es?\b/i)).toEqual([])
+  })
+})
