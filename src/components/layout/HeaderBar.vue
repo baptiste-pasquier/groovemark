@@ -295,7 +295,4 @@ function openFilters() {
       </div>
     </div>
   </header>
-  <div class="mb-8">
-    <!-- Search and Add button moved to App.vue for layout flexibility -->
-  </div>
 </template>

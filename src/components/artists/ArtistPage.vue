@@ -97,7 +97,7 @@ function openMix(mix: Favorite) {
            the only one that does not depend on browser history. -->
       <RouterLink
         :to="{ name: 'artists' }"
-        class="artist-back-link flex w-fit items-center gap-1.5 text-sm text-blue-500 hover:underline"
+        class="artist-back-link artist-page-back flex w-fit items-center gap-1.5 text-sm text-blue-500 hover:underline"
       >
         <ChevronLeft class="h-4 w-4 shrink-0" />
         {{ t('artist_page.all_artists') }}

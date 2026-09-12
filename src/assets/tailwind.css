@@ -60,8 +60,12 @@ body {
     @apply layout-2col:mx-auto layout-2col:w-fit layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
   }
 
+  /* The gap below the header is halved on a phone, where the controls stack
+     into their own rows and the screen has no height to spare: a full 32px
+     there pushes the search field and the first card down for no gain. From md
+     up the header sits on one line and keeps its original room. */
   .favorites-header {
-    @apply layout-2col:mx-0 layout-2col:w-full mb-8 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:w-[var(--layout-grid-width-2col)];
+    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
   }
 
   .favorites-header-controls {
@@ -107,6 +111,16 @@ body {
      again". */
   .artist-page {
     @apply flex w-full min-w-0 flex-col gap-[var(--layout-artist-section-gap)];
+  }
+
+  /* On a phone the way back is one short line, and the header's margin plus the
+     page gap put more room around it than around the blocks it introduces. It
+     is pulled tight there, where vertical room is the scarce dimension, and
+     left alone from md up. Only the space below it is taken back now: the
+     header's own bottom margin is already halved on a phone, so pulling up
+     from it as well would sit the link against the buttons above. */
+  .artist-page-back {
+    @apply -mb-2 md:mb-0;
   }
 
   .artist-section {
