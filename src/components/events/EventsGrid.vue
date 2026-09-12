@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TriangleAlert } from 'lucide-vue-next'
 import HeaderBar from '../layout/HeaderBar.vue'
+import SortToggleButton from '../layout/SortToggleButton.vue'
 import EventModal from '../modals/EventModal.vue'
 import AddEventButton from './AddEventButton.vue'
 import EventCard from './EventCard.vue'
@@ -69,6 +70,11 @@ defineExpose({ openEventId, showEventModal })
       <div class="view-controls mb-6">
         <div class="view-controls-search">
           <EventsSearchBar />
+          <SortToggleButton
+            button-id="events-sort-btn"
+            :order="eventsUiStore.sortOrder"
+            @toggle="eventsUiStore.toggleSort()"
+          />
         </div>
         <div class="view-controls-action">
           <AddEventButton :disabled="appStore.isReadOnly" @click="createEvent" />

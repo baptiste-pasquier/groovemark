@@ -287,4 +287,20 @@ describe('EventsGrid', () => {
     expect(row.find('#add-event-btn').exists()).toBe(true)
     expect(layoutRuleFor('view-controls')).toMatch(/sm:flex-row/)
   })
+
+  it('puts the sort beside the search and reverses the rendered order', async () => {
+    await seedLocalEvents()
+
+    const { wrapper } = await mountEventsGrid()
+    const eventsUiStore = useEventsUiStore()
+
+    const sortButton = wrapper.get('#events-sort-btn')
+    expect(sortButton.element.closest('.view-controls-search')).not.toBeNull()
+
+    await sortButton.trigger('click')
+    await nextTick()
+
+    expect(eventsUiStore.sortOrder).toBe('oldest')
+    expect(wrapper.findAll('.event-card')).toHaveLength(3)
+  })
 })

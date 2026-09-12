@@ -4,10 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
 import { useFavoritesStore } from '../../stores/favorites'
-import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import {
-  CalendarArrowDown,
-  CalendarArrowUp,
   Settings,
   Upload,
   Download,
@@ -22,7 +19,6 @@ import { SUPPORTED_LOCALES } from '../../i18n'
 import { updateLocale } from '../../services/locale'
 
 const favoritesStore = useFavoritesStore()
-const favoritesUiStore = useFavoritesUiStore()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
@@ -40,12 +36,6 @@ const DESTINATIONS = [
 // The artist page belongs to the artists destination, so its tab stays marked
 // while an artist page is open.
 const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : route.name))
-
-// Sorting the grid and filtering it by artist belong to the mixes destination
-// (R20). The header is rendered by each destination view, so without this the
-// events and artists tabs would offer a sort that orders mixes and a filter
-// that opens the mixes sidebar.
-const showsMixesControls = computed(() => activeDestination.value === 'mixes')
 
 // Compute display name for auth status
 const authDisplayName = computed(() => {
@@ -99,10 +89,6 @@ async function handleImport(event: Event) {
     // Cleared so selecting the same file again still fires a change event.
     input.value = ''
   }
-}
-
-function toggleSort() {
-  favoritesUiStore.toggleSort()
 }
 </script>
 
@@ -162,22 +148,6 @@ function toggleSort() {
             {{ t(destination.label) }}
           </RouterLink>
         </nav>
-        <button
-          v-if="showsMixesControls"
-          id="sort-btn"
-          class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
-          @click="toggleSort"
-          :title="
-            favoritesUiStore.sortOrder === 'newest'
-              ? t('app.sort_toggle_title_oldest')
-              : t('app.sort_toggle_title_newest')
-          "
-        >
-          <component
-            :is="favoritesUiStore.sortOrder === 'newest' ? CalendarArrowDown : CalendarArrowUp"
-            class="h-6 w-6 text-gray-700"
-          />
-        </button>
         <div class="relative">
           <button
             id="settings-menu-btn"

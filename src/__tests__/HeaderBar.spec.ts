@@ -113,21 +113,18 @@ describe('HeaderBar', () => {
     wrapper.findAll('[data-destination]').forEach((tab) => {
       expect(tab.classes()).toContain('destination-tab')
     })
-    expect(wrapper.get('#sort-btn').element.closest('.favorites-header-controls')).not.toBeNull()
   })
 
-  it('offers the grid sort on the mixes destination only', async () => {
+  it('carries no list control at all, on any destination', async () => {
     const router = createTestRouter()
-    await router.push('/')
-    await router.isReady()
 
-    const wrapper = mountHeaderBar(router)
-    expect(wrapper.find('#sort-btn').exists()).toBe(true)
-
-    for (const destination of ['/events', '/artists']) {
+    for (const destination of ['/', '/events', '/artists']) {
       await router.push(destination)
-      await flushPromises()
+      await router.isReady()
+
+      const wrapper = mountHeaderBar(router)
       expect(wrapper.find('#sort-btn').exists()).toBe(false)
+      expect(wrapper.find('#filter-menu-btn').exists()).toBe(false)
     }
   })
 

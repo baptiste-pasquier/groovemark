@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Filter } from 'lucide-vue-next'
 import HeaderBar from '../layout/HeaderBar.vue'
+import SortToggleButton from '../layout/SortToggleButton.vue'
 import FavoritesGrid from './FavoritesGrid.vue'
 import FavoriteSearchBar from './FavoriteSearchBar.vue'
 import AddFavoriteButton from './AddFavoriteButton.vue'
@@ -10,6 +11,7 @@ import FavoriteModal from '../modals/FavoriteModal.vue'
 import ArtistSidebar from '../filters/ArtistSidebar.vue'
 import ArtistList from '../filters/ArtistList.vue'
 import { useFavoritesStore } from '../../stores/favorites'
+import { useFavoritesUiStore } from '../../stores/favoritesUi'
 
 // The grid, the favorite modal and the artist sidebar stay under one parent:
 // a route outlet does not forward a child's emits, so the modal's open state
@@ -19,6 +21,7 @@ const editId = ref<string | null>(null)
 const showSidebar = ref(false)
 
 const favoritesStore = useFavoritesStore()
+const favoritesUiStore = useFavoritesUiStore()
 
 const { t } = useI18n()
 
@@ -40,6 +43,11 @@ function editFavorite(id: string) {
     <div class="view-controls">
       <div class="view-controls-search">
         <FavoriteSearchBar />
+        <SortToggleButton
+          button-id="sort-btn"
+          :order="favoritesUiStore.sortOrder"
+          @toggle="favoritesUiStore.toggleSort()"
+        />
         <button
           id="filter-menu-btn"
           type="button"

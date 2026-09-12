@@ -82,7 +82,19 @@ describe('MixesView', () => {
     expect(wrapper.findComponent(FavoriteSearchBar).exists()).toBe(true)
     expect(wrapper.findComponent(AddFavoriteButton).exists()).toBe(true)
     expect(wrapper.findComponent(ArtistList).exists()).toBe(true)
-    expect(wrapper.find('#sort-btn').exists()).toBe(true)
+  })
+
+  it('puts the sort beside the search and toggles the mixes order', async () => {
+    const favoritesUiStore = useFavoritesUiStore()
+    const { wrapper } = await mountMixesView()
+
+    const sortButton = wrapper.get('#sort-btn')
+    expect(sortButton.element.closest('.view-controls-search')).not.toBeNull()
+    expect(favoritesUiStore.sortOrder).toBe('newest')
+
+    await sortButton.trigger('click')
+
+    expect(favoritesUiStore.sortOrder).toBe('oldest')
   })
 
   it('keeps the search narrowing the grid', async () => {
