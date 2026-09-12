@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -8,7 +8,6 @@ import HeaderBar from '../components/layout/HeaderBar.vue'
 import i18n from '../i18n'
 import { routes } from '../router'
 import { useAuthStore } from '../stores/auth'
-import { useFavoritesStore } from '../stores/favorites'
 import { resetPocketbaseMocks } from './mocks/pocketbase'
 import { resetLocalStorageMock } from './mocks/localStorage'
 
@@ -38,21 +37,6 @@ describe('HeaderBar', () => {
     resetPocketbaseMocks()
     resetLocalStorageMock()
     i18n.global.locale.value = 'en'
-  })
-
-  it('shows the offline read-only badge and disables import when the cache fallback is active', async () => {
-    const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
-
-    authStore.authMode = 'google'
-    authStore.user = createUser('user-1')
-    favoritesStore.repositoryMode = 'google-cache'
-
-    const wrapper = mountHeaderBar()
-    await wrapper.find('#settings-menu-btn').trigger('click')
-
-    expect(wrapper.text()).toContain('Offline (Read-only)')
-    expect(wrapper.find('#import-json').attributes('disabled')).toBeDefined()
   })
 
   it('renders the three destination tabs and marks the current one', async () => {
@@ -134,7 +118,35 @@ describe('HeaderBar', () => {
     expect(Object.keys(wrapper.vm.$options.emits ?? {})).toEqual([])
   })
 
-  it('keeps the app-level settings menu on every destination', async () => {
+  it('gives a signed-in session one identity control and no loose buttons', () => {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.user = createUser('user-1')
+
+    const wrapper = mountHeaderBar()
+
+    expect(wrapper.find('#account-menu-btn').exists()).toBe(true)
+    expect(wrapper.find('#settings-menu-btn').exists()).toBe(false)
+    expect(wrapper.find('#logout-btn').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Local Mode')
+  })
+
+  it('gives local mode a warning badge and a settings menu, and no account control', () => {
+    const authStore = useAuthStore()
+    authStore.continueInLocalMode()
+
+    const wrapper = mountHeaderBar()
+
+    expect(wrapper.text()).toContain('Local Mode')
+    expect(wrapper.find('#settings-menu-btn').exists()).toBe(true)
+    expect(wrapper.find('#account-menu-btn').exists()).toBe(false)
+  })
+
+  it('keeps an identity control on every destination', async () => {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.user = createUser('user-1')
+
     const router = createTestRouter()
 
     for (const destination of ['/', '/events', '/artists']) {
@@ -142,50 +154,7 @@ describe('HeaderBar', () => {
       await router.isReady()
 
       const wrapper = mountHeaderBar(router)
-      expect(wrapper.find('#settings-menu-btn').exists()).toBe(true)
+      expect(wrapper.find('#account-menu-btn').exists()).toBe(true)
     }
-  })
-
-  it('does not show the offline badge when signed in online', async () => {
-    const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
-
-    authStore.authMode = 'google'
-    authStore.user = createUser('user-1')
-    favoritesStore.repositoryMode = 'google-cloud'
-
-    const wrapper = mountHeaderBar()
-    await wrapper.find('#settings-menu-btn').trigger('click')
-
-    expect(wrapper.text()).not.toContain('Offline (Read-only)')
-    expect(wrapper.find('#import-json').attributes('disabled')).toBeUndefined()
-  })
-
-  it('runs the import from a non-mixes destination, not only from the mixes view', async () => {
-    const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
-
-    authStore.continueInLocalMode()
-
-    const importFromFile = vi
-      .spyOn(favoritesStore, 'importFromFile')
-      .mockResolvedValue({ added: 0, skipped: 0, failed: 0 })
-
-    const router = createTestRouter()
-    await router.push('/events')
-    await router.isReady()
-
-    const wrapper = mountHeaderBar(router)
-    await wrapper.find('#settings-menu-btn').trigger('click')
-
-    const input = wrapper.find('#import-json')
-    const file = new File(['{}'], 'backup.json', { type: 'application/json' })
-    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
-
-    await input.trigger('change')
-    await flushPromises()
-
-    expect(importFromFile).toHaveBeenCalledTimes(1)
-    expect(importFromFile.mock.calls[0]?.[0]).toBe(file)
   })
 })

@@ -163,7 +163,10 @@
     "signed_in_as": "Signed in as {name}",
     "local_mode": "Local Mode",
     "offline_read_only": "Offline (Read-only)",
-    "exit_local_mode": "Leave local mode"
+    "exit_local_mode": "Leave local mode",
+    "account_menu_aria": "Account menu",
+    "account_signed_in_label": "Signed in as",
+    "status_synced": "Synced"
   },
   "dialog": {
     "info": "Information",
