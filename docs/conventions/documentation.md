@@ -41,9 +41,25 @@ A hard-won **invariant** is explanation, not an incident. It stays.
 The test: **would a reader who never saw the bug still need this to work on the code?** Yes
 means it is explanation. No means it is a journal entry.
 
+### A plugin's artifacts land in the journal
+
+A spec, a plan or a retrospective written by a plugin is a dated record, so it goes under
+[`../journal/`](../journal/) and nowhere else — `journal/specs/` for an approved design,
+`journal/plans/` for an implementation plan. The redirect is written in
+[`../../AGENTS.md`](../../AGENTS.md), which outranks a plugin skill's own hardcoded path.
+
+Only the directory is ours. The artifact keeps the plugin's filename and frontmatter, and
+nobody edits it afterwards: it is a record. CI asks a journal entry for no frontmatter at
+all, and fails `docs/superpowers/` as an unknown folder.
+
+One rule the artifact must follow, because CI fails on it: **a path to a repo file is a
+backticked path, not a markdown link**, unless it resolves from the artifact's own folder. A
+plugin writes those links relative to the directory being worked on, and the link check reads
+journal entries too. A plan names its spec as `../specs/<file>.md`.
+
 ### Never write a backlog
 
-No TODO section, no "future work", no "not yet implemented" list anywhere in `docs/`.
+No TODO section, no "future work", no "not yet implemented" list in a maintained doc.
 Unbuilt work lives in the issue tracker and nowhere else — `gh issue list --label backlog` to
 read it, `gh issue create --label backlog` to add an item, and **link the issue** from the
 doc rather than describing the missing work. This project keeps no mirror of it in `docs/`:
@@ -52,7 +68,8 @@ is currently nothing to mirror (zero issues in the tracker). Revisit if that cha
 `references/backlog.md` in the `docs-taxonomy` skill for the mirror's design.
 
 A `TODO` comment in a source file is fine, and a doc may point at one. What is banned is a
-**list of unbuilt work** inside prose, because nothing ever prunes it.
+**list of unbuilt work** inside prose, because nothing ever prunes it. `journal/` is exempt:
+a plan's own `Open Questions` section is a dated record of what was open that day.
 
 ### Record a lasting choice as a decision
 
@@ -127,6 +144,12 @@ every unrelated PR on one day.
 `journal/decisions/` uses [MADR](https://adr.github.io/madr/) frontmatter instead.
 `journal/plans/` and `journal/ideation/` keep the `title`/`date`/`type`/`origin`/`status`
 schema they already use.
+
+A journal entry written by a plugin keeps whatever schema that plugin writes, including none
+— a `superpowers` spec or plan carries no frontmatter, and needs none. What CI does ask of a
+journal entry is a `.md` extension, a kebab-case filename (`NNNN-...` in `decisions/`), a
+resolvable link, and no unreplaced `{{...}}` placeholder. The last two are the ones a pasted
+artifact trips on.
 
 ## Every `conventions/` file states its scope
 

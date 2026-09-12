@@ -320,6 +320,32 @@ Four extensions, for text that is not about the product:
 A maintained doc states the rule **once** and links the journal entry for the evidence. It
 does not retell the story.
 
+### Where a plugin's artifacts go
+
+Every dated artifact a plugin writes is a journal entry. **The paths below override the ones
+the plugins' own skills name** -- an instruction in this file takes precedence over a skill's.
+
+| Running                               | Do not write to           | Write to                                                                      |
+| ------------------------------------- | ------------------------- | ----------------------------------------------------------------------------- |
+| `superpowers:brainstorming`           | `docs/superpowers/specs/` | `docs/journal/specs/`                                                         |
+| `superpowers:writing-plans`           | `docs/superpowers/plans/` | `docs/journal/plans/`                                                         |
+| a compound-engineering artifact skill | `docs/<artifact-name>/`   | under `docs/journal/`, per `docs_root` in `.compound-engineering/config.yaml` |
+
+**Only the directory changes.** Keep the plugin's own filename
+(`YYYY-MM-DD-<topic>-design.md`) and its own frontmatter -- impose a second schema and the
+plugin keeps writing its own anyway. The gate asks a journal entry for no frontmatter at all,
+and it fails `docs/superpowers/` as an unknown folder, so the redirect is binding rather than
+advisory.
+
+**In a plan or a spec, cite a repo file as a backticked path, not a markdown link**, unless
+the path resolves from the artifact's own folder. The link check reads journal entries too,
+and a plugin writes those links relative to whatever directory the plan is about, which
+resolves from nowhere under `docs/journal/plans/`. A plan names its spec as
+`../specs/<file>.md`, never as an absolute `docs/...` link.
+
+A plan or a spec is a dated record of intent, so the no-backlog rule below does not reach it:
+a plan's own `Open Questions` section stays where the plugin wrote it.
+
 ### Rules that are enforced
 
 `scripts/check_docs.py` runs in the Husky pre-commit hook (when a staged file is under
@@ -330,11 +356,12 @@ interpreter -- no pip dependency. These fail:
   `docs/conventions/` or `docs/how-to/`.** Write a `docs/journal/solutions/` entry and leave
   the distilled rule with a link. `docs/explanation/` **may** narrate, so the gate **warns**
   there rather than failing. `docs/journal/` is exempt.
-- **Never add a backlog, TODO or "future work" section under `docs/`.** Unbuilt work lives in
-  the issue tracker and nowhere else -- `gh issue list --label backlog` to read it,
-  `gh issue create --label backlog` to add an item, and **link the issue** from the doc
-  rather than describing the missing work. A `TODO` comment in a source file is fine, and a
-  doc may point at one.
+- **Never add a backlog, TODO or "future work" section to a maintained doc.** Unbuilt work
+  lives in the issue tracker and nowhere else -- `gh issue list --label backlog` to read it,
+  `gh issue create --label backlog` to add an item, and **link the issue** rather than
+  describing the missing work. A `TODO` comment in a source file is fine, and a doc may point
+  at one. `docs/journal/` is exempt, so a plan's own `Open Questions` section stays where the
+  plugin wrote it.
 - **Every maintained doc carries frontmatter** with `title`, `type` (equal to its folder
   name), `audience`, `status`, `stale_after`, and appears in `docs/README.md`. A passed
   `stale_after` **warns** rather than fails.

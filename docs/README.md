@@ -93,10 +93,16 @@ Every maintained doc appears here. A doc missing from this list fails CI.
 - [`decisions/`](journal/decisions/) — one architectural choice per entry, MADR format. An
   accepted decision is never edited
 - [`solutions/`](journal/solutions/) — what broke, what was tried, what the measurement said
-- [`plans/`](journal/plans/) — shipped implementation plans, kept for provenance
-- [`ideation/`](journal/ideation/) — requirements exploration that fed a plan
+- [`ideation/`](journal/ideation/) — exploration that fed a spec or a plan
+- [`plans/`](journal/plans/) — implementation plans, kept for provenance
+- `specs/` — the approved design a plan implements. Created on its first use; there is none
+  yet
 
 Template: [`decisions/README.md`](journal/decisions/README.md).
+
+A plugin's dated artifacts land in these categories and nowhere else — the redirect is in
+[`../AGENTS.md`](../AGENTS.md), and `docs/superpowers/` fails check 1 below as an unknown
+folder. Each artifact keeps its own filename and frontmatter; only the directory is ours.
 
 ## Not in this tree
 
