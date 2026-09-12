@@ -82,10 +82,6 @@ body {
     @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
   }
 
-  .favorites-header-controls {
-    @apply flex flex-wrap items-center justify-center gap-2 md:justify-end;
-  }
-
   .destination-switcher {
     @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto;
   }

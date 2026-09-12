@@ -212,7 +212,7 @@ const allArtists = computed(() => {
 - `useFavoritesUiStore`: filtered lists, sort/filter/search state, per-artist mix aggregates, alert/confirm dialogs
 - `useArtistsStore`: artist identity load, resolve-or-create, cache mirror
 - `useEventsStore`: events load, whole-event save, delete, the events half of an import, and the per-artist performance views and aggregates
-- `useEventsUiStore`: the events tab's search and its filtered list
+- `useEventsUiStore`: the events tab's search, its sort direction and its filtered list
 - `useArtistsUiStore`: slug lookup for the artist address, and the artists table's rows, sort, search and column descriptor
 - `useArtistsStore` and `useEventsStore` load from bootstrap independently of `useFavoritesStore`; do not load either from inside another domain store
 - Each destination keeps its own search state; do not share a search ref between two destinations

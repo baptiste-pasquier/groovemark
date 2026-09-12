@@ -112,6 +112,21 @@ This avoids:
 - header and grid using different effective widths
 - desktop sidebar appearing before there is enough room
 
+## Header Layout
+
+`.favorites-header` is one `flex flex-wrap` row carrying three slots, each marked with a
+`data-header-slot` attribute: `brand`, `identity`, `tabs`. `HeaderIdentity` mounts once, inside
+the `identity` slot -- never twice behind a hidden/visible pair, which would duplicate every id
+beneath it (the import control is a `<label for>` bound to an `<input id>`, which a duplicate id
+breaks). See [ADR-0004](../journal/decisions/0004-one-account-menu-in-the-header.md).
+
+- Below `sm` (`40rem` / `640px`): the `tabs` slot is `basis-full` and wraps onto its own row,
+  leaving `brand` and `identity` sharing the first row beside the title.
+- From `sm` up: the row stays single. `identity` carries `sm:order-last`, so it moves past
+  `tabs` to the end of the row.
+
+One mount, two positions, driven by flex order and wrapping rather than by a second template.
+
 ## Mobile And Tablet Behavior
 
 Before the desktop sidebar appears, the page uses a simpler stacked layout.
@@ -123,9 +138,9 @@ Below `md` (`48rem` / `768px`):
 - `.app-shell` uses page padding only:
   - `p-4` by default
   - `sm:p-6` from `40rem`
-- `.favorites-header` is stacked vertically, then becomes a horizontal row at `sm`
+- `.favorites-header` wraps its `tabs` slot onto its own row; see Header Layout above
 - `.favorites-main` stays fluid with `w-full`
-- `.favorites-mobile-controls` is visible above the grid
+- `.view-controls` stacks: search + sort + filter on one line, then the create button
 - `.card-grid` uses `grid-cols-1`
 
 This means the page is full-width, minus the shell padding.
@@ -136,15 +151,14 @@ From `md` (`48rem` / `768px`) up to `layout-2col` (`65.5rem`):
 
 - `.favorites-header` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-main` is centered and constrained to `--layout-grid-width-2col`
-- `.favorites-mobile-controls` is still visible
+- `.view-controls` is a single row above the grid
 - `.card-grid` becomes exactly `2` fixed-width cards
 - `.favorites-sidebar-desktop` is still hidden
 - `.favorites-desktop-hidden` keeps the mobile filter button visible
 
 This is the stage where:
 
-- search
-- add button
+- the controls row
 - header block
 - two-card grid
 
@@ -156,8 +170,10 @@ From `layout-2col` (`65.5rem`) and up:
 
 - `.favorites-layout` becomes a row
 - `.favorites-sidebar-desktop` becomes visible
-- `.favorites-mobile-controls` is hidden
+- `.view-controls` sits inside `.mixes-body`, above the sidebar and the grid
 - `.favorites-header` returns to full shell width
+- `.mixes-body` is centred on the sidebar-plus-grid width, which the controls row therefore
+  shares
 - `.favorites-main` returns to auto width inside the desktop layout
 
 At this point the page is no longer centered around the `2`-column grid width, but around the
@@ -189,11 +205,9 @@ grows that large, not an omission to correct.
 ## Destination Switcher
 
 The three top-level destinations (mixes, events, artists) are one segmented control, the same
-object at every width. It lives in the header's control row, so it shares that row with the
-sort button, the mobile filter button, the settings menu and the sign-out button.
-
-`.favorites-header-controls` wraps that row, so the switcher never pushes the other controls
-off screen: below `md` it takes a whole line and the buttons wrap onto the next one.
+object at every width. It lives in the header's `tabs` slot (see Header Layout above), which
+holds nothing else -- the sort button, the mobile filter button and the account menu all live
+outside the header's `tabs` slot, in `.view-controls` and the `identity` slot respectively.
 
 The switcher itself has two forms, driven by one class:
 
@@ -289,10 +303,12 @@ These classes translate the tokens into layout behavior:
 - `.favorites-layout`: desktop row layout
 - `.favorites-sidebar-desktop`: desktop sidebar
 - `.favorites-main`: main content width before and after desktop sidebar
-- `.favorites-mobile-controls`: search/add controls above the grid before desktop sidebar
+- `.mixes-body`: the mixes zone as one block -- the controls row and the sidebar-plus-grid share
+  one left edge because the row is the outer element's first child. Carries the centring
+  `.favorites-layout` used to carry.
+- `.header-menu-panel`: the dropdown shell both header menus use, anchored to its trigger.
 - `.card-grid`: shared fixed-width card grid at 2/3/4 columns, carried by both the mixes
   grid and the events grid
-- `.favorites-header-controls`: wrapping header control row that holds the destination switcher
 - `.destination-switcher`: segmented track for the three destinations, full width below `md`
 - `.destination-tab`: one destination tab inside the track
 - `.destination-tab-active`: the current destination's tab

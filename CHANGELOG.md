@@ -18,6 +18,13 @@ All notable changes to this project should be documented in this file.
 - Added an artists tab: a table of every performer credited by at least one mix or one night, sortable on each of its seven columns, reducing on a phone to the name plus the active column's value.
 - **Breaking:** the backup file is now one versioned envelope, `{ "formatVersion": 1, "mixes": [...], "events": [...] }`, carrying both domains. An import reads the version first and refuses anything it does not recognize whole, rather than reading it partially. An export taken before this change is refused: bring it forward by wrapping the array under `"mixes"` and adding `"formatVersion": 1`. Import also became an app-level action available on every destination instead of a mixes-only one.
 
+### Changed
+
+- The account badge, the settings button and the logout button are now one account menu, with a status dot reporting whether the session is synced, read-only or importing.
+- The search field, the date sort and the create button sit in the same row on all three tabs.
+- The events tab can be read oldest-first.
+- The phone header is two rows shorter.
+
 ### Fixed
 
 - Preserved each favorite's original creation date when importing a JSON backup while signed in with cloud sync, instead of overwriting it with the import time. Added a required `created_at` field to the `favorites` PocketBase collection to carry this date, distinct from the auto-managed `created`/`updated` audit timestamps.
