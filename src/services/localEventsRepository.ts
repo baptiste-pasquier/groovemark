@@ -12,9 +12,20 @@ import { FavoritesRepositoryError } from './favoritesRepository'
 // throws while the operator is typing. The cloud boundary already defaults the
 // same field (`venue: record.venue ?? ''`); the two must agree on the shape
 // they hand out, or a cache entry reads differently from the row it mirrors.
+//
+// Each field is repaired by the same test that rejected it. A `?? ''` replaces
+// only null and undefined, so it would hand back untouched every value this
+// boundary exists to catch -- a venue that is a number, a performances value
+// that is not an array -- and the throw would land downstream instead. The
+// cloud boundary can lean on `??` because the server types those fields; this
+// one reads a store the operator can edit by hand.
 function normalizeStoredEvent(event: MusicEvent): MusicEvent {
-  if (event.performances && typeof event.venue === 'string') return event
-  return { ...event, venue: event.venue ?? '', performances: event.performances ?? [] }
+  if (Array.isArray(event.performances) && typeof event.venue === 'string') return event
+  return {
+    ...event,
+    venue: typeof event.venue === 'string' ? event.venue : '',
+    performances: Array.isArray(event.performances) ? event.performances : [],
+  }
 }
 
 function buildPerformance(

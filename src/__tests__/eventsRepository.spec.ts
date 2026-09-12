@@ -327,6 +327,46 @@ describe('the local read boundary fills in what a hand-written cache entry omits
     // absent venue would throw while the operator is typing.
     expect(() => stored.venue.toLowerCase()).not.toThrow()
   })
+
+  // A boundary that tests one shape and repairs another leaves the case it was
+  // written for untouched: `venue ?? ''` only replaces null and undefined, so
+  // anything else that is not a string walks straight through the repair.
+  it('repairs a venue that is present but not a string, not only an absent one', async () => {
+    const storageKey = getEventsStorageKey('local')
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify([
+        { id: 'event-1', name: 'Dour Festival', dateAttended: '2026-07-12', venue: 2026 },
+      ]),
+    )
+
+    const [stored] = await new LocalEventsRepository(storageKey).list()
+
+    expect(stored.venue).toBe('')
+    expect(() => stored.venue.toLowerCase()).not.toThrow()
+  })
+
+  it('repairs a performances value that is present but not an array', async () => {
+    const storageKey = getEventsStorageKey('local')
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify([
+        {
+          id: 'event-1',
+          name: 'Dour Festival',
+          dateAttended: '2026-07-12',
+          venue: 'Dour',
+          performances: 3,
+        },
+      ]),
+    )
+
+    const [stored] = await new LocalEventsRepository(storageKey).list()
+
+    expect(stored.performances).toEqual([])
+    // Every surface that renders a line-up maps over it with no guard.
+    expect(() => stored.performances.map((performance) => performance.id)).not.toThrow()
+  })
 })
 
 // Which write surface reports a refused write is one rule, not a per-repository
