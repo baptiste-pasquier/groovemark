@@ -62,7 +62,7 @@ async function seedLocalEvents(events: MusicEvent[] = SEEDED_EVENTS) {
 
 const EVENT_CARD_STUB = {
   name: 'EventCard',
-  template: '<div class="event-card" @click="$emit(\'open\', event.id)" />',
+  template: '<div class="event-card" @click="$emit(\'open\', event.id)">{{ event.id }}</div>',
   props: ['event', 'readOnly'],
   emits: ['open'],
 }
@@ -297,10 +297,14 @@ describe('EventsGrid', () => {
     const sortButton = wrapper.get('#events-sort-btn')
     expect(sortButton.element.closest('.view-controls-search')).not.toBeNull()
 
+    const before = wrapper.findAll('.event-card').map((card) => card.text())
+    expect(before).toEqual(['new', 'mid', 'old'])
+
     await sortButton.trigger('click')
     await nextTick()
 
     expect(eventsUiStore.sortOrder).toBe('oldest')
-    expect(wrapper.findAll('.event-card')).toHaveLength(3)
+    const after = wrapper.findAll('.event-card').map((card) => card.text())
+    expect(after).toEqual(['old', 'mid', 'new'])
   })
 })
