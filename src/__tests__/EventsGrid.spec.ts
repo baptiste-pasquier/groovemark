@@ -270,13 +270,18 @@ describe('EventsGrid', () => {
     expect(wrapper.text()).toContain('No event matches your search')
   })
 
-  it('caps the search field at the shared token and stands it 38px tall', () => {
+  it('caps the search field at one token and sizes every control on the row by another', () => {
     expect(TAILWIND_CSS).toContain('--layout-search-max-width: 24rem;')
 
     const searchRule = layoutRuleFor('view-search')
     expect(searchRule).toContain('var(--layout-search-max-width)')
-    expect(layoutRuleFor('view-search-input')).toMatch(/\bpy-2\b/)
-    expect(layoutRuleFor('view-search-input')).not.toMatch(/\bp-3\b/)
+    // The search field, the icon buttons beside it and the create button at
+    // its end are read as one row, so one token sizes all three. Asserting the
+    // token rather than a pixel value is what stops them drifting apart again.
+    expect(TAILWIND_CSS).toContain('--layout-control-height: 2.75rem;')
+    for (const control of ['view-search-input', 'view-control-button', 'view-control-action']) {
+      expect(layoutRuleFor(control)).toContain('h-[var(--layout-control-height)]')
+    }
   })
 
   it('lays the events controls out with the class the three destinations share', async () => {

@@ -51,7 +51,7 @@ function editFavorite(id: string) {
         <button
           id="filter-menu-btn"
           type="button"
-          class="favorites-desktop-hidden rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+          class="view-control-button favorites-desktop-hidden"
           :title="t('app.filter_by_artist')"
           @click="showSidebar = true"
         >

@@ -27,6 +27,11 @@
      words; past this width the field reads as a text area and pushes the
      controls beside it off the eye's path. */
   --layout-search-max-width: 24rem;
+  /* One height for every control on the controls row -- the search field, the
+     icon buttons beside it and the create button at its end. They are read as
+     one row, so they are sized by one token rather than by three paddings that
+     can drift apart. 2.75rem is the touch target WCAG 2.2 asks for. */
+  --layout-control-height: 2.75rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
@@ -183,7 +188,20 @@ body {
   }
 
   .view-search-input {
-    @apply w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+    @apply h-[var(--layout-control-height)] w-full rounded-lg border border-gray-200 bg-white pr-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+  }
+
+  /* The icon buttons that sit beside the search field: the date sort on both
+     card destinations, and the phone-only artist filter on the mixes tab.
+     Square, so the token sets the width as well. */
+  .view-control-button {
+    @apply grid aspect-square h-[var(--layout-control-height)] shrink-0 place-items-center rounded-lg border border-gray-300 bg-white shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none;
+  }
+
+  /* The create button at the end of the row. Full width on a phone, where it
+     is the row; its own width from sm, where the wrapper releases it. */
+  .view-control-action {
+    @apply flex h-[var(--layout-control-height)] w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 font-semibold text-white shadow-md transition duration-300 hover:bg-blue-700 hover:shadow-lg focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none disabled:hover:bg-gray-300;
   }
 
   /* The compact select that changes the sort where the headers cannot: below

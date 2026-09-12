@@ -322,8 +322,14 @@ These classes translate the tokens into layout behavior:
 - `.view-controls-search`: the search field and the controls that read with it (sort, and the
   phone-only artist filter on the mixes tab) on one line at every width.
 - `.view-controls-action`: the create button, full width on a phone and label-width from `sm`.
+- `.view-control-button`: an icon button on the controls row — the date sort on both card
+  destinations, the phone-only artist filter on the mixes tab. Square, sized by
+  `--layout-control-height`.
+- `.view-control-action`: the create button at the end of the row, full width on a phone and its
+  own width from `sm`, sized by `--layout-control-height`.
 - `.view-search` / `.view-search-input`: the search field, capped at
-  `--layout-search-max-width` (24rem) and 38px tall. The cap is on the wrapper so the sort
+  `--layout-search-max-width` (24rem) and sized by `--layout-control-height` (2.75rem), the
+  height every control on the row shares. The cap is on the wrapper so the sort
   button stays beside the field.
 - `.artists-sort-control`: the compact sort select, below `md` only
 - `.artists-table`: the artists table's own frame

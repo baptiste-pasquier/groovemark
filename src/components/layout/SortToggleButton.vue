@@ -17,7 +17,7 @@ const { t } = useI18n()
   <button
     :id="buttonId"
     type="button"
-    class="shrink-0 rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
+    class="view-control-button"
     :title="
       order === 'newest' ? t('app.sort_toggle_title_oldest') : t('app.sort_toggle_title_newest')
     "
