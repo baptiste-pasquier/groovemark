@@ -23,17 +23,20 @@
     "press_enter_to_add": "Press Enter to add the artist."
   },
   "artist_page": {
+    "all_artists": "All artists",
     "back_to_artists": "Back to artists",
+    "chip_mixes": "{count} mix | {count} mixes",
+    "chip_moments": "{count} moment | {count} moments",
+    "chip_performances": "{count} performance | {count} performances",
+    "chip_starred": "{count} starred | {count} starred",
     "heading_live": "Seen live",
     "heading_mixes": "Their mixes",
-    "latest_verdict": "Latest rated night, {date}",
+    "latest_verdict": "on {date}",
+    "latest_verdict_at": "at {venue}, on {date}",
     "no_mixes": "No mix you kept credits this artist yet.",
     "no_performances": "You haven't seen this artist live yet.",
     "no_rated_verdict": "You haven't rated any of these nights yet.",
     "not_found": "No artist answers this address. It may have been renamed since this link was shared.",
-    "stat_mixes": "mixes kept",
-    "stat_moments": "moments",
-    "stat_starred": "starred moments",
     "unavailable": "Your artists could not be loaded, so this page cannot be shown. It will be back once the connection is restored."
   },
   "artists": {

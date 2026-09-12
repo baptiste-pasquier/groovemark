@@ -48,7 +48,7 @@ async function expectArtistPage(page: import('@playwright/test').Page) {
   // The mixes half is rendered as empty rather than omitted, counts included.
   await expect(page.locator('#artist-mixes')).toBeVisible()
   await expect(page.locator('.artist-mixes-empty')).toBeVisible()
-  await expect(page.locator('.artist-stat-value').first()).toHaveText('0')
+  await expect(page.locator('.artist-stat').first()).toHaveText('0 mix')
   // The destination switcher is still there, with the artists tab marked.
   await expect(page.locator('[data-destination="artists"]')).toHaveAttribute('aria-current', 'page')
 }

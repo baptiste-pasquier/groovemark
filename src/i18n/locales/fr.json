@@ -23,17 +23,20 @@
     "press_enter_to_add": "Appuyez sur Entrée pour ajouter l'artiste."
   },
   "artist_page": {
+    "all_artists": "Tous les artistes",
     "back_to_artists": "Retour aux artistes",
+    "chip_mixes": "{count} mix | {count} mix",
+    "chip_moments": "{count} temps fort | {count} temps forts",
+    "chip_performances": "{count} performance | {count} performances",
+    "chip_starred": "{count} noté | {count} notés",
     "heading_live": "Vu en live",
     "heading_mixes": "Ses mix",
-    "latest_verdict": "Dernière soirée notée, le {date}",
+    "latest_verdict": "le {date}",
+    "latest_verdict_at": "au {venue}, le {date}",
     "no_mixes": "Aucun mix gardé ne crédite cet artiste pour le moment.",
     "no_performances": "Vous n'avez pas encore vu cet artiste en live.",
     "no_rated_verdict": "Vous n'avez noté aucune de ces soirées pour le moment.",
     "not_found": "Aucun artiste ne correspond à cette adresse. Il a peut-être été renommé depuis le partage de ce lien.",
-    "stat_mixes": "mix gardés",
-    "stat_moments": "temps forts",
-    "stat_starred": "temps forts notés",
     "unavailable": "Vos artistes n'ont pas pu être chargés, cette page ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion."
   },
   "artists": {

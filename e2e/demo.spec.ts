@@ -112,19 +112,15 @@ test('records the README demo flow', async ({ context, page }) => {
   // card as much as from a mix card.
   await page.locator('.event-artist-link').filter({ hasText: 'Anetha' }).first().click()
   await expect(page.locator('.artist-page-name')).toHaveText('Anetha')
-  // Both halves are filled: one mix kept, and both nights she was seen at.
-  await expect(page.locator('.artist-stat-value').first()).toHaveText('1')
+  // Both halves are filled: both nights she was seen at, and one mix kept.
   await expect(page.locator('.artist-performance')).toHaveCount(2)
+  await expect(page.locator('.artist-stat').first()).toHaveText('1 mix')
   await expect(page.locator('[data-destination="artists"]')).toHaveAttribute('aria-current', 'page')
   await settleFrame(page)
   await captureFrame(page, '08-artist-page.png')
 
-  // The live half, brought into frame: at the page's scroll top it sits below
-  // the mixes grid, so the frame that exists to show both halves would show
-  // only the heading of the second one.
-  await page.locator('#artist-live').scrollIntoViewIfNeeded()
-  await expect(page.locator('.artist-latest-verdict')).toBeVisible()
-  await expect(page.locator('.artist-performance').last()).toBeVisible()
-  await settleFrame(page)
-  await captureFrame(page, '09-artist-live.png')
+  // No second artist frame: with the live half leading and the mixes half
+  // summarised into chips and small cards, both halves fit above the fold, so a
+  // scrolled frame captured the same pixels as the one above it.
+  await expect(page.locator('.artist-mix-card').first()).toBeVisible()
 })

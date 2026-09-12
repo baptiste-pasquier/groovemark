@@ -139,13 +139,14 @@ describe('ArtistPage', () => {
 
     expect(wrapper.find('.artist-page-name').text()).toBe('Anetha')
 
-    // Two mixes kept, three moments across them, two of them starred.
-    expect(wrapper.findAll('.artist-stat-value').map((stat) => stat.text())).toEqual([
-      '2',
-      '3',
-      '2',
+    // Two mixes kept, three moments across them, two of them starred. The three
+    // counts are chips inside the mixes block, so each carries its own label.
+    expect(wrapper.findAll('.artist-stat').map((chip) => chip.text())).toEqual([
+      '2 mixes',
+      '3 moments',
+      '2 starred',
     ])
-    expect(wrapper.findAll('#artist-mixes-grid .mix-card')).toHaveLength(2)
+    expect(wrapper.findAll('#artist-mixes-grid .artist-mix-card')).toHaveLength(2)
     expect(wrapper.find('.artist-mixes-empty').exists()).toBe(false)
 
     const performances = wrapper.findAll('.artist-performance')
@@ -223,10 +224,10 @@ describe('ArtistPage', () => {
 
     // The section is there, with its heading and its counts at zero.
     expect(wrapper.find('#artist-mixes').exists()).toBe(true)
-    expect(wrapper.findAll('.artist-stat-value').map((stat) => stat.text())).toEqual([
-      '0',
-      '0',
-      '0',
+    expect(wrapper.findAll('.artist-stat').map((chip) => chip.text())).toEqual([
+      '0 mixes',
+      '0 moments',
+      '0 starred',
     ])
     expect(wrapper.find('.artist-mixes-empty').exists()).toBe(true)
     expect(wrapper.find('#artist-mixes-grid').exists()).toBe(false)
@@ -253,7 +254,7 @@ describe('ArtistPage', () => {
     expect(wrapper.find('.artist-latest-verdict').exists()).toBe(false)
     // The empty live half is not the same as having nothing rated.
     expect(wrapper.find('.artist-no-rated-verdict').exists()).toBe(false)
-    expect(wrapper.findAll('#artist-mixes-grid .mix-card')).toHaveLength(1)
+    expect(wrapper.findAll('#artist-mixes-grid .artist-mix-card')).toHaveLength(1)
   })
 
   it('counts moments and starred moments across the mixes, including a mix with no moment', async () => {
@@ -276,10 +277,10 @@ describe('ArtistPage', () => {
 
     const { wrapper } = await mountPage('anetha')
 
-    expect(wrapper.findAll('.artist-stat-value').map((stat) => stat.text())).toEqual([
-      '3',
-      '4',
-      '2',
+    expect(wrapper.findAll('.artist-stat').map((chip) => chip.text())).toEqual([
+      '3 mixes',
+      '4 moments',
+      '2 starred',
     ])
   })
 
@@ -359,11 +360,12 @@ describe('ArtistPage', () => {
 
     expect(ARTIST_PAGE_TEMPLATE).not.toMatch(/min-\[/)
     expect(ARTIST_PAGE_TEMPLATE).not.toMatch(/\[\d+(\.\d+)?rem\]/)
-    // Both halves are in the document, in reading order: mixes, then live.
+    // Both halves are in the document, in reading order: live, then mixes. The
+    // live half leads because the page answers "worth seeing again".
     const sections = wrapper.findAll('section')
     expect(sections.map((section) => section.attributes('id'))).toEqual([
-      'artist-mixes',
       'artist-live',
+      'artist-mixes',
     ])
   })
 

@@ -2,14 +2,15 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute } from 'vue-router'
-import { CalendarDays, MapPin, TriangleAlert } from 'lucide-vue-next'
+import { ChevronLeft, Star, TriangleAlert } from 'lucide-vue-next'
 import HeaderBar from '../layout/HeaderBar.vue'
-import FavoriteCard from '../favorites/FavoriteCard.vue'
 import VerdictBadge from '../events/VerdictBadge.vue'
 import { useArtistsUiStore } from '../../stores/artistsUi'
 import { useEventsStore } from '../../stores/events'
 import { useFavoritesUiStore } from '../../stores/favoritesUi'
+import type { Favorite } from '../../types/favorite'
 import { formatDayAttended } from '../../utils/event'
+import { isSafeHttpUrl } from '../../utils/url'
 
 const artistsUiStore = useArtistsUiStore()
 const eventsStore = useEventsStore()
@@ -45,6 +46,28 @@ const history = computed(() => eventsStore.performanceHistoryFor(artist.value?.i
 function attendedOn(day: string) {
   return formatDayAttended(day, locale.value)
 }
+
+// The leading line dates the verdict and says where it was earned. The venue is
+// optional on an event, so the form without it is a separate phrase rather than
+// a sentence with a hole in it.
+const latestVerdictLine = computed(() => {
+  const latest = history.value.latestRated
+  if (!latest) return ''
+  const date = attendedOn(latest.dateAttended)
+  return latest.venue
+    ? t('artist_page.latest_verdict_at', { venue: latest.venue, date })
+    : t('artist_page.latest_verdict', { date })
+})
+
+// Opening a mix goes through the same guard the mix card uses, so a stored URL
+// that is not plain http(s) cannot be handed to the browser from here either.
+function openMix(mix: Favorite) {
+  if (!isSafeHttpUrl(mix.url)) {
+    return
+  }
+
+  window.open(mix.url, '_blank', 'noopener,noreferrer')
+}
 </script>
 
 <template>
@@ -70,106 +93,163 @@ function attendedOn(day: string) {
     </div>
 
     <template v-else-if="artist">
-      <h2 class="artist-page-name text-3xl font-bold text-gray-900">{{ artist.displayName }}</h2>
+      <!-- The way back out of a page reached from three different surfaces, and
+           the only one that does not depend on browser history. -->
+      <RouterLink
+        :to="{ name: 'artists' }"
+        class="artist-back-link flex w-fit items-center gap-1.5 text-sm text-blue-500 hover:underline"
+      >
+        <ChevronLeft class="h-4 w-4 shrink-0" />
+        {{ t('artist_page.all_artists') }}
+      </RouterLink>
 
-      <!-- Both halves are stacked sections at every width, and an empty half
-           renders as empty rather than disappearing (R15). -->
-      <section id="artist-mixes" class="artist-section">
-        <h3 class="text-xs font-bold tracking-wider text-gray-500 uppercase">
-          {{ t('artist_page.heading_mixes') }}
-        </h3>
+      <h2 class="artist-page-name text-3xl font-bold tracking-tight text-gray-900">
+        {{ artist.displayName }}
+      </h2>
 
-        <div class="artist-stats">
-          <div class="artist-stat rounded-xl bg-white px-4 py-3 shadow-sm">
-            <p class="artist-stat-value text-2xl font-bold text-gray-900">
-              {{ mixAggregate.mixCount }}
-            </p>
-            <p class="artist-stat-label text-sm text-gray-500">
-              {{ t('artist_page.stat_mixes') }}
-            </p>
-          </div>
-          <div class="artist-stat rounded-xl bg-white px-4 py-3 shadow-sm">
-            <p class="artist-stat-value text-2xl font-bold text-gray-900">
-              {{ mixAggregate.momentCount }}
-            </p>
-            <p class="artist-stat-label text-sm text-gray-500">
-              {{ t('artist_page.stat_moments') }}
-            </p>
-          </div>
-          <div class="artist-stat rounded-xl bg-white px-4 py-3 shadow-sm">
-            <p class="artist-stat-value text-2xl font-bold text-gray-900">
-              {{ mixAggregate.starredMomentCount }}
-            </p>
-            <p class="artist-stat-label text-sm text-gray-500">
-              {{ t('artist_page.stat_starred') }}
-            </p>
-          </div>
-        </div>
-
-        <!-- The mixes are read here, not revised: editing a mix stays on the
-             mixes destination, where the editing surface lives. -->
-        <div v-if="mixes.length" id="artist-mixes-grid" class="card-grid">
-          <FavoriteCard v-for="mix in mixes" :key="mix.id" :favorite="mix" read-only />
-        </div>
-        <p v-else class="artist-mixes-empty text-gray-500">{{ t('artist_page.no_mixes') }}</p>
-      </section>
-
+      <!-- Both halves are stacked white blocks at every width, and an empty half
+           renders as empty rather than disappearing (R15). The live half leads,
+           because this page is consulted to answer "worth seeing again". -->
       <section id="artist-live" class="artist-section">
-        <h3 class="text-xs font-bold tracking-wider text-gray-500 uppercase">
-          {{ t('artist_page.heading_live') }}
-        </h3>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-xs font-semibold text-gray-600">
+              {{ t('artist_page.heading_live') }}
+            </span>
 
-        <!-- The half leads with the most recent *rated* verdict and that
-             night's date, which is not always the latest night: an unrated
-             latest performance would otherwise silence the summary exactly
-             when it is being consulted (R14, AE1). -->
-        <div
-          v-if="history.latestRated"
-          class="artist-latest-verdict flex flex-wrap items-center gap-2 rounded-xl bg-white px-4 py-3 shadow-sm"
-        >
-          <VerdictBadge :verdict="history.latestRated.verdict" />
-          <span class="text-sm text-gray-500">
+            <!-- The half leads with the most recent *rated* verdict and that
+                 night's date, which is not always the latest night: an unrated
+                 latest performance would otherwise silence the summary exactly
+                 when it is being consulted (R14, AE1). -->
+            <div v-if="history.latestRated" class="artist-latest-verdict flex items-center gap-2">
+              <VerdictBadge :verdict="history.latestRated.verdict" />
+              <span class="text-sm text-gray-500">{{ latestVerdictLine }}</span>
+            </div>
+            <p
+              v-else-if="history.performances.length"
+              class="artist-no-rated-verdict text-sm text-gray-500"
+            >
+              {{ t('artist_page.no_rated_verdict') }}
+            </p>
+          </div>
+
+          <span
+            v-if="history.performances.length"
+            class="artist-performance-count inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-sm font-medium text-gray-600"
+          >
             {{
-              t('artist_page.latest_verdict', {
-                date: attendedOn(history.latestRated.dateAttended),
-              })
+              t(
+                'artist_page.chip_performances',
+                { count: history.performances.length },
+                history.performances.length,
+              )
             }}
           </span>
         </div>
-        <p v-else-if="history.performances.length" class="artist-no-rated-verdict text-gray-500">
-          {{ t('artist_page.no_rated_verdict') }}
-        </p>
 
-        <ul v-if="history.performances.length" class="flex flex-col gap-2">
+        <ul
+          v-if="history.performances.length"
+          class="mt-3.5 flex flex-col gap-px border-t border-gray-200 pt-2"
+        >
           <li
             v-for="performance in history.performances"
             :key="performance.performanceId"
-            class="artist-performance flex flex-col gap-2 rounded-xl bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+            class="artist-performance flex items-center justify-between gap-2.5 rounded-md px-2 py-1.5 text-gray-800 hover:bg-gray-50"
           >
-            <div class="min-w-0">
-              <p class="artist-performance-event truncate font-semibold text-gray-800">
+            <div class="flex min-w-0 flex-col">
+              <span class="artist-performance-event truncate font-medium">
                 {{ performance.eventName }}
-              </p>
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
-                <span class="artist-performance-date flex items-center gap-1">
-                  <CalendarDays class="h-4 w-4 shrink-0" />
-                  {{ attendedOn(performance.dateAttended) }}
-                </span>
-                <span
-                  v-if="performance.venue"
-                  class="artist-performance-venue flex min-w-0 items-center gap-1"
-                >
-                  <MapPin class="h-4 w-4 shrink-0" />
-                  <span class="truncate">{{ performance.venue }}</span>
-                </span>
-              </div>
+              </span>
+              <span class="artist-performance-date truncate text-xs text-gray-400">
+                {{ attendedOn(performance.dateAttended)
+                }}<template v-if="performance.venue"> · {{ performance.venue }}</template>
+              </span>
             </div>
             <VerdictBadge :verdict="performance.verdict" />
           </li>
         </ul>
-        <p v-else class="artist-live-empty text-gray-500">
+        <p v-else class="artist-live-empty mt-3 text-gray-500">
           {{ t('artist_page.no_performances') }}
         </p>
+      </section>
+
+      <section id="artist-mixes" class="artist-section">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <span class="text-xs font-semibold text-gray-600">
+            {{ t('artist_page.heading_mixes') }}
+          </span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span
+              class="artist-stat inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-sm font-medium text-gray-600"
+            >
+              {{
+                t('artist_page.chip_mixes', { count: mixAggregate.mixCount }, mixAggregate.mixCount)
+              }}
+            </span>
+            <span
+              class="artist-stat inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-sm font-medium text-gray-600"
+            >
+              {{
+                t(
+                  'artist_page.chip_moments',
+                  { count: mixAggregate.momentCount },
+                  mixAggregate.momentCount,
+                )
+              }}
+            </span>
+            <span
+              class="artist-stat inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-sm font-medium text-gray-600"
+            >
+              <Star class="h-3 w-3 shrink-0 fill-current text-yellow-400" />
+              {{
+                t(
+                  'artist_page.chip_starred',
+                  { count: mixAggregate.starredMomentCount },
+                  mixAggregate.starredMomentCount,
+                )
+              }}
+            </span>
+          </div>
+        </div>
+
+        <!-- The mixes are read here, not revised: editing a mix stays on the
+             mixes destination, where the editing surface lives. A moment is
+             counted rather than listed, because this page answers "who is this
+             artist to me", and a full timestamp list belongs to the mix itself. -->
+        <div v-if="mixes.length" id="artist-mixes-grid" class="artist-mix-grid mt-3.5">
+          <button
+            v-for="mix in mixes"
+            :key="mix.id"
+            type="button"
+            class="artist-mix-card overflow-hidden rounded-lg border border-gray-200 text-left transition duration-300 hover:border-gray-300 hover:shadow-sm"
+            @click="openMix(mix)"
+          >
+            <img
+              :src="mix.thumbnail"
+              alt=""
+              loading="lazy"
+              class="h-16 w-full object-cover"
+              @error="
+                (e: any) => (e.target.src = 'https://placehold.co/600x400/e2e8f0/adb5bd?text=Mix')
+              "
+            />
+            <div class="px-2.5 py-2">
+              <p class="artist-mix-title truncate text-sm font-semibold text-gray-900">
+                {{ mix.title }}
+              </p>
+              <p class="artist-mix-moments text-xs text-gray-400">
+                {{
+                  t(
+                    'artist_page.chip_moments',
+                    { count: mix.timestamps.length },
+                    mix.timestamps.length,
+                  )
+                }}
+              </p>
+            </div>
+          </button>
+        </div>
+        <p v-else class="artist-mixes-empty mt-3 text-gray-500">{{ t('artist_page.no_mixes') }}</p>
       </section>
     </template>
   </main>
