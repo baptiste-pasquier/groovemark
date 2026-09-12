@@ -175,8 +175,14 @@ body {
 
   /* The artists tab stacks its controls and its table at the grid gap, so the
      catalogue lines up with the card destinations' vertical rhythm. */
+  /* Below md the sort select sits between the controls row and the table, so
+     the stack has two gaps where every other tab has one. They take the
+     header's own bottom margin at that width (mb-4), which puts the same air
+     between the tabs and the search field as between the search field and the
+     select. From md the select is gone and the single remaining gap is the
+     grid gap, as on the card tabs. */
   .artists-view {
-    @apply flex w-full min-w-0 flex-col gap-[var(--layout-grid-gap)];
+    @apply flex w-full min-w-0 flex-col gap-4 md:gap-[var(--layout-grid-gap)];
   }
 
   /* The one controls row of the three card and table destinations: search and

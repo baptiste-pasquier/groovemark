@@ -324,7 +324,8 @@ These classes translate the tokens into layout behavior:
 - `.artist-section`: one half of the artist page
 - `.artist-stats`: the wrapping row of count tiles
 - `.credited-artist-link`: a credited artist's name, on the mix card and the event card
-- `.artists-view`: the artists tab's stacked shell
+- `.artists-view`: the artists tab's stacked shell, gapped like the header's bottom margin below
+  `md` (where the sort select adds a second gap) and like the card grid from `md`
 - `.view-controls`: the controls row the mixes, events and artists destinations share. Stacks on
   a phone, becomes a row from `sm`, sets no outer margin -- each host spaces its own stack.
 - `.view-controls-search`: the search field and the controls that read with it (sort, and the
