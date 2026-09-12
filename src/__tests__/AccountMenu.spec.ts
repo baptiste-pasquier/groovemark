@@ -112,7 +112,7 @@ describe('AccountMenu', () => {
     expect(wrapper.get('[role="status"]').text()).toBe('Importing... (12/80)')
   })
 
-  it('names the account and its state only once the panel is open', async () => {
+  it('names the account only once the panel is open', async () => {
     signIn()
 
     const wrapper = mountAccountMenu()
@@ -122,6 +122,17 @@ describe('AccountMenu', () => {
 
     expect(wrapper.text()).toContain('baptiste@example.com')
     expect(wrapper.text()).toContain('Synced')
+  })
+
+  it('closes the panel when the backdrop is used', async () => {
+    signIn()
+
+    const wrapper = mountAccountMenu()
+    await wrapper.get('#account-menu-btn').trigger('click')
+
+    await wrapper.get('[data-menu-backdrop]').trigger('click')
+
+    expect(wrapper.find('#logout-btn').exists()).toBe(false)
   })
 
   it('carries the app actions and signs out', async () => {

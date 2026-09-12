@@ -73,6 +73,13 @@ const statusLabel = computed(() => {
   return t('auth.status_synced')
 })
 
+// Only the read-only chip carries an explanation -- importing and synced are
+// already self-explanatory, and this is the one sentence saying changes come
+// back once the connection does (login.offline_read_only_info).
+const statusTitle = computed(() =>
+  status.value === 'readonly' ? t('login.offline_read_only_info') : undefined,
+)
+
 async function handleSignOut() {
   isMenuOpen.value = false
   await authStore.signOut()
@@ -87,7 +94,7 @@ async function handleSignOut() {
       type="button"
       class="relative rounded-full transition hover:ring-2 hover:ring-gray-300 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
       :aria-label="t('auth.account_menu_aria')"
-      :title="t('auth.signed_in_as', { name: displayName })"
+      :title="`${t('auth.signed_in_as', { name: displayName })} · ${statusLabel}`"
       aria-haspopup="true"
       :aria-expanded="isMenuOpen"
       @click="isMenuOpen = !isMenuOpen"
@@ -131,6 +138,7 @@ async function handleSignOut() {
         <span
           class="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold"
           :class="STATUS_CHIP_CLASS[status]"
+          :title="statusTitle"
         >
           <span class="h-1.5 w-1.5 rounded-full" :class="STATUS_DOT_CLASS[status]"></span>
           {{ statusLabel }}
