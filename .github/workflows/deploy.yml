@@ -39,6 +39,12 @@ jobs:
       - name: Build
         run: npm run build-only -- --base=/groovemark/
 
+      - name: Publish the start page as the not-found page
+        # GitHub Pages has no SPA rewrite: a direct hit on an artist address
+        # would 404. Serving the start page under the host's not-found name
+        # lets the history-mode router resolve the address on the client.
+        run: cp dist/index.html dist/404.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

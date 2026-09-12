@@ -148,6 +148,95 @@ A unique index on `(owner, slug)` rejects a second artist with the same normaliz
 - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
+## Collection: events
+
+This collection stores a night out: what it was called, when it happened and where. The performances seen there live in the `performances` collection and reference the event, rather than being nested inside this record. The canonical source of this schema is `pocketbase/pb_migrations/1789067400_created_events.js`, and the collection id it fixes is `pbc_1093733721`.
+
+### Fields
+
+| Field Name   | Type            | Required | Description                                                                                                |
+| ------------ | --------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| id           | Text (auto)     | Yes      | Auto-generated unique identifier, 15 characters matching `^[a-z0-9]+$`                                     |
+| name         | Text            | Yes      | The event's name, e.g. `Dour Festival`                                                                     |
+| dateAttended | Date            | Yes      | The night the event was attended -- client-settable, so an imported or back-dated event keeps its own date |
+| venue        | Text            | No       | Where the event took place                                                                                 |
+| owner        | Relation(users) | Yes      | Authenticated user who owns the event                                                                      |
+| created      | DateTime (auto) | Yes      | Auto-generated creation timestamp                                                                          |
+| updated      | DateTime (auto) | Yes      | Auto-generated last update timestamp                                                                       |
+
+An index on `(owner, dateAttended)` backs the newest-first listing of one account's events.
+
+### Collection Settings
+
+- **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
+- **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+
+## Collection: performances
+
+This collection stores one artist's appearance at one event, with at most one verdict on it. A performance exists as part of its event and nowhere else: its `eventId` relation cascades on delete, so removing an event removes its whole line-up. The canonical source of this schema is `pocketbase/pb_migrations/1789067401_created_performances.js`, and the collection id it fixes is `pbc_2758201643`.
+
+### Fields
+
+| Field Name | Type              | Required | Description                                                                                            |
+| ---------- | ----------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| id         | Text (auto)       | Yes      | Auto-generated unique identifier, 15 characters matching `^[a-z0-9]+$`                                 |
+| eventId    | Relation(events)  | Yes      | Single-select (`maxSelect: 1`) relation to the event; `cascadeDelete: true`                            |
+| artistId   | Relation(artists) | Yes      | Single-select (`maxSelect: 1`) relation to the credited artist; `cascadeDelete: false`                 |
+| artistName | Text              | Yes      | The credited artist's display name, denormalized so an exported event reads without the artist records |
+| verdict    | Select            | No       | One of `dislike`, `one-star`, `two-stars`, `three-stars`; empty means no verdict, not a lowest step    |
+| position   | Number            | No       | The row's zero-based index in its event's line-up, set by the client (`onlyInt`, `min: 0`)             |
+| owner      | Relation(users)   | Yes      | Authenticated user who owns the performance                                                            |
+| created    | DateTime (auto)   | Yes      | Auto-generated creation timestamp                                                                      |
+| updated    | DateTime (auto)   | Yes      | Auto-generated last update timestamp                                                                   |
+
+Indexes on `(owner, eventId)` and `(owner, artistId)` back the two ways a performance is read: the line-up of one event, and one artist's live history.
+
+Read a line-up with `sort: 'position,created,id'`. `position` is required for correctness, not for tidiness: a batch writes every row of one save inside the same millisecond and `created` has millisecond precision, so rows of one line-up tie and the random id would decide the order. `created,id` remains as the tiebreak, which keeps rows written before `position` existed -- all of them reading as `0` -- in a total, stable order among themselves. A client sets `position` from the row's index in the submitted line-up, and rewrites it for every row on each save, because removing or reordering one row shifts the index of the rest. `position` was added by `pocketbase/pb_migrations/1789067403_updated_performances_position.js`. The server behaviour behind this sort order is recorded in [What PocketBase 0.40.2 actually does with a batch, a select, a date and a relation guard](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
+
+`owner` is a denormalized copy of the owning account, matching the other collections, and the relation guard below is what keeps it consistent with the event and artist the row points at.
+
+### Collection Settings
+
+The owner-scoped rules match the other collections, and the create and update rules carry an additional guard on both relations: a row may only reference an event and an artist belonging to the caller. Each guard correlates the submitted id with the caller through a collection lookup, rather than traversing the submitted relation.
+
+- **List/Search Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **View Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+- **Create Rule**: `@request.auth.id != "" && @request.body.owner = @request.auth.id && @collection.events.id ?= @request.body.eventId && @collection.events.owner ?= @request.auth.id && @collection.artists.id ?= @request.body.artistId && @collection.artists.owner ?= @request.auth.id`
+- **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id) && (@request.body.eventId:isset = false || (@collection.events.id ?= @request.body.eventId && @collection.events.owner ?= @request.auth.id)) && (@request.body.artistId:isset = false || (@collection.artists.id ?= @request.body.artistId && @collection.artists.owner ?= @request.auth.id))`
+- **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
+
+The update rule guards each relation only when the request submits it, so an edit that touches the verdict alone does not have to resubmit `eventId` or `artistId`. Each `?=` comparison correlates within one matched row, and the lookup resolves an event created by an earlier request of the same batch, which is what makes creating an event and its line-up in one transaction legal -- see [the server-behaviour journal entry](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
+
+## Value Shapes On Read
+
+Three stored values do not come back in the shape the client sent. `PocketBaseEventsRepository` normalises each at the read boundary, so a surface reads one shape whichever persistence mode produced it.
+
+| Value                  | What the server returns                                           | The interface's canonical form            |
+| ---------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| `performances.verdict` | `''` for an absent verdict, whether the write sent `''` or `null` | `null`                                    |
+| `events.dateAttended`  | `2026-05-04 00:00:00.000Z` for a written `2026-05-04`             | the bare `YYYY-MM-DD` day                 |
+| A line-up's order      | every row of one batch carrying the same `created` timestamp      | `position`, with `created,id` as tiebreak |
+
+An empty `verdict` read as-is satisfies every `verdict !== null` test downstream, so the mapping to `null` is a correctness requirement rather than a convenience. The evidence for all three is in [the server-behaviour journal entry](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
+
+## Instance Settings
+
+The `/api/batch` endpoint is **disabled** in a default PocketBase instance. An event and all of its performance rows are written as one batch transaction, so `pocketbase/pb_migrations/1789067402_enable_batch.js` enables it and pins all three of its bounds:
+
+| Setting             | Value   | Meaning                                                 |
+| ------------------- | ------- | ------------------------------------------------------- |
+| `batch.enabled`     | true    | The `/api/batch` endpoint accepts requests              |
+| `batch.maxRequests` | 50      | Maximum number of sub-requests in one batch             |
+| `batch.timeout`     | 3       | Seconds to wait before cancelling the batch transaction |
+| `batch.maxBodySize` | 1048576 | Maximum request body in bytes (1MB)                     |
+
+Setting this in a migration rather than the dashboard keeps it reproducible in the Docker image: an instance that never applies the migration reads and lists events normally and refuses only to save one.
+
+The first two bounds are also exported from `src/utils/event.ts` as `BATCH_MAX_REQUESTS` and `BATCH_TIMEOUT_SECONDS`, because the client refuses an oversized batch before sending it and the settings endpoint is superuser-only, so it cannot read them back from the server. `batch.maxBodySize` is a server-side ceiling that no client code evaluates, so nothing mirrors it; leaving it unset means PocketBase's own default of roughly 128MB, four times what an ordinary record create accepts, and the server buffers that body before any collection rule runs. The largest batch this app sends is 51 small JSON sub-requests. The 1MB figure assumes no file field ever travels in a batch.
+
 ## Storage Keys
 
 Current browser storage keys:
@@ -158,6 +247,10 @@ Current browser storage keys:
 - `groovemark:favorites:google:<userId>`
 - `groovemark:artists:local`
 - `groovemark:artists:google:<userId>`
+- `groovemark:events:local`
+- `groovemark:events:google:<userId>`
+
+The events keys hold whole events with their performances nested, so a line-up is never a key of its own.
 
 The app also contains a legacy migration path for the old `favorites` key when entering
 local mode.

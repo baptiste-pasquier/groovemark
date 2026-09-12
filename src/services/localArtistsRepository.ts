@@ -1,28 +1,16 @@
 import type { Artist } from '../types/artist'
-import { readStorage, writeStorage } from './storage'
+import { createWriteQueue, readStorage, writeStorageOrThrow } from './storage'
 import type { ArtistRecordInput, ArtistsRepository } from './artistsRepository'
 import { FavoritesRepositoryError } from './favoritesRepository'
 
 export class LocalArtistsRepository implements ArtistsRepository {
   private storageKey: string
-  // Serializes every read-modify-write against this storage key. `create`
-  // and `createMany` both do list -> mutate -> replaceAll with no storage
-  // -level lock, so two calls racing between the read and the write would
-  // silently drop one writer's artist. Chaining every write through this
-  // promise makes each one wait for the previous to finish first.
-  private writeQueue: Promise<unknown> = Promise.resolve()
+  // `create` and `createMany` both do list -> mutate -> replaceAll, so every
+  // write goes through the shared queue.
+  private enqueue = createWriteQueue()
 
   constructor(storageKey: string) {
     this.storageKey = storageKey
-  }
-
-  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.writeQueue.then(operation, operation)
-    this.writeQueue = result.then(
-      () => undefined,
-      () => undefined,
-    )
-    return result
   }
 
   async list(): Promise<Artist[]> {
@@ -91,7 +79,20 @@ export class LocalArtistsRepository implements ArtistsRepository {
     return artists.find((artist) => artist.slug === slug) ?? null
   }
 
+  // Writes through the throwing helper rather than the swallowing one: the key
+  // holds every artist and is rewritten whole, so a refused write discards the
+  // artist just created while `create` reports success. The caller has to hear
+  // about that instead of finding a log line after the event was credited.
   async replaceAll(artists: Artist[]) {
-    writeStorage(this.storageKey, artists)
+    try {
+      writeStorageOrThrow(this.storageKey, artists)
+    } catch (error) {
+      console.error(`Error persisting artists to storage key "${this.storageKey}":`, error)
+      throw new FavoritesRepositoryError(
+        'Could not save the artist on this device.',
+        'write_failed',
+        { cause: error },
+      )
+    }
   }
 }

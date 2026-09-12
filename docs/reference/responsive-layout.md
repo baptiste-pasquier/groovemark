@@ -8,8 +8,8 @@ stale_after: 2026-12-10
 
 # Responsive Layout Notes
 
-This document explains the desktop and tablet layout sizing used by GrooveMark's
-favorites view.
+This document explains the desktop and tablet layout sizing used by GrooveMark's card
+destinations: the mixes view and the events view.
 
 ## Source Of Truth
 
@@ -27,7 +27,13 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   --layout-card-width: 20rem;
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
+  --layout-artist-section-gap: 2.5rem;
+  --layout-table-cell-padding-x: 0.75rem;
+  --layout-table-cell-padding-y: 0.625rem;
+  --layout-table-name-min-width: 11rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-switcher-padding: 0.1875rem;
+  --layout-switcher-radius: 0.625rem;
 }
 ```
 
@@ -43,6 +49,18 @@ Layout tokens live in [src/assets/tailwind.css](../../src/assets/tailwind.css).
   `1.5rem = 24px`
 - `--layout-grid-width-2col`: width of two cards plus one grid gap.
   `20rem * 2 + 1.5rem = 41.5rem`
+- `--layout-switcher-padding`: inner padding of the destination switcher track.
+  `0.1875rem = 3px`
+- `--layout-switcher-radius`: outer corner radius of the destination switcher track.
+  `0.625rem = 10px`
+- `--layout-artist-section-gap`: gap between the artist page's two stacked halves.
+  `2.5rem = 40px`
+- `--layout-table-cell-padding-x`: horizontal padding inside an artists-table cell.
+  `0.75rem = 12px`
+- `--layout-table-cell-padding-y`: vertical padding inside an artists-table cell.
+  `0.625rem = 10px`
+- `--layout-table-name-min-width`: floor on the artists table's name column.
+  `11rem = 176px`
 
 ## Shell Width Formula
 
@@ -108,7 +126,7 @@ Below `md` (`48rem` / `768px`):
 - `.favorites-header` is stacked vertically, then becomes a horizontal row at `sm`
 - `.favorites-main` stays fluid with `w-full`
 - `.favorites-mobile-controls` is visible above the grid
-- `.favorites-grid` uses `grid-cols-1`
+- `.card-grid` uses `grid-cols-1`
 
 This means the page is full-width, minus the shell padding.
 
@@ -119,7 +137,7 @@ From `md` (`48rem` / `768px`) up to `layout-2col` (`65.5rem`):
 - `.favorites-header` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-main` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-mobile-controls` is still visible
-- `.favorites-grid` becomes exactly `2` fixed-width cards
+- `.card-grid` becomes exactly `2` fixed-width cards
 - `.favorites-sidebar-desktop` is still hidden
 - `.favorites-desktop-hidden` keeps the mobile filter button visible
 
@@ -144,6 +162,93 @@ From `layout-2col` (`65.5rem`) and up:
 
 At this point the page is no longer centered around the `2`-column grid width, but around the
 full desktop shell width.
+
+## Shared Card Grid
+
+`.card-grid` is the single owner of the card column progression: one column below `md`, then
+`2`, `3` and `4` fixed-width columns at `md`, `layout-3col` and `layout-4col`. The mixes grid
+and the events grid both carry it, so one breakpoint change reaches both surfaces. The class is
+named after what it lays out rather than after either destination, and neither grid template
+carries a raw breakpoint literal.
+
+Each grid keeps its own element id, `#favorites-grid` and `#events-grid`, so a test or a script
+addresses one surface without addressing the layout.
+
+The two grids differ in one respect, deliberately:
+
+| Grid                    | Rendering                                                |
+| ----------------------- | -------------------------------------------------------- |
+| `FavoritesGrid` (mixes) | batches of 20 behind an `IntersectionObserver` sentinel  |
+| `EventsGrid` (events)   | every card in one pass, no batch counter and no sentinel |
+
+The mixes grid batches because a mixes collection reaches the card count where rendering all of
+them at once costs a phone visibly. A list of nights attended does not reach that scale, so the
+events grid iterates plainly. Batching the events grid is a change to make if that list ever
+grows that large, not an omission to correct.
+
+## Destination Switcher
+
+The three top-level destinations (mixes, events, artists) are one segmented control, the same
+object at every width. It lives in the header's control row, so it shares that row with the
+sort button, the mobile filter button, the settings menu and the sign-out button.
+
+`.favorites-header-controls` wraps that row, so the switcher never pushes the other controls
+off screen: below `md` it takes a whole line and the buttons wrap onto the next one.
+
+The switcher itself has two forms, driven by one class:
+
+- Below `md` (`48rem` / `768px`): `.destination-switcher` is `w-full` and each
+  `.destination-tab` is `flex-1`, so the three tabs span the full width and share it equally.
+- From `md` and up: the track is `w-auto` and each tab is `flex-none`, so the tabs size to
+  their labels and the switcher sits inline beside the other header controls.
+
+`.destination-tab-active` marks the current destination with a white fill, a heavier weight and
+a small shadow. The active tab also carries `aria-current="page"`, so the state does not depend
+on colour alone. An artist page keeps the artists tab marked.
+
+## Artist Page
+
+The artist page is two stacked sections at every width: the mixes crediting the performer, then
+the performances seen live. Neither is a sidebar to the other, so no breakpoint reflows them
+side by side. `.artist-page` stacks them with `--layout-artist-section-gap`, which is wider than
+the grid gap so the break between the halves reads as a section break rather than one more row.
+
+`.artist-section` stacks a heading, its counts and its list at the grid gap. `.artist-stats`
+wraps the three count tiles, so they sit on one line when there is room and wrap on a phone.
+Only the mixes grid inside the first half becomes multi-column, through `.card-grid`.
+
+`.credited-artist-link` carries the credited-name treatment -- grey with a subtle underline,
+blue on hover -- for the mix card and the event card alike, so the two surfaces cannot drift
+apart.
+
+## Artists Table
+
+The artists tab is one table with two forms, driven by the same seven columns: artist, mixes,
+moments, starred moments, performances, most recent verdict and date last seen.
+
+- From `md` (`48rem` / `768px`) up, every column is a table column. `.artists-value-column`
+  carries the six value columns and `.artists-name-column` the performer's name, which never
+  narrows past `--layout-table-name-min-width`.
+- Below `md`, a row is the name plus the value of the active sort column and nothing else.
+  `.artists-value-column` hides a value column at that width, and `.artists-column-active`
+  puts the active one back on screen -- so it must stay **after** `.artists-value-column` in
+  `tailwind.css`, where source order decides between two component-layer rules of equal
+  specificity.
+- `.artists-sort-control` holds the compact select that changes the sort below `md`, and is
+  the one control that disappears from `md` up, where every header is a visible button.
+
+The active column is named once, in the artists-UI store's column descriptor. The header row,
+the cells and the select all read that descriptor, so the set of columns the table sorts by
+and the set the phone can switch between are the same set by construction.
+
+The table has its own three tokens rather than reusing the card destinations' ones: those are
+computed from sidebar width plus gaps plus a fixed card width, which describes nothing about a
+table that reduces to two columns. `.artists-view` still stacks the tab's controls and its
+table at `--layout-grid-gap`, so the catalogue keeps the vertical rhythm of the card
+destinations.
+
+The table itself never scrolls horizontally, and no width is read in JavaScript: the
+breakpoint lives only in these classes.
 
 ## Utility Scale Reminder
 
@@ -185,7 +290,24 @@ These classes translate the tokens into layout behavior:
 - `.favorites-sidebar-desktop`: desktop sidebar
 - `.favorites-main`: main content width before and after desktop sidebar
 - `.favorites-mobile-controls`: search/add controls above the grid before desktop sidebar
-- `.favorites-grid`: fixed-width card grid at 2/3/4 columns
+- `.card-grid`: shared fixed-width card grid at 2/3/4 columns, carried by both the mixes
+  grid and the events grid
+- `.favorites-header-controls`: wrapping header control row that holds the destination switcher
+- `.destination-switcher`: segmented track for the three destinations, full width below `md`
+- `.destination-tab`: one destination tab inside the track
+- `.destination-tab-active`: the current destination's tab
+- `.artist-page`: the artist page's stacked-section shell
+- `.artist-section`: one half of the artist page
+- `.artist-stats`: the wrapping row of count tiles
+- `.credited-artist-link`: a credited artist's name, on the mix card and the event card
+- `.artists-view`: the artists tab's stacked shell
+- `.artists-controls`: the artists tab's search row
+- `.artists-sort-control`: the compact sort select, below `md` only
+- `.artists-table`: the artists table's own frame
+- `.artists-table-header` / `.artists-table-cell`: one header cell and one body cell
+- `.artists-name-column`: the performer's name column, on screen at every width
+- `.artists-value-column`: one of the six value columns, hidden below `md`
+- `.artists-column-active`: the active sort column, on screen at every width
 
 ## Editing Guidance
 

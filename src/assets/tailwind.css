@@ -12,7 +12,20 @@
   --layout-card-width: 20rem;
   --layout-desktop-gap: 2rem;
   --layout-grid-gap: 1.5rem;
+  /* Separates the artist page's two stacked halves. Wider than the grid gap, so
+     the break between "their mixes" and "seen live" reads as a section break
+     rather than as one more row. */
+  --layout-artist-section-gap: 1.25rem;
+  /* The artists table's own sizing. The card tokens above are computed from
+     sidebar width plus gaps plus a fixed card width, which describes nothing
+     about a table that reduces to two columns on a phone, so the table carries
+     its own three. */
+  --layout-table-cell-padding-x: 0.75rem;
+  --layout-table-cell-padding-y: 0.625rem;
+  --layout-table-name-min-width: 11rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-switcher-padding: 0.1875rem;
+  --layout-switcher-radius: 0.625rem;
 }
 
 @layer base {
@@ -47,8 +60,28 @@ body {
     @apply layout-2col:mx-auto layout-2col:w-fit layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
   }
 
+  /* The gap below the header is halved on a phone, where the controls stack
+     into their own rows and the screen has no height to spare: a full 32px
+     there pushes the search field and the first card down for no gain. From md
+     up the header sits on one line and keeps its original room. */
   .favorites-header {
-    @apply layout-2col:mx-0 layout-2col:w-full mb-8 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:w-[var(--layout-grid-width-2col)];
+    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
+  }
+
+  .favorites-header-controls {
+    @apply flex flex-wrap items-center justify-center gap-2 md:justify-end;
+  }
+
+  .destination-switcher {
+    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto;
+  }
+
+  .destination-tab {
+    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none;
+  }
+
+  .destination-tab-active {
+    @apply bg-white font-semibold text-gray-900 shadow-sm;
   }
 
   .favorites-sidebar-desktop {
@@ -68,8 +101,94 @@ body {
     @apply layout-2col:hidden;
   }
 
-  .favorites-grid {
+  .card-grid {
     @apply layout-3col:grid-cols-[repeat(3,var(--layout-card-width))] layout-4col:grid-cols-[repeat(4,var(--layout-card-width))] grid grid-cols-1 gap-[var(--layout-grid-gap)] md:grid-cols-[repeat(2,var(--layout-card-width))] md:justify-center;
+  }
+
+  /* The artist page's two halves are stacked white blocks at every width: they
+     are read one after the other, and neither is a sidebar to the other. The
+     live half leads, because the page is consulted to answer "worth seeing
+     again". */
+  .artist-page {
+    @apply flex w-full min-w-0 flex-col gap-[var(--layout-artist-section-gap)];
+  }
+
+  /* On a phone the way back is one short line, and the header's margin plus the
+     page gap put more room around it than around the blocks it introduces. It
+     is pulled tight there, where vertical room is the scarce dimension, and
+     left alone from md up. Only the space below it is taken back now: the
+     header's own bottom margin is already halved on a phone, so pulling up
+     from it as well would sit the link against the buttons above. */
+  .artist-page-back {
+    @apply -mb-2 md:mb-0;
+  }
+
+  .artist-section {
+    @apply rounded-xl bg-white p-4 shadow-lg;
+  }
+
+  /* The mixes inside the artist page are summaries, not the mixes destination's
+     cards, so they do not follow .card-grid's fixed-width progression: they fill
+     the block they sit in, at whatever width it has. */
+  .artist-mix-grid {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(11.875rem,1fr))] gap-3;
+  }
+
+  /* The artists tab stacks its controls and its table at the grid gap, so the
+     catalogue lines up with the card destinations' vertical rhythm. */
+  .artists-view {
+    @apply flex w-full min-w-0 flex-col gap-[var(--layout-grid-gap)];
+  }
+
+  .artists-controls {
+    @apply flex flex-col gap-[var(--layout-grid-gap)] sm:flex-row sm:items-center;
+  }
+
+  /* The compact select that changes the sort where the headers cannot: below
+     the first breakpoint only one value column is on screen, so clicking a
+     header can reverse that column but never choose another one. Once every
+     header is visible, the headers are the control and this disappears. */
+  .artists-sort-control {
+    @apply flex items-center gap-2 text-sm text-gray-500 md:hidden;
+  }
+
+  .artists-table {
+    @apply w-full table-auto border-collapse rounded-2xl bg-white text-left tabular-nums shadow-sm;
+  }
+
+  .artists-table-header {
+    @apply border-b border-gray-200 px-[var(--layout-table-cell-padding-x)] py-[var(--layout-table-cell-padding-y)] text-xs font-bold tracking-wider text-gray-500 uppercase;
+  }
+
+  .artists-table-cell {
+    @apply border-b border-gray-100 px-[var(--layout-table-cell-padding-x)] py-[var(--layout-table-cell-padding-y)] align-middle text-gray-700;
+  }
+
+  /* The performer's name is on screen at every width, and never narrows past
+     its own token, so a name stays readable when the row is two columns. */
+  .artists-name-column {
+    @apply table-cell;
+    min-width: var(--layout-table-name-min-width);
+  }
+
+  /* Every other column is a value column: hidden below the first breakpoint,
+     where the row reduces to the name and the active column (R18), and part of
+     the table from that breakpoint up. */
+  .artists-value-column {
+    @apply hidden md:table-cell;
+  }
+
+  /* ...and the active column is the one exception, on screen at every width.
+     It follows this rule rather than the one above, so it must stay after it. */
+  .artists-column-active {
+    @apply table-cell;
+  }
+
+  /* A credited artist's name, wherever it is credited: grey with a subtle
+     underline, blue on hover. One class for the mix card and the event card,
+     so the two cannot drift apart. */
+  .credited-artist-link {
+    @apply text-gray-500 underline decoration-gray-300 decoration-1 underline-offset-2 transition-colors hover:text-blue-600 hover:decoration-blue-400;
   }
 }
 

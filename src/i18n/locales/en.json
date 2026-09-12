@@ -22,8 +22,63 @@
     "remove": "Remove",
     "press_enter_to_add": "Press Enter to add the artist."
   },
+  "artist_page": {
+    "all_artists": "All artists",
+    "back_to_artists": "Back to artists",
+    "chip_mixes": "{count} mix | {count} mixes",
+    "chip_moments": "{count} moment | {count} moments",
+    "chip_performances": "{count} performance | {count} performances",
+    "chip_starred": "{count} starred | {count} starred",
+    "heading_live": "Seen live",
+    "heading_mixes": "Their mixes",
+    "latest_verdict": "on {date}",
+    "latest_verdict_at": "at {venue}, on {date}",
+    "mixes_unavailable": "Your mixes could not be loaded, so this half cannot be shown. It will be back once the connection is restored.",
+    "no_mixes": "No mix you kept credits this artist yet.",
+    "live_unavailable": "Your events could not be loaded, so this half cannot be shown. It will be back once the connection is restored.",
+    "no_performances": "You haven't seen this artist live yet.",
+    "no_rated_verdict": "You haven't rated any of these events yet.",
+    "not_found": "No artist answers this address. It may have been renamed since this link was shared.",
+    "unavailable": "Your artists could not be loaded, so this page cannot be shown. It will be back once the connection is restored."
+  },
+  "artists": {
+    "column_artist": "Artist",
+    "column_last_seen": "Last seen",
+    "column_mixes": "Mixes",
+    "column_moments": "Moments",
+    "column_performances": "Events",
+    "column_starred": "Starred",
+    "column_verdict": "Verdict",
+    "empty_no_artists": "No artist is credited by a mix or an event yet. Keep a mix or record an event to fill this in.",
+    "empty_no_results": "No artist matches your search.",
+    "not_seen_live": "not seen live",
+    "search_placeholder": "Search by artist...",
+    "sort_by": "Sort by",
+    "unavailable": "Your artists could not be loaded, so this catalogue cannot be shown. It will be back once the connection is restored."
+  },
+  "event_modal": {
+    "add_performance": "+ Add a performance",
+    "date_label": "Date attended",
+    "line_up": "Line-up",
+    "name_label": "Event name",
+    "name_placeholder": "e.g. Nuits Sonores",
+    "title_add": "Add an event",
+    "title_edit": "Edit event",
+    "venue_label": "Venue",
+    "venue_placeholder": "e.g. Les Subsistances"
+  },
+  "events": {
+    "add_new": "New event",
+    "delete": "Delete this event",
+    "empty_no_events": "You haven't recorded any event yet. Add one to get started!",
+    "empty_no_results": "No event matches your search.",
+    "open": "Open this event",
+    "search_placeholder": "Search by event or venue...",
+    "unavailable": "Your events could not be loaded, so this tab cannot be shown. It will be back once the connection is restored."
+  },
   "export": {
-    "no_favorites": "There are no favorites to export."
+    "no_favorites": "There is nothing to export yet.",
+    "confirm_degraded": "Part of this session could not be loaded, so a backup taken now would be incomplete and would silently claim the missing half is empty. Export anyway?"
   },
   "grid": {
     "empty_no_favorites": "You don't have any favorites yet. Add one to get started!",
@@ -32,22 +87,28 @@
   "import": {
     "added": "{count} added",
     "finished_zero_added": "Import finished. 0 added, {skipped} already present.",
-    "none_or_invalid": "No favorites in the file or invalid structure.",
+    "none_or_invalid": "The file holds no mix and no event.",
     "with_skipped": ", {skipped} already present (ignored).",
     "with_failed": "{failed} failed to import, try again later.",
     "error_invalid_array": "The JSON file is not a valid array.",
     "error_invalid_json": "The JSON file is invalid.",
     "error_invalid_structure": "Invalid structure",
+    "error_unsupported_format": "This file is not a GrooveMark backup. Expected a JSON object with \"formatVersion\": {version}, and a \"mixes\" key, an \"events\" key, or both (a key left out reads as empty). An export taken before this format was a bare array: wrap it under \"mixes\" and add \"formatVersion\": {version}.",
     "error_prefix": "Error during import: "
   },
   "messages": {
     "confirm_delete_favorite": "Are you sure you want to delete this favorite?",
+    "confirm_delete_event": "Are you sure you want to delete this event? It holds no performance. | Are you sure you want to delete this event? Deleting it removes one performance. | Are you sure you want to delete this event? Deleting it removes {count} performances.",
     "invalid_time_format": "Invalid time format. Use MM:SS or HH:MM:SS.",
     "url_exists": "This URL already exists in your favorites.",
     "error_saving": "Error saving favorite. Please try again.",
+    "error_saving_event": "Error saving event. Please try again.",
+    "error_line_up_too_long": "This line-up is too long to save as one event. Split it into two events.",
+    "error_batch_unavailable": "This server cannot save an event yet. Apply the pending PocketBase migrations, {migration} among them.",
     "error_deleting": "Error deleting favorite. Please try again.",
+    "error_deleting_event": "Error deleting event. Please try again.",
     "error_session_init": "There was a problem starting your session. Please try again.",
-    "offline_read_only": "You're offline. Favorites are read-only until the connection is restored."
+    "offline_read_only": "You're offline. Your changes are disabled until the connection is restored."
   },
   "modal": {
     "add_timestamp": "+ Add a timestamp",
@@ -60,9 +121,31 @@
     "title_add": "Add a favorite",
     "title_edit": "Edit favorite"
   },
+  "nav": {
+    "aria_label": "Main sections",
+    "artists": "Artists",
+    "events": "Events",
+    "mixes": "Mixes"
+  },
+  "performance": {
+    "artist_placeholder": "Add an artist",
+    "remove": "Remove this performance"
+  },
   "timestamp": {
     "label_placeholder": "Label (optional)",
     "time_placeholder": "Time (e.g. 23:45)"
+  },
+  "verdict": {
+    "unrated": "unrated",
+    "clear_hint": "Click again to clear",
+    "aria": {
+      "group": "Verdict",
+      "group_for": "Verdict for {artist}",
+      "dislike": "Not going back",
+      "one_star": "One star",
+      "two_stars": "Two stars",
+      "three_stars": "Three stars"
+    }
   },
   "login": {
     "welcome": "Welcome to GrooveMark",
@@ -71,7 +154,7 @@
     "or": "or",
     "continue_local": "Continue in local mode",
     "local_mode_info": "In local mode, your data is stored only on this device.",
-    "offline_read_only_info": "Backend unavailable. You can browse your favorites, but changes are disabled until the connection is restored.",
+    "offline_read_only_info": "Backend unavailable. You can browse what is saved, but changes are disabled until the connection is restored.",
     "error_google_signin": "Failed to sign in with Google. Please try again.",
     "server_unavailable": "Server unavailable. Please try again later or continue in local mode."
   },

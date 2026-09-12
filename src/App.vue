@@ -1,50 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import HeaderBar from './components/layout/HeaderBar.vue'
-import FavoritesGrid from './components/favorites/FavoritesGrid.vue'
-import FavoriteModal from './components/modals/FavoriteModal.vue'
+import { onMounted } from 'vue'
+import { RouterView } from 'vue-router'
 import AlertDialog from './components/modals/AlertDialog.vue'
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
-import ArtistSidebar from './components/filters/ArtistSidebar.vue'
-import ArtistList from './components/filters/ArtistList.vue'
-import FavoriteSearchBar from './components/favorites/FavoriteSearchBar.vue'
-import AddFavoriteButton from './components/favorites/AddFavoriteButton.vue'
 import LoginPage from './components/auth/LoginPage.vue'
-import { useFavoritesStore } from './stores/favorites'
 import { useAppStore } from './stores/app'
 
-const showModal = ref(false)
-const editId = ref<string | null>(null)
-const showSidebar = ref(false)
-
-const favoritesStore = useFavoritesStore()
 const appStore = useAppStore()
 
 onMounted(async () => {
   await appStore.bootstrap()
 })
-
-function addFavorite() {
-  editId.value = null
-  showModal.value = true
-}
-
-function editFavorite(id: string) {
-  editId.value = id
-  showModal.value = true
-}
-
-async function handleImport(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  try {
-    await favoritesStore.importFromFile(file)
-  } finally {
-    input.value = ''
-  }
-}
 </script>
 
 <template>
@@ -62,33 +28,10 @@ async function handleImport(e: Event) {
 
   <LoginPage v-else-if="appStore.status === 'unauthenticated'" />
 
+  <!-- The boot state machine stays the outer gate: a destination only renders
+       once the session is ready. -->
   <div v-else class="app-shell">
-    <HeaderBar @openFilters="showSidebar = true" @importClick="$event && handleImport($event)" />
-
-    <div class="favorites-layout">
-      <aside class="favorites-sidebar-desktop">
-        <FavoriteSearchBar />
-        <AddFavoriteButton :disabled="favoritesStore.isReadOnly" @click="addFavorite" />
-        <div class="flex flex-1 flex-col overflow-hidden">
-          <h3 class="mb-3 text-xs font-bold tracking-wider text-gray-500 uppercase">
-            {{ $t('app.artists') }}
-          </h3>
-          <ArtistList class="flex-1 overflow-y-auto" />
-        </div>
-      </aside>
-
-      <main class="favorites-main">
-        <div class="favorites-mobile-controls">
-          <FavoriteSearchBar />
-          <AddFavoriteButton :disabled="favoritesStore.isReadOnly" @click="addFavorite" />
-        </div>
-
-        <FavoritesGrid @edit="editFavorite" />
-      </main>
-    </div>
-
-    <FavoriteModal v-model="showModal" :edit-id="editId" />
-    <ArtistSidebar :open="showSidebar" @close="showSidebar = false" />
+    <RouterView />
   </div>
 
   <AlertDialog />

@@ -39,7 +39,7 @@ docker-compose up pocketbase -d
 The Docker setup pins PocketBase `v0.40.2` by default. Back up `pocketbase/pb_data` before
 upgrading an existing instance to a newer server release.
 
-## 3. The `favorites` and `artists` Collections
+## 3. The Collections
 
 The migrations in `pocketbase/pb_migrations/` create the `favorites` collection and its API rules automatically the first time PocketBase starts -- no admin UI setup step is required. The collection has the following fields:
 
@@ -65,7 +65,38 @@ The migrations also create the `artists` collection, referenced from `favorites`
 
 PocketBase also manages its auto-generated `id`, `created`, and `updated` fields.
 
+The same migrations create the two collections behind the events destination. `events` holds one
+attended night:
+
+- `name` (Text, required)
+- `dateAttended` (Date, required) -- client-settable, so an imported or back-dated event keeps
+  its own day
+- `venue` (Text, optional)
+- `owner` (Relation to `users`, required)
+
+`performances` holds one artist's appearance at one event, and every row belongs to exactly one
+event and credits exactly one artist:
+
+- `eventId` (Relation to `events`, required, single-select, cascade on delete)
+- `artistId` (Relation to `artists`, required, single-select, no cascade)
+- `artistName` (Text, required) -- the credited artist's display name, denormalized
+- `verdict` (Select, optional) -- one of `dislike`, `one-star`, `two-stars`, `three-stars`
+- `position` (Number, optional) -- the row's zero-based index in its event's line-up
+- `owner` (Relation to `users`, required)
+
 See [Pocketbase Schema](../reference/pocketbase-schema.md) for the full schema and example payloads.
+
+### Enable the batch endpoint
+
+An event and its whole line-up are saved in one `/api/batch` transaction, and that endpoint is
+disabled in a default PocketBase instance. `pocketbase/pb_migrations/1789067402_enable_batch.js`
+enables it and pins `batch.maxRequests` to `50` and `batch.timeout` to `3` seconds, so an
+instance that applies the migrations needs no dashboard step.
+
+An instance missing the setting lists and reads events normally and refuses only to save one,
+answering `403` on `/api/batch`; the client maps that `403` to a message naming this migration
+file. An existing data directory that predates the migration picks the setting up when the
+migrations next run.
 
 ### Adding a new migration
 
@@ -86,7 +117,15 @@ The migrations set these user-scoped rules so authenticated users only read and 
 - **Update Rule**: `@request.auth.id != "" && owner = @request.auth.id && (@request.body.owner:isset = false || @request.body.owner = @request.auth.id)`
 - **Delete Rule**: `@request.auth.id != "" && owner = @request.auth.id`
 
-This matches the current client behavior for authenticated sync and offline fallback.
+This matches the current client behavior for authenticated sync and offline fallback. The
+`artists`, `events` and `performances` collections carry the same owner-scoped rules.
+
+The `performances` create and update rules carry one addition: each submitted relation id is
+correlated with the caller through a collection lookup, so a row may only reference an event and
+an artist belonging to the caller. Owner-scoped rules validate a record's own `owner` field and
+not its relations, which is what the guard adds. Copy both rules verbatim from
+[Pocketbase Schema](../reference/pocketbase-schema.md#collection-performances) -- a guard that
+fails to evaluate rejects every write.
 
 ## 5. Environment Configuration
 
@@ -111,6 +150,9 @@ The app uses separate local persistence modes:
 - **Local mode** stores favorites in `groovemark:favorites:local`
 - **Authenticated fallback** stores the signed-in user's offline cache in
   `groovemark:favorites:google:<userId>`
+
+Artists and events have their own pair of keys each, on the same split. Events are cached whole,
+with their performances nested, so a line-up is never a key of its own.
 
 See [PocketBase Schema](../reference/pocketbase-schema.md#storage-keys) for the full list of
 storage keys and the legacy migration note.

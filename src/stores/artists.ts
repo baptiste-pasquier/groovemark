@@ -51,12 +51,22 @@ export const useArtistsStore = defineStore('artists', () => {
     try {
       artists.value = await activeArtistsRepository.list()
       if (options.selection.mode !== 'google-cache') {
-        await cacheArtistsRepository.replaceAll(artists.value)
+        // The mirror gets its own try/catch so it cannot reach the load's.
+        // The list above already succeeded: a device that cannot cache must
+        // degrade the offline copy, not discard a healthy load and put the
+        // whole session into read-only. LocalArtistsRepository.replaceAll
+        // throws now, so without this the two outcomes are indistinguishable.
+        try {
+          await cacheArtistsRepository.replaceAll(artists.value)
+        } catch (mirrorError) {
+          console.error('Error mirroring artists into the cache:', mirrorError)
+        }
       }
     } catch (error) {
       console.error('Error initializing artists:', error)
       // A failed load never shows an empty artist list and always puts the
-      // session into read-only mode (via loadFailed -> degradedReadOnly):
+      // session into read-only mode (loadFailed is one of the app store's
+      // read-only inputs):
       // a writable UI over a stale or empty resolution index would recreate
       // artists that already exist server-side and collide with the
       // (owner, slug) unique index. See docs/explanation/architecture.md.
@@ -77,10 +87,19 @@ export const useArtistsStore = defineStore('artists', () => {
     }
   }
 
+  // Swallows a refused write and logs it, for the reason the events store
+  // gives: the artist is already saved through the active repository by the
+  // time this runs, so a device that cannot cache must not turn a successful
+  // save into a failure. `cacheDirty` stays set on failure, so the next
+  // successful mirror still carries everything.
   async function persistArtistsCacheSnapshot() {
     if (!cacheArtistsRepository || !cacheDirty) return
-    await cacheArtistsRepository.replaceAll(artists.value)
-    cacheDirty = false
+    try {
+      await cacheArtistsRepository.replaceAll(artists.value)
+      cacheDirty = false
+    } catch (error) {
+      console.error('Error mirroring artists into the cache:', error)
+    }
   }
 
   // Registers an artist resolved elsewhere (e.g. the import path in

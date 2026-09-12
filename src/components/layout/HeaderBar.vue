@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
 import { useFavoritesStore } from '../../stores/favorites'
@@ -27,8 +28,25 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 const { t, locale } = useI18n()
+const route = useRoute()
 
 const isMenuOpen = ref(false)
+
+const DESTINATIONS = [
+  { name: 'mixes', label: 'nav.mixes' },
+  { name: 'events', label: 'nav.events' },
+  { name: 'artists', label: 'nav.artists' },
+] as const
+
+// The artist page belongs to the artists destination, so its tab stays marked
+// while an artist page is open.
+const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : route.name))
+
+// Sorting the grid and filtering it by artist belong to the mixes destination
+// (R20). The header is rendered by each destination view, so without this the
+// events and artists tabs would offer a sort that orders mixes and a filter
+// that opens the mixes sidebar.
+const showsMixesControls = computed(() => activeDestination.value === 'mixes')
 
 // Compute display name for auth status
 const authDisplayName = computed(() => {
@@ -67,8 +85,26 @@ async function handleLogout() {
 
 const emit = defineEmits<{
   (e: 'openFilters'): void
-  (e: 'importClick', evt: Event): void
 }>()
+
+// The import restores both domains from one file (R22), so it is an app-level
+// action rather than a mixes-destination one. It is handled here, where the
+// file input, the disabled state and the progress label already live, instead
+// of being emitted for each destination view to wire up -- only MixesView ever
+// did, which left the menu item dead on the events and artists tabs.
+async function handleImport(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  isMenuOpen.value = false
+  if (!file) return
+
+  try {
+    await favoritesStore.importFromFile(file)
+  } finally {
+    // Cleared so selecting the same file again still fires a change event.
+    input.value = ''
+  }
+}
 
 function toggleSort() {
   favoritesUiStore.toggleSort()
@@ -121,8 +157,22 @@ function openFilters() {
           {{ authDisplayName }}
         </span>
       </div>
-      <div class="flex items-center space-x-2">
+      <div class="favorites-header-controls">
+        <nav class="destination-switcher" :aria-label="t('nav.aria_label')">
+          <RouterLink
+            v-for="destination in DESTINATIONS"
+            :key="destination.name"
+            :to="{ name: destination.name }"
+            :data-destination="destination.name"
+            class="destination-tab"
+            :class="{ 'destination-tab-active': activeDestination === destination.name }"
+            :aria-current="activeDestination === destination.name ? 'page' : undefined"
+          >
+            {{ t(destination.label) }}
+          </RouterLink>
+        </nav>
         <button
+          v-if="showsMixesControls"
           id="sort-btn"
           class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="toggleSort"
@@ -138,6 +188,7 @@ function openFilters() {
           />
         </button>
         <button
+          v-if="showsMixesControls"
           id="filter-menu-btn"
           class="favorites-desktop-hidden rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
           @click="openFilters"
@@ -210,12 +261,7 @@ function openFilters() {
               class="hidden"
               accept=".json"
               :disabled="isImportDisabled"
-              @change="
-                (e) => {
-                  emit('importClick', e)
-                  isMenuOpen = false
-                }
-              "
+              @change="handleImport"
             />
             <button
               id="export-json-btn"
@@ -249,7 +295,4 @@ function openFilters() {
       </div>
     </div>
   </header>
-  <div class="mb-8">
-    <!-- Search and Add button moved to App.vue for layout flexibility -->
-  </div>
 </template>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import { SquarePen, Trash2, Star, ExternalLink } from 'lucide-vue-next'
 import type { Favorite } from '../../types/favorite'
+import { buildArtistRoute } from '../../utils/artist'
 import { buildTimestampLink } from '../../utils/favorite'
 import { isSafeHttpUrl } from '../../utils/url'
-import { SquarePen, Trash2, Star, ExternalLink } from 'lucide-vue-next'
 
 const props = defineProps<{ favorite: Favorite; readOnly?: boolean }>()
 const emit = defineEmits<{ (e: 'edit', id: string): void; (e: 'delete', id: string): void }>()
@@ -18,10 +20,14 @@ function openLink() {
 function timestampLink(time: string) {
   return buildTimestampLink(props.favorite, { time }) ?? '#'
 }
+
+// A credited name is a way into that artist's page (R12), addressed from the
+// display name alone: a favorite carries `artists` and `artistIds` as two
+// independent lists, and nothing promises they line up index for index.
 </script>
 
 <template>
-  <div class="flex flex-col rounded-xl bg-white shadow-lg">
+  <div class="mix-card flex flex-col rounded-xl bg-white shadow-lg">
     <div class="card-link relative cursor-pointer" @click="openLink">
       <img
         :src="favorite.thumbnail"
@@ -63,8 +69,19 @@ function timestampLink(time: string) {
       <div class="flex items-start justify-between">
         <div>
           <h3 class="mb-1 text-lg font-bold text-gray-800">{{ favorite.title }}</h3>
+          <!-- One link per credited name, not one link for the joined string:
+               a mix crediting two artists offers a way into each of their
+               pages (R12). -->
           <p v-if="favorite.artists.length" class="text-sm text-gray-500">
-            {{ favorite.artists.join(', ') }}
+            <template v-for="(name, index) in favorite.artists" :key="name">
+              <span v-if="index > 0">, </span
+              ><RouterLink
+                :to="buildArtistRoute(name)"
+                class="mix-artist-link credited-artist-link"
+                @click.stop
+                >{{ name }}</RouterLink
+              >
+            </template>
           </p>
         </div>
         <div class="ml-2 flex shrink-0 items-center space-x-3">
@@ -89,7 +106,7 @@ function timestampLink(time: string) {
       <div
         v-for="ts in favorite.timestamps"
         :key="ts.time + ts.label"
-        class="group flex items-center justify-between rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
+        class="card-timestamp group flex items-center justify-between rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
       >
         <a
           :href="timestampLink(ts.time)"

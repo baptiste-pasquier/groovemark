@@ -22,8 +22,63 @@
     "remove": "Supprimer",
     "press_enter_to_add": "Appuyez sur Entrée pour ajouter l'artiste."
   },
+  "artist_page": {
+    "all_artists": "Tous les artistes",
+    "back_to_artists": "Retour aux artistes",
+    "chip_mixes": "{count} mix | {count} mix",
+    "chip_moments": "{count} temps fort | {count} temps forts",
+    "chip_performances": "{count} performance | {count} performances",
+    "chip_starred": "{count} noté | {count} notés",
+    "heading_live": "Vu en live",
+    "heading_mixes": "Ses mix",
+    "latest_verdict": "le {date}",
+    "latest_verdict_at": "au {venue}, le {date}",
+    "mixes_unavailable": "Vos mix n'ont pas pu être chargés, cette partie ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion.",
+    "no_mixes": "Aucun mix gardé ne crédite cet artiste pour le moment.",
+    "live_unavailable": "Vos événements n'ont pas pu être chargés, cette partie ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion.",
+    "no_performances": "Vous n'avez pas encore vu cet artiste en live.",
+    "no_rated_verdict": "Vous n'avez noté aucun de ces événements pour le moment.",
+    "not_found": "Aucun artiste ne correspond à cette adresse. Il a peut-être été renommé depuis le partage de ce lien.",
+    "unavailable": "Vos artistes n'ont pas pu être chargés, cette page ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion."
+  },
+  "artists": {
+    "column_artist": "Artiste",
+    "column_last_seen": "Vu le",
+    "column_mixes": "Mix",
+    "column_moments": "Temps forts",
+    "column_performances": "Événements",
+    "column_starred": "Notés",
+    "column_verdict": "Verdict",
+    "empty_no_artists": "Aucun artiste n'est crédité par un mix ou un événement pour le moment. Gardez un mix ou enregistrez un événement pour remplir cette liste.",
+    "empty_no_results": "Aucun artiste ne correspond à votre recherche.",
+    "not_seen_live": "jamais vu en live",
+    "search_placeholder": "Rechercher par artiste...",
+    "sort_by": "Trier par",
+    "unavailable": "Vos artistes n'ont pas pu être chargés, ce catalogue ne peut donc pas être affiché. Il reviendra dès le rétablissement de la connexion."
+  },
+  "event_modal": {
+    "add_performance": "+ Ajouter une performance",
+    "date_label": "Date de l'événement",
+    "line_up": "Programmation",
+    "name_label": "Nom de l'événement",
+    "name_placeholder": "ex : Nuits Sonores",
+    "title_add": "Ajouter un événement",
+    "title_edit": "Éditer l'événement",
+    "venue_label": "Lieu",
+    "venue_placeholder": "ex : Les Subsistances"
+  },
+  "events": {
+    "add_new": "Nouvel événement",
+    "delete": "Supprimer cet événement",
+    "empty_no_events": "Vous n'avez enregistré aucun événement pour le moment. Ajoutez-en un pour commencer !",
+    "empty_no_results": "Aucun événement ne correspond à votre recherche.",
+    "open": "Ouvrir cet événement",
+    "search_placeholder": "Rechercher par événement ou lieu...",
+    "unavailable": "Vos événements n'ont pas pu être chargés, cet onglet ne peut donc pas être affiché. Il reviendra dès le rétablissement de la connexion."
+  },
   "export": {
-    "no_favorites": "Il n'y a aucun favori à exporter."
+    "no_favorites": "Il n'y a rien à exporter pour le moment.",
+    "confirm_degraded": "Une partie de cette session n'a pas pu etre chargee : une sauvegarde prise maintenant serait incomplete et affirmerait en silence que la moitie manquante est vide. Exporter quand meme ?"
   },
   "grid": {
     "empty_no_favorites": "Vous n'avez aucun favori pour le moment. Ajoutez-en un pour commencer !",
@@ -32,22 +87,28 @@
   "import": {
     "added": "{count} ajouté(s)",
     "finished_zero_added": "Import terminé. 0 ajouté, {skipped} déjà présent(s).",
-    "none_or_invalid": "Aucun favori dans le fichier ou structure invalide.",
+    "none_or_invalid": "Le fichier ne contient aucun mix ni aucun événement.",
     "with_skipped": ", {skipped} déjà présent(s) ignoré(s).",
     "with_failed": "{failed} échec(s) lors de l'import, réessayez plus tard.",
     "error_invalid_array": "Le fichier JSON n'est pas un tableau valide.",
     "error_invalid_json": "Le fichier JSON est invalide.",
     "error_invalid_structure": "Structure invalide",
+    "error_unsupported_format": "Ce fichier n'est pas une sauvegarde GrooveMark. Attendu : un objet JSON avec \"formatVersion\" : {version}, et une clé \"mixes\", une clé \"events\", ou les deux (une clé absente est lue comme vide). Un export réalisé avant ce format est un simple tableau : placez-le sous \"mixes\" et ajoutez \"formatVersion\" : {version}.",
     "error_prefix": "Erreur lors de l'importation : "
   },
   "messages": {
     "confirm_delete_favorite": "Êtes-vous sûr de vouloir supprimer ce favori ?",
+    "confirm_delete_event": "Êtes-vous sûr de vouloir supprimer cet événement ? Il ne contient aucune performance. | Êtes-vous sûr de vouloir supprimer cet événement ? Sa suppression retire une performance. | Êtes-vous sûr de vouloir supprimer cet événement ? Sa suppression retire {count} performances.",
     "invalid_time_format": "Format de temps invalide. Utilisez MM:SS ou HH:MM:SS.",
     "url_exists": "Cette URL existe déjà dans vos favoris.",
     "error_saving": "Erreur lors de la sauvegarde du favori. Veuillez réessayer.",
+    "error_saving_event": "Erreur lors de la sauvegarde de l'événement. Veuillez réessayer.",
+    "error_line_up_too_long": "Cette programmation est trop longue pour être enregistrée en un seul événement. Séparez-la en deux événements.",
+    "error_batch_unavailable": "Ce serveur ne peut pas encore enregistrer d'événement. Appliquez les migrations PocketBase en attente, dont {migration}.",
     "error_deleting": "Erreur lors de la suppression du favori. Veuillez réessayer.",
+    "error_deleting_event": "Erreur lors de la suppression de l'événement. Veuillez réessayer.",
     "error_session_init": "Un problème est survenu lors du démarrage de votre session. Veuillez réessayer.",
-    "offline_read_only": "Vous êtes hors ligne. Les favoris sont en lecture seule jusqu'au rétablissement de la connexion."
+    "offline_read_only": "Vous êtes hors ligne. Les modifications sont désactivées jusqu'au rétablissement de la connexion."
   },
   "modal": {
     "add_timestamp": "+ Ajouter un timestamp",
@@ -60,9 +121,31 @@
     "title_add": "Ajouter un favori",
     "title_edit": "Éditer le favori"
   },
+  "nav": {
+    "aria_label": "Sections principales",
+    "artists": "Artistes",
+    "events": "Événements",
+    "mixes": "Mix"
+  },
+  "performance": {
+    "artist_placeholder": "Ajouter un artiste",
+    "remove": "Supprimer cette performance"
+  },
   "timestamp": {
     "label_placeholder": "Label (optionnel)",
     "time_placeholder": "Temps (ex: 23:45)"
+  },
+  "verdict": {
+    "unrated": "non noté",
+    "clear_hint": "Cliquer à nouveau pour effacer",
+    "aria": {
+      "group": "Note",
+      "group_for": "Note pour {artist}",
+      "dislike": "J'y retourne pas",
+      "one_star": "Une étoile",
+      "two_stars": "Deux étoiles",
+      "three_stars": "Trois étoiles"
+    }
   },
   "login": {
     "welcome": "Bienvenue sur GrooveMark",
@@ -71,7 +154,7 @@
     "or": "ou",
     "continue_local": "Continuer en mode local",
     "local_mode_info": "En mode local, vos données sont stockées uniquement sur cet appareil.",
-    "offline_read_only_info": "Backend indisponible. Vous pouvez consulter vos favoris, mais les modifications sont désactivées jusqu'au rétablissement de la connexion.",
+    "offline_read_only_info": "Backend indisponible. Vous pouvez consulter vos données, mais les modifications sont désactivées jusqu'au rétablissement de la connexion.",
     "error_google_signin": "Échec de la connexion avec Google. Veuillez réessayer.",
     "server_unavailable": "Serveur indisponible. Veuillez réessayer plus tard ou continuer en mode local."
   },

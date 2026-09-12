@@ -1,5 +1,17 @@
+<script lang="ts">
+import type { InjectionKey } from 'vue'
+
+// A surface that saves everything under it in one action collects the artist
+// fields mounted beneath it here, so a name typed but never committed with
+// Enter can be committed at submit time instead of being dropped. A field
+// mounted outside such a surface registers with nobody.
+export const ARTIST_TAGS_COMMIT_REGISTRY: InjectionKey<Set<() => void>> = Symbol(
+  'artistTagsCommitRegistry',
+)
+</script>
+
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AlertCircle } from 'lucide-vue-next'
 
@@ -9,6 +21,11 @@ interface Props {
   modelValue: string[]
   suggestions: string[]
   placeholder?: string
+  // Bound to a single artist (R5): the model still travels as an array, but it
+  // holds at most one name and committing a second replaces the first instead
+  // of appending. A performance credits exactly one artist, so the event
+  // modal's row uses this mode; a mix's artist field does not.
+  single?: boolean
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string[]): void }>()
@@ -22,6 +39,7 @@ const showUnfinishedInputWarning = ref(false)
 const highlightedIndex = ref<number>(-1)
 const wrapper = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLInputElement | null>(null)
+const commitRegistry = inject(ARTIST_TAGS_COMMIT_REGISTRY, null)
 
 watch(
   () => props.modelValue,
@@ -39,12 +57,21 @@ function addTag(raw?: string) {
   if (!value) return
   const slug = normalizeArtistName(value)
   const isDuplicate = internal.value.some((tag) => normalizeArtistName(tag) === slug)
-  if (!isDuplicate) {
+  if (props.single) {
+    // Replace rather than append, and treat a commit of the artist already
+    // held as a no-op so the spelling on record does not churn -- the same
+    // rule the multi-value mode applies to a duplicate.
+    if (!isDuplicate) {
+      internal.value = [value]
+      update(internal.value)
+    }
+  } else if (!isDuplicate) {
     internal.value.push(value)
     update(internal.value)
   }
   input.value = ''
   highlightedIndex.value = -1
+  showUnfinishedInputWarning.value = false
   focusInput()
 }
 
@@ -130,13 +157,25 @@ function handleClickOutside(ev: MouseEvent) {
   }
 }
 
+// An unfinished draft is still the operator's work: committing it is what the
+// Enter they did not press would have done. A click outside blurs this field
+// before the surrounding form submits, so without this the typed name would
+// never reach the payload. Empty input, nothing to commit.
+function commitPending() {
+  if (input.value.trim()) addTag()
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  commitRegistry?.add(commitPending)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  commitRegistry?.delete(commitPending)
 })
+
+defineExpose({ commitPending })
 </script>
 
 <template>

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -46,6 +48,21 @@ function createFavorite(id: string): Favorite {
 
 function createFavorites(count: number): Favorite[] {
   return Array.from({ length: count }, (_, i) => createFavorite(`fav-${i + 1}`))
+}
+
+// The stylesheet as shipped. The grid's column progression lives there, not in
+// the template, so a characterization of the progression has to read it from
+// the source of truth rather than restate it.
+const TAILWIND_CSS = readFileSync(resolve(process.cwd(), 'src/assets/tailwind.css'), 'utf8')
+
+// The `@apply` body of one component class. Resolved from the class the
+// rendered container actually carries, so this pins the *progression* without
+// pinning the class's name -- the shared grid class is named neutrally and is
+// free to be renamed again without this test having to be rewritten (KTD8).
+function layoutRuleFor(className: string): string {
+  const rule = TAILWIND_CSS.match(new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`))
+  expect(rule, `no component rule for .${className} in tailwind.css`).not.toBeNull()
+  return rule![1]
 }
 
 function mountGrid() {
@@ -242,5 +259,54 @@ describe('FavoritesGrid', () => {
 
     expect(wrapper.findAll('.favorite-card')).toHaveLength(0)
     expect(wrapper.find('.text-gray-500').exists()).toBe(true)
+  })
+
+  // --- Characterization of the shared card grid (KTD8) ---------------------
+  // These two pin what the mixes grid renders and how its columns progress,
+  // independently of what the shared layout class is called, so renaming that
+  // class cannot degrade the mixes grid unnoticed.
+
+  it('renders the mixes cards inside one container carrying the shared column progression', () => {
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.favorites = createFavorites(3)
+
+    const wrapper = mountGrid()
+    const grid = wrapper.find('#favorites-grid')
+
+    expect(grid.exists()).toBe(true)
+    expect(grid.findAll('.favorite-card')).toHaveLength(3)
+
+    // Exactly one class, and it is a semantic layout class rather than a pile
+    // of utilities: the template must not carry the progression itself.
+    expect(grid.classes()).toHaveLength(1)
+
+    const rule = layoutRuleFor(grid.classes()[0])
+    expect(rule).toContain('grid-cols-1')
+    expect(rule).toContain('md:grid-cols-[repeat(2,var(--layout-card-width))]')
+    expect(rule).toContain('layout-3col:grid-cols-[repeat(3,var(--layout-card-width))]')
+    expect(rule).toContain('layout-4col:grid-cols-[repeat(4,var(--layout-card-width))]')
+    expect(rule).toContain('gap-[var(--layout-grid-gap)]')
+  })
+
+  it('keeps the mixes grid markup identical apart from the layout class name', () => {
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.favorites = createFavorites(2)
+
+    const wrapper = mountGrid()
+
+    // The container's own class attribute is masked -- it is the one token the
+    // rename is allowed to change. Everything else about the rendered grid is
+    // pinned, so a rename that also moved markup would fail here.
+    const markup = wrapper
+      .find('#favorites-grid')
+      .html()
+      .replace(/class="[^"]*"/, 'class="[layout]"')
+
+    expect(markup).toMatchInlineSnapshot(`
+      "<div id="favorites-grid" class="[layout]">
+        <div class="favorite-card"></div>
+        <div class="favorite-card"></div>
+      </div>"
+    `)
   })
 })

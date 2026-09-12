@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import ArtistTagsInput from '../components/favorites/ArtistTagsInput.vue'
 import i18n from '../i18n'
@@ -100,5 +101,158 @@ describe('ArtistTagsInput', () => {
 
     const suggestionTexts = wrapper.findAll('ul li span').map((el) => el.text())
     expect(suggestionTexts).toContain('Amélie Lens')
+  })
+
+  // The surface around this field saves everything at once, so it needs a way
+  // to turn a draft the operator never pressed Enter on into a real value.
+  describe('commitPending', () => {
+    it('commits a name typed but never committed with Enter', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: [],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+      await input.setValue('Anetha')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      const field = wrapper.vm as unknown as { commitPending: () => void }
+      field.commitPending()
+      await nextTick()
+
+      const emitted = wrapper.emitted('update:modelValue')
+      expect(emitted?.[emitted.length - 1]?.[0]).toEqual(['Anetha'])
+      expect((wrapper.find('input').element as HTMLInputElement).value).toBe('')
+      expect(wrapper.findAll('span > span').map((chip) => chip.text())).toEqual(['Anetha'])
+    })
+
+    it('commits nothing when the field holds no draft', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: ['Anetha'],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      await wrapper.find('input').setValue('   ')
+      const field = wrapper.vm as unknown as { commitPending: () => void }
+      field.commitPending()
+      await nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.findAll('span > span').map((chip) => chip.text())).toEqual(['Anetha'])
+    })
+  })
+
+  describe('single-value mode', () => {
+    it('replaces the committed artist instead of appending a second one', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: [],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      await input.setValue('Amelie Lens')
+      await input.trigger('keydown', { key: 'Enter' })
+
+      await input.setValue('Charlotte de Witte')
+      await input.trigger('keydown', { key: 'Enter' })
+
+      const chips = wrapper.findAll('span > span')
+      expect(chips).toHaveLength(1)
+      expect(chips[0].text()).toBe('Charlotte de Witte')
+
+      const emitted = wrapper.emitted('update:modelValue')
+      expect(emitted?.map((call) => call[0])).toEqual([['Amelie Lens'], ['Charlotte de Witte']])
+    })
+
+    it('keeps the committed spelling when the same artist is committed again', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: ['Amélie Lens'],
+          suggestions: [],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+      await input.setValue('AMELIE LENS')
+      await input.trigger('keydown', { key: 'Enter' })
+
+      const chips = wrapper.findAll('span > span')
+      expect(chips).toHaveLength(1)
+      expect(chips[0].text()).toBe('Amélie Lens')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
+    it('commits the highlighted suggestion from the keyboard', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: [],
+          suggestions: ['Amélie Lens', 'Charlotte de Witte'],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+      await input.trigger('focus')
+      await input.setValue('amelie')
+
+      const suggestionTexts = wrapper.findAll('ul li').map((el) => el.find('span').text())
+      expect(suggestionTexts).toEqual(['Amélie Lens'])
+
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await input.trigger('keydown', { key: 'Tab' })
+
+      const emitted = wrapper.emitted('update:modelValue')
+      expect(emitted?.[emitted.length - 1]?.[0]).toEqual(['Amélie Lens'])
+    })
+
+    it('still offers the other artists once one is chosen, so it can be replaced', async () => {
+      const wrapper = mount(ArtistTagsInput, {
+        props: {
+          modelValue: ['Amélie Lens'],
+          suggestions: ['Amélie Lens', 'Charlotte de Witte'],
+          single: true,
+        },
+        global: {
+          plugins: [i18n],
+        },
+      })
+
+      const input = wrapper.find('input')
+      await input.trigger('focus')
+
+      const suggestionTexts = wrapper.findAll('ul li').map((el) => el.find('span').text())
+      expect(suggestionTexts).toEqual(['Charlotte de Witte'])
+
+      await wrapper.find('ul li').trigger('mousedown')
+
+      const emitted = wrapper.emitted('update:modelValue')
+      expect(emitted?.[emitted.length - 1]?.[0]).toEqual(['Charlotte de Witte'])
+    })
   })
 })
