@@ -14,12 +14,12 @@ const onSearch = useDebounceFn((e: Event) => {
 </script>
 
 <template>
-  <div class="relative">
+  <div class="view-search">
     <input
       id="events-search"
       type="text"
       :placeholder="$t('events.search_placeholder')"
-      class="w-full rounded-lg border border-gray-200 bg-white p-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+      class="view-search-input"
       @input="onSearch"
     />
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">

@@ -269,4 +269,22 @@ describe('EventsGrid', () => {
     expect(wrapper.find('#events-grid').exists()).toBe(false)
     expect(wrapper.text()).toContain('No event matches your search')
   })
+
+  it('caps the search field at the shared token and stands it 38px tall', () => {
+    expect(TAILWIND_CSS).toContain('--layout-search-max-width: 24rem;')
+
+    const searchRule = layoutRuleFor('view-search')
+    expect(searchRule).toContain('var(--layout-search-max-width)')
+    expect(layoutRuleFor('view-search-input')).toMatch(/\bpy-2\b/)
+    expect(layoutRuleFor('view-search-input')).not.toMatch(/\bp-3\b/)
+  })
+
+  it('lays the events controls out with the class the three destinations share', async () => {
+    const { wrapper } = await mountEventsGrid()
+    const row = wrapper.get('.view-controls')
+
+    expect(row.find('.view-search').exists()).toBe(true)
+    expect(row.find('#add-event-btn').exists()).toBe(true)
+    expect(layoutRuleFor('view-controls')).toMatch(/sm:flex-row/)
+  })
 })

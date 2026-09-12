@@ -301,7 +301,14 @@ These classes translate the tokens into layout behavior:
 - `.artist-stats`: the wrapping row of count tiles
 - `.credited-artist-link`: a credited artist's name, on the mix card and the event card
 - `.artists-view`: the artists tab's stacked shell
-- `.artists-controls`: the artists tab's search row
+- `.view-controls`: the controls row the mixes, events and artists destinations share. Stacks on
+  a phone, becomes a row from `sm`, sets no outer margin -- each host spaces its own stack.
+- `.view-controls-search`: the search field and the controls that read with it (sort, and the
+  phone-only artist filter on the mixes tab) on one line at every width.
+- `.view-controls-action`: the create button, full width on a phone and label-width from `sm`.
+- `.view-search` / `.view-search-input`: the search field, capped at
+  `--layout-search-max-width` (24rem) and 38px tall. The cap is on the wrapper so the sort
+  button stays beside the field.
 - `.artists-sort-control`: the compact sort select, below `md` only
 - `.artists-table`: the artists table's own frame
 - `.artists-table-header` / `.artists-table-cell`: one header cell and one body cell

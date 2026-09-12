@@ -66,11 +66,11 @@ defineExpose({ openEventId, showEventModal })
     </div>
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-        <div class="min-w-0 flex-1">
+      <div class="view-controls mb-6">
+        <div class="view-controls-search">
           <EventsSearchBar />
         </div>
-        <div class="md:w-56">
+        <div class="view-controls-action">
           <AddEventButton :disabled="appStore.isReadOnly" @click="createEvent" />
         </div>
       </div>

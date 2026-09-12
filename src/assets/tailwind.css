@@ -23,6 +23,10 @@
   --layout-table-cell-padding-x: 0.75rem;
   --layout-table-cell-padding-y: 0.625rem;
   --layout-table-name-min-width: 11rem;
+  /* Caps the search field on all three destinations. A search term is a few
+     words; past this width the field reads as a text area and pushes the
+     controls beside it off the eye's path. */
+  --layout-search-max-width: 24rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
@@ -140,8 +144,37 @@ body {
     @apply flex w-full min-w-0 flex-col gap-[var(--layout-grid-gap)];
   }
 
-  .artists-controls {
-    @apply flex flex-col gap-[var(--layout-grid-gap)] sm:flex-row sm:items-center;
+  /* The one controls row of the three card and table destinations: search and
+     its adjacent controls on one side, the create button on the other. Named
+     after what it lays out rather than after a destination, because all three
+     carry it -- see docs/conventions/frontend-layout.md. It sets no outer
+     margin: each host already spaces its own stack. */
+  .view-controls {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center;
+  }
+
+  /* Search, sort and the phone-only artist filter travel together: on a phone
+     they share one line rather than each taking a row of their own. */
+  .view-controls-search {
+    @apply flex w-full items-center gap-2 sm:w-auto;
+  }
+
+  /* The create button fills the width on a phone, where it is the row, and
+     shrinks to its label once the row is horizontal. */
+  .view-controls-action {
+    @apply w-full sm:w-auto;
+  }
+
+  /* The cap sits on the wrapper, not on the input: the sort button is the
+     wrapper's next sibling, so capping the input alone would leave the button
+     stranded at the far end of a full-width box. */
+  .view-search {
+    @apply relative w-full min-w-0;
+    max-width: var(--layout-search-max-width);
+  }
+
+  .view-search-input {
+    @apply w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
   }
 
   /* The compact select that changes the sort where the headers cannot: below
