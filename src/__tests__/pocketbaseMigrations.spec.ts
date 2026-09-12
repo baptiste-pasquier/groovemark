@@ -254,6 +254,17 @@ describe('PocketBase migrations', () => {
       expect(readSettingsNumber(source, 'settings.batch.maxRequests')).toBe(BATCH_MAX_REQUESTS)
       expect(readSettingsNumber(source, 'settings.batch.timeout')).toBe(BATCH_TIMEOUT_SECONDS)
     })
+
+    it('caps the batch body rather than inheriting the ~128MB default', () => {
+      // The literal is written out here rather than read from a client
+      // constant, because no client code evaluates this bound: it is a
+      // server-side ceiling, and this assertion is the only thing standing
+      // between the value and a silent revert to the default. Left unset, the
+      // batch endpoint would accept a body four times larger than an ordinary
+      // record create, buffered before any collection rule is consulted.
+      const source = readMigrationSource(ENABLE_BATCH)
+      expect(readSettingsNumber(source, 'settings.batch.maxBodySize')).toBe(1048576)
+    })
   })
 
   describe('reversibility and ordering', () => {

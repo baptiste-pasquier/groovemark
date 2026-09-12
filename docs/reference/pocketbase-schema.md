@@ -224,15 +224,18 @@ An empty `verdict` read as-is satisfies every `verdict !== null` test downstream
 
 ## Instance Settings
 
-The `/api/batch` endpoint is **disabled** in a default PocketBase instance. An event and all of its performance rows are written as one batch transaction, so `pocketbase/pb_migrations/1789067402_enable_batch.js` enables it and pins its two bounds:
+The `/api/batch` endpoint is **disabled** in a default PocketBase instance. An event and all of its performance rows are written as one batch transaction, so `pocketbase/pb_migrations/1789067402_enable_batch.js` enables it and pins all three of its bounds:
 
-| Setting             | Value | Meaning                                                 |
-| ------------------- | ----- | ------------------------------------------------------- |
-| `batch.enabled`     | true  | The `/api/batch` endpoint accepts requests              |
-| `batch.maxRequests` | 50    | Maximum number of sub-requests in one batch             |
-| `batch.timeout`     | 3     | Seconds to wait before cancelling the batch transaction |
+| Setting             | Value   | Meaning                                                 |
+| ------------------- | ------- | ------------------------------------------------------- |
+| `batch.enabled`     | true    | The `/api/batch` endpoint accepts requests              |
+| `batch.maxRequests` | 50      | Maximum number of sub-requests in one batch             |
+| `batch.timeout`     | 3       | Seconds to wait before cancelling the batch transaction |
+| `batch.maxBodySize` | 1048576 | Maximum request body in bytes (1MB)                     |
 
-Setting this in a migration rather than the dashboard keeps it reproducible in the Docker image: an instance that never applies the migration reads and lists events normally and refuses only to save one. The same two bounds are exported from `src/utils/event.ts` as `BATCH_MAX_REQUESTS` and `BATCH_TIMEOUT_SECONDS`, because the settings endpoint is superuser-only and the client cannot read them back from the server.
+Setting this in a migration rather than the dashboard keeps it reproducible in the Docker image: an instance that never applies the migration reads and lists events normally and refuses only to save one.
+
+The first two bounds are also exported from `src/utils/event.ts` as `BATCH_MAX_REQUESTS` and `BATCH_TIMEOUT_SECONDS`, because the client refuses an oversized batch before sending it and the settings endpoint is superuser-only, so it cannot read them back from the server. `batch.maxBodySize` is a server-side ceiling that no client code evaluates, so nothing mirrors it; leaving it unset means PocketBase's own default of roughly 128MB, four times what an ordinary record create accepts, and the server buffers that body before any collection rule runs. The largest batch this app sends is 51 small JSON sub-requests. The 1MB figure assumes no file field ever travels in a batch.
 
 ## Storage Keys
 
