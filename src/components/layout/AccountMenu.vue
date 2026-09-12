@@ -111,6 +111,7 @@ async function handleSignOut() {
         class="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-[#f0f2f5]"
         :class="STATUS_DOT_CLASS[status]"
       ></span>
+      <span class="sr-only" role="status">{{ statusLabel }}</span>
     </button>
 
     <div

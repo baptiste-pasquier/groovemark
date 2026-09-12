@@ -59,7 +59,7 @@ describe('AccountMenu', () => {
     const wrapper = mountAccountMenu()
 
     expect(wrapper.find('img').exists()).toBe(false)
-    expect(wrapper.get('#account-menu-btn').text()).toBe('B')
+    expect(wrapper.get('#account-menu-btn').get('span.grid').text()).toBe('B')
   })
 
   it('falls back to the initial when the photo fails to load', async () => {
@@ -69,7 +69,7 @@ describe('AccountMenu', () => {
     await wrapper.get('img').trigger('error')
 
     expect(wrapper.find('img').exists()).toBe(false)
-    expect(wrapper.get('#account-menu-btn').text()).toBe('B')
+    expect(wrapper.get('#account-menu-btn').get('span.grid').text()).toBe('B')
   })
 
   it('shows a green dot on a healthy session', () => {
@@ -99,6 +99,17 @@ describe('AccountMenu', () => {
     const wrapper = mountAccountMenu()
 
     expect(wrapper.get('[data-account-status]').attributes('data-account-status')).toBe('importing')
+  })
+
+  it('announces the running import to assistive technology, ahead of the dot which is decorative', () => {
+    signIn()
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.importProgress = { processed: 12, total: 80 }
+
+    const wrapper = mountAccountMenu()
+
+    expect(wrapper.get('[data-account-status]').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('[role="status"]').text()).toBe('Importing... (12/80)')
   })
 
   it('names the account and its state only once the panel is open', async () => {
