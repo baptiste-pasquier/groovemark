@@ -173,6 +173,18 @@ export const mockPocketbase = {
   // the resulting string, so a simple pass-through is enough to let
   // `findBySlug`'s `pb.filter(...)` call succeed instead of throwing.
   filter: vi.fn((expression: string) => expression),
+  // The avatar is a plain unprotected file field, so the real SDK just
+  // assembles an address. The double returns a recognisable one rather than a
+  // realistic one: specs assert that an address was produced from the record's
+  // own filename, never what a PocketBase deployment would serve.
+  files: {
+    getURL: vi.fn(
+      (record: { id?: string }, filename: string, options?: { thumb?: string }) =>
+        `https://pb.test/api/files/users/${record?.id}/${filename}${
+          options?.thumb ? `?thumb=${options.thumb}` : ''
+        }`,
+    ),
+  },
   health: {
     check: vi.fn(() => Promise.resolve({ code: 200 })),
   },
@@ -202,6 +214,7 @@ export function resetPocketbaseMocks() {
   resetBatchApi(batchApi)
   mockPocketbase.collection.mockClear()
   mockPocketbase.createBatch.mockClear()
+  mockPocketbase.files.getURL.mockClear()
   mockPocketbase.health.check.mockReset()
   mockPocketbase.health.check.mockResolvedValue({ code: 200 })
   mockPocketbase.authStore.isValid = false

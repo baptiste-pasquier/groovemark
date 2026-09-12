@@ -37,17 +37,19 @@ const onSearch = useDebounceFn((e: Event) => {
     </div>
 
     <template v-else>
-      <div class="artists-controls">
-        <div class="relative min-w-0 flex-1">
-          <input
-            id="artists-search"
-            type="text"
-            :placeholder="t('artists.search_placeholder')"
-            class="w-full rounded-lg border border-gray-200 bg-white p-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            @input="onSearch"
-          />
-          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search class="h-5 w-5 text-gray-400" />
+      <div class="view-controls">
+        <div class="view-controls-search">
+          <div class="view-search">
+            <input
+              id="artists-search"
+              type="text"
+              :placeholder="t('artists.search_placeholder')"
+              class="view-search-input"
+              @input="onSearch"
+            />
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search class="h-5 w-5 text-gray-400" />
+            </div>
           </div>
         </div>
       </div>

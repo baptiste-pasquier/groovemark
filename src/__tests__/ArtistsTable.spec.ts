@@ -44,6 +44,23 @@ function layoutRuleFor(className: string): string {
   return rule![1]
 }
 
+// Resolves the @apply body of whatever class an ancestor carries, so the
+// assertion never names the class it is pinning and survives the rename.
+function stacksThenBecomesARow(element: HTMLElement): boolean {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const bodies = [...node.classList].map((className) => {
+      const rule = TAILWIND_CSS.match(new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`))
+      return rule ? rule[1] : ''
+    })
+    bodies.push(node.className)
+
+    if (bodies.some((body) => /\bflex-col\b/.test(body) && /sm:flex-row/.test(body))) {
+      return true
+    }
+  }
+  return false
+}
+
 function artist(id: string, displayName: string, slug: string): Artist {
   return { id, displayName, slug }
 }
@@ -451,5 +468,11 @@ describe('ArtistsTable', () => {
     const { wrapper } = await mountArtists()
 
     expect(cellText(wrapper, 0, 'dateLastSeen')).toBe('4 mai 2026')
+  })
+
+  it('keeps the search box inside a container that stacks on a phone and becomes a row from sm', async () => {
+    const { wrapper } = await mountArtists()
+
+    expect(stacksThenBecomesARow(wrapper.get('#artists-search').element as HTMLElement)).toBe(true)
   })
 })

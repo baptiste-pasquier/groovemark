@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import './mocks/pocketbase'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -8,7 +8,6 @@ import HeaderBar from '../components/layout/HeaderBar.vue'
 import i18n from '../i18n'
 import { routes } from '../router'
 import { useAuthStore } from '../stores/auth'
-import { useFavoritesStore } from '../stores/favorites'
 import { resetPocketbaseMocks } from './mocks/pocketbase'
 import { resetLocalStorageMock } from './mocks/localStorage'
 
@@ -38,21 +37,6 @@ describe('HeaderBar', () => {
     resetPocketbaseMocks()
     resetLocalStorageMock()
     i18n.global.locale.value = 'en'
-  })
-
-  it('shows the offline read-only badge and disables import when the cache fallback is active', async () => {
-    const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
-
-    authStore.authMode = 'google'
-    authStore.user = createUser('user-1')
-    favoritesStore.repositoryMode = 'google-cache'
-
-    const wrapper = mountHeaderBar()
-    await wrapper.find('#settings-menu-btn').trigger('click')
-
-    expect(wrapper.text()).toContain('Offline (Read-only)')
-    expect(wrapper.find('#import-json').attributes('disabled')).toBeDefined()
   })
 
   it('renders the three destination tabs and marks the current one', async () => {
@@ -113,27 +97,9 @@ describe('HeaderBar', () => {
     wrapper.findAll('[data-destination]').forEach((tab) => {
       expect(tab.classes()).toContain('destination-tab')
     })
-    expect(wrapper.get('#sort-btn').element.closest('.favorites-header-controls')).not.toBeNull()
   })
 
-  it('offers the grid sort and artist filter on the mixes destination only', async () => {
-    const router = createTestRouter()
-    await router.push('/')
-    await router.isReady()
-
-    const wrapper = mountHeaderBar(router)
-    expect(wrapper.find('#sort-btn').exists()).toBe(true)
-    expect(wrapper.find('#filter-menu-btn').exists()).toBe(true)
-
-    for (const destination of ['/events', '/artists']) {
-      await router.push(destination)
-      await flushPromises()
-      expect(wrapper.find('#sort-btn').exists()).toBe(false)
-      expect(wrapper.find('#filter-menu-btn').exists()).toBe(false)
-    }
-  })
-
-  it('keeps the app-level settings menu on every destination', async () => {
+  it('carries no list control at all, on any destination', async () => {
     const router = createTestRouter()
 
     for (const destination of ['/', '/events', '/artists']) {
@@ -141,56 +107,114 @@ describe('HeaderBar', () => {
       await router.isReady()
 
       const wrapper = mountHeaderBar(router)
-      expect(wrapper.find('#settings-menu-btn').exists()).toBe(true)
+      expect(wrapper.find('#sort-btn').exists()).toBe(false)
+      expect(wrapper.find('#filter-menu-btn').exists()).toBe(false)
     }
   })
 
-  it('does not show the offline badge when signed in online', async () => {
-    const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
+  it('emits nothing, so no destination view has to wire a header control up', () => {
+    const wrapper = mountHeaderBar()
 
+    expect(Object.keys(wrapper.vm.$options.emits ?? {})).toEqual([])
+  })
+
+  it('gives a signed-in session one identity control and no loose buttons', () => {
+    const authStore = useAuthStore()
     authStore.authMode = 'google'
     authStore.user = createUser('user-1')
-    favoritesStore.repositoryMode = 'google-cloud'
 
     const wrapper = mountHeaderBar()
-    await wrapper.find('#settings-menu-btn').trigger('click')
 
-    expect(wrapper.text()).not.toContain('Offline (Read-only)')
-    expect(wrapper.find('#import-json').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('#account-menu-btn').exists()).toBe(true)
+    expect(wrapper.find('#settings-menu-btn').exists()).toBe(false)
+    expect(wrapper.find('#logout-btn').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Local Mode')
   })
 
-  it('runs the import from a non-mixes destination, not only from the mixes view', async () => {
+  it('gives local mode a warning badge and a settings menu, and no account control', () => {
     const authStore = useAuthStore()
-    const favoritesStore = useFavoritesStore()
-
     authStore.continueInLocalMode()
 
-    const importFromFile = vi
-      .spyOn(favoritesStore, 'importFromFile')
-      .mockResolvedValue({ added: 0, skipped: 0, failed: 0 })
-
-    const router = createTestRouter()
-    await router.push('/events')
-    await router.isReady()
-
-    const wrapper = mountHeaderBar(router)
-    await wrapper.find('#settings-menu-btn').trigger('click')
-
-    const input = wrapper.find('#import-json')
-    const file = new File(['{}'], 'backup.json', { type: 'application/json' })
-    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
-
-    await input.trigger('change')
-    await flushPromises()
-
-    expect(importFromFile).toHaveBeenCalledTimes(1)
-    expect(importFromFile.mock.calls[0]?.[0]).toBe(file)
-  })
-
-  it('emits no import event, so no destination view has to wire the file up', () => {
     const wrapper = mountHeaderBar()
 
-    expect(Object.keys(wrapper.vm.$options.emits ?? {})).not.toContain('importClick')
+    expect(wrapper.text()).toContain('Local Mode')
+    expect(wrapper.find('#settings-menu-btn').exists()).toBe(true)
+    expect(wrapper.find('#account-menu-btn').exists()).toBe(false)
+  })
+
+  it('hangs the local-mode badge under the header row on desktop, in the row on a phone', () => {
+    const authStore = useAuthStore()
+    authStore.continueInLocalMode()
+
+    const wrapper = mountHeaderBar()
+    const badge = wrapper.get('[data-local-mode-badge]')
+
+    // On a phone the badge is an ordinary flex child, left of the settings
+    // button -- the row has the width to carry both.
+    expect(badge.classes()).not.toContain('absolute')
+
+    // From md it leaves the flow and hangs under the row, right-aligned on
+    // that button. Out of flow is the point: the header's bottom margin
+    // absorbs it, so the controls row and the cards below keep their place.
+    expect(badge.classes()).toContain('md:absolute')
+    expect(badge.classes()).toContain('md:top-full')
+    expect(badge.classes()).toContain('md:right-0')
+
+    // Without the anchor the badge would position against the page instead.
+    expect(wrapper.get('[data-header-slot="identity"]').classes()).toContain('relative')
+  })
+
+  it('keeps an identity control on every destination', async () => {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.user = createUser('user-1')
+
+    const router = createTestRouter()
+
+    for (const destination of ['/', '/events', '/artists']) {
+      await router.push(destination)
+      await router.isReady()
+
+      const wrapper = mountHeaderBar(router)
+      expect(wrapper.find('#account-menu-btn').exists()).toBe(true)
+    }
+  })
+
+  it('hides the subtitle below sm, where the row is the scarce thing', () => {
+    const wrapper = mountHeaderBar()
+    const subtitle = wrapper.get('[data-app-subtitle]')
+
+    expect(subtitle.text()).toBe('Save your favorite mixes and their highlights.')
+    expect(subtitle.classes()).toContain('hidden')
+    expect(subtitle.classes()).toContain('sm:block')
+  })
+
+  it('mounts the identity exactly once, so no control beneath it has a duplicated id', () => {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.user = createUser('user-1')
+
+    const wrapper = mountHeaderBar()
+
+    expect(wrapper.findAll('#account-menu-btn')).toHaveLength(1)
+  })
+
+  it('orders the header brand, identity and tabs so the tabs wrap to their own row below sm', () => {
+    const wrapper = mountHeaderBar()
+
+    const brand = wrapper.get('[data-header-slot="brand"]')
+    const identity = wrapper.get('[data-header-slot="identity"]')
+    const tabs = wrapper.get('[data-header-slot="tabs"]')
+
+    // All three are siblings of one wrapping row: that is what lets order and
+    // basis do the repositioning instead of a hidden/visible pair.
+    expect(identity.element.parentElement).toBe(brand.element.parentElement)
+    expect(tabs.element.parentElement).toBe(brand.element.parentElement)
+
+    // Below sm the tabs take the full basis and wrap; from sm the identity is
+    // pushed past them to the end of the single row.
+    expect(tabs.classes()).toContain('basis-full')
+    expect(tabs.classes()).toContain('sm:basis-auto')
+    expect(identity.classes()).toContain('sm:order-last')
   })
 })

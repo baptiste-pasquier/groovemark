@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TriangleAlert } from 'lucide-vue-next'
 import HeaderBar from '../layout/HeaderBar.vue'
+import SortToggleButton from '../layout/SortToggleButton.vue'
 import EventModal from '../modals/EventModal.vue'
 import AddEventButton from './AddEventButton.vue'
 import EventCard from './EventCard.vue'
@@ -50,7 +51,7 @@ defineExpose({ openEventId, showEventModal })
 <template>
   <HeaderBar />
 
-  <main>
+  <main class="card-grid-body">
     <!-- A failed load leaves the list empty because it is unknown, not because
          nothing was ever recorded, and the tab cannot say the second. The
          controls go with the list: a degraded session is read-only everywhere,
@@ -66,11 +67,16 @@ defineExpose({ openEventId, showEventModal })
     </div>
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-        <div class="min-w-0 flex-1">
+      <div class="view-controls mb-6">
+        <div class="view-controls-search">
           <EventsSearchBar />
+          <SortToggleButton
+            button-id="events-sort-btn"
+            :order="eventsUiStore.sortOrder"
+            @toggle="eventsUiStore.toggleSort()"
+          />
         </div>
-        <div class="md:w-56">
+        <div class="view-controls-action">
           <AddEventButton :disabled="appStore.isReadOnly" @click="createEvent" />
         </div>
       </div>

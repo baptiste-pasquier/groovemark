@@ -162,7 +162,11 @@
     "logout": "Déconnexion",
     "signed_in_as": "Connecté en tant que {name}",
     "local_mode": "Mode Local",
-    "offline_read_only": "Hors ligne (Lecture seule)"
+    "offline_read_only": "Hors ligne (Lecture seule)",
+    "exit_local_mode": "Quitter le mode local",
+    "account_menu_aria": "Menu du compte",
+    "account_signed_in_label": "Connecté en tant que",
+    "status_synced": "Synchronisé"
   },
   "dialog": {
     "info": "Information",

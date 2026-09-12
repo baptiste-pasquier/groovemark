@@ -112,6 +112,26 @@ This avoids:
 - header and grid using different effective widths
 - desktop sidebar appearing before there is enough room
 
+## Header Layout
+
+`.favorites-header` is one `flex flex-wrap` row carrying three slots, each marked with a
+`data-header-slot` attribute: `brand`, `identity`, `tabs`. `HeaderIdentity` mounts once, inside
+the `identity` slot -- never twice behind a hidden/visible pair, which would duplicate every id
+beneath it (the import control is a `<label for>` bound to an `<input id>`, which a duplicate id
+breaks). See [ADR-0004](../journal/decisions/0004-one-account-menu-in-the-header.md).
+
+- Below `sm` (`40rem` / `640px`): the `tabs` slot is `basis-full` and wraps onto its own row,
+  leaving `brand` and `identity` sharing the first row beside the title.
+- From `sm` up: the row stays single. `identity` carries `sm:order-last`, so it moves past
+  `tabs` to the end of the row.
+
+One mount, two positions, driven by flex order and wrapping rather than by a second template.
+
+Local mode adds a warning badge beside the settings button inside the `identity` slot. From `md`
+the badge is `absolute top-full right-0`, hanging under the row and right-aligned on that button,
+so the header's bottom margin absorbs it and the controls row below keeps its place. The slot
+carries `relative` as its anchor. Below `md` the badge stays in the flex row, left of the button.
+
 ## Mobile And Tablet Behavior
 
 Before the desktop sidebar appears, the page uses a simpler stacked layout.
@@ -123,9 +143,9 @@ Below `md` (`48rem` / `768px`):
 - `.app-shell` uses page padding only:
   - `p-4` by default
   - `sm:p-6` from `40rem`
-- `.favorites-header` is stacked vertically, then becomes a horizontal row at `sm`
+- `.favorites-header` wraps its `tabs` slot onto its own row; see Header Layout above
 - `.favorites-main` stays fluid with `w-full`
-- `.favorites-mobile-controls` is visible above the grid
+- `.view-controls` stacks: search + sort + filter on one line, then the create button
 - `.card-grid` uses `grid-cols-1`
 
 This means the page is full-width, minus the shell padding.
@@ -136,15 +156,14 @@ From `md` (`48rem` / `768px`) up to `layout-2col` (`65.5rem`):
 
 - `.favorites-header` is centered and constrained to `--layout-grid-width-2col`
 - `.favorites-main` is centered and constrained to `--layout-grid-width-2col`
-- `.favorites-mobile-controls` is still visible
+- `.view-controls` is a single row above the grid
 - `.card-grid` becomes exactly `2` fixed-width cards
 - `.favorites-sidebar-desktop` is still hidden
 - `.favorites-desktop-hidden` keeps the mobile filter button visible
 
 This is the stage where:
 
-- search
-- add button
+- the controls row
 - header block
 - two-card grid
 
@@ -156,8 +175,10 @@ From `layout-2col` (`65.5rem`) and up:
 
 - `.favorites-layout` becomes a row
 - `.favorites-sidebar-desktop` becomes visible
-- `.favorites-mobile-controls` is hidden
+- `.view-controls` sits inside `.mixes-body`, above the sidebar and the grid
 - `.favorites-header` returns to full shell width
+- `.mixes-body` is centred on the sidebar-plus-grid width, which the controls row therefore
+  shares
 - `.favorites-main` returns to auto width inside the desktop layout
 
 At this point the page is no longer centered around the `2`-column grid width, but around the
@@ -189,18 +210,18 @@ grows that large, not an omission to correct.
 ## Destination Switcher
 
 The three top-level destinations (mixes, events, artists) are one segmented control, the same
-object at every width. It lives in the header's control row, so it shares that row with the
-sort button, the mobile filter button, the settings menu and the sign-out button.
-
-`.favorites-header-controls` wraps that row, so the switcher never pushes the other controls
-off screen: below `md` it takes a whole line and the buttons wrap onto the next one.
+object at every width. It lives in the header's `tabs` slot (see Header Layout above), which
+holds nothing else -- the sort button, the mobile filter button and the account menu all live
+outside the header's `tabs` slot, in `.view-controls` and the `identity` slot respectively.
 
 The switcher itself has two forms, driven by one class:
 
 - Below `md` (`48rem` / `768px`): `.destination-switcher` is `w-full` and each
   `.destination-tab` is `flex-1`, so the three tabs span the full width and share it equally.
 - From `md` and up: the track is `w-auto` and each tab is `flex-none`, so the tabs size to
-  their labels and the switcher sits inline beside the other header controls.
+  their labels and the switcher sits inline beside the other header controls. It is also sized a
+  step up there -- a larger label, roomier tabs, and a track padded and rounded to match -- because
+  an inline control has to earn the eye that a full-width strip gets for free.
 
 `.destination-tab-active` marks the current destination with a white fill, a heavier weight and
 a small shadow. The active tab also carries `aria-current="page"`, so the state does not depend
@@ -289,19 +310,45 @@ These classes translate the tokens into layout behavior:
 - `.favorites-layout`: desktop row layout
 - `.favorites-sidebar-desktop`: desktop sidebar
 - `.favorites-main`: main content width before and after desktop sidebar
-- `.favorites-mobile-controls`: search/add controls above the grid before desktop sidebar
+- `.mixes-body`: the mixes zone as one block -- the controls row and the sidebar-plus-grid share
+  one left edge because the row is the outer element's first child. Carries the centring
+  `.favorites-layout` used to carry.
+- `.header-menu-panel`: the dropdown shell both header menus use, anchored to its trigger.
 - `.card-grid`: shared fixed-width card grid at 2/3/4 columns, carried by both the mixes
   grid and the events grid
-- `.favorites-header-controls`: wrapping header control row that holds the destination switcher
-- `.destination-switcher`: segmented track for the three destinations, full width below `md`
+- `.destination-switcher`: segmented track for the three destinations, full width below `md`,
+  inline and a step larger from `md`
 - `.destination-tab`: one destination tab inside the track
 - `.destination-tab-active`: the current destination's tab
 - `.artist-page`: the artist page's stacked-section shell
 - `.artist-section`: one half of the artist page
 - `.artist-stats`: the wrapping row of count tiles
 - `.credited-artist-link`: a credited artist's name, on the mix card and the event card
-- `.artists-view`: the artists tab's stacked shell
-- `.artists-controls`: the artists tab's search row
+- `.artists-view`: the artists tab's stacked shell, gapped like the header's bottom margin below
+  `md` (where the sort select adds a second gap) and like the card grid from `md`
+- `.view-controls`: the controls row the mixes, events and artists destinations share. Stacks on
+  a phone, becomes a row from `sm`, sets no outer margin -- each host spaces its own stack.
+- `.view-controls-search`: the search field and the controls that read with it (sort, and the
+  phone-only artist filter on the mixes tab) on one line at every width.
+- `.view-controls-action`: the create button, full width on a phone and label-width from `sm`.
+- `.card-grid-body`: the box a `.card-grid` sits in together with whatever is laid out over it,
+  sized to the grid's own width at each breakpoint (`--layout-grid-width-2col` / `-3col` / `-4col`).
+  Without it the grid stays centred while the controls row above starts at the shell's edge, and
+  the two stop sharing a left edge. The mixes tab uses `.mixes-body` instead, which also has a
+  sidebar to account for.
+- `.view-control-button`: an icon button on the controls row — the date sort on both card
+  destinations, the phone-only artist filter on the mixes tab. Square, sized by
+  `--layout-control-height`.
+- `.view-control-action`: the create button at the end of the row, full width on a phone and its
+  own width from `sm`, sized by `--layout-control-height`.
+- `.view-search` / `.view-search-input`: the search field, `--layout-search-width` (20rem) wide
+  **from `sm` up only**, and sized by `--layout-control-height` (2.75rem), the height every control
+  on the row shares. It has to be a definite width rather than a `max-width`: the group holding the
+  field and its buttons is shrink-to-fit, so a percentage width inside it resolves against the
+  input's intrinsic size and a `max-width` never binds. Below `sm` the field takes the full width:
+  the row is stacked there and the create button under it is full width, so a narrower field would
+  stop short of an edge everything else reaches. The width is on the wrapper so the sort button
+  stays beside the field.
 - `.artists-sort-control`: the compact sort select, below `md` only
 - `.artists-table`: the artists table's own frame
 - `.artists-table-header` / `.artists-table-cell`: one header cell and one body cell

@@ -120,8 +120,10 @@ relation cascades, so a delete never depends on the endpoint being enabled.
 
 State is split the same way the mixes destination splits it. `useEventsStore` owns events domain
 data -- load, save, delete, the import pass and the per-artist performance views --
-`useEventsUiStore` owns the events tab's search, and `useArtistsUiStore` owns slug lookup for
-the artist address plus the artists table's sort, search and single column descriptor.
+`useEventsUiStore` owns the events tab's search and the direction it is read in -- the ordering
+itself stays in `useEventsStore`, so the UI store filters, then reverses what the filter left.
+`useArtistsUiStore` owns slug lookup for the artist address plus the artists table's sort, search
+and single column descriptor.
 
 Every per-artist number is read from the store that owns it rather than derived a second time:
 the artist page and the artists table both read the live half from

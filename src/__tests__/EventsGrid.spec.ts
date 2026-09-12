@@ -62,7 +62,7 @@ async function seedLocalEvents(events: MusicEvent[] = SEEDED_EVENTS) {
 
 const EVENT_CARD_STUB = {
   name: 'EventCard',
-  template: '<div class="event-card" @click="$emit(\'open\', event.id)" />',
+  template: '<div class="event-card" @click="$emit(\'open\', event.id)">{{ event.id }}</div>',
   props: ['event', 'readOnly'],
   emits: ['open'],
 }
@@ -268,5 +268,86 @@ describe('EventsGrid', () => {
 
     expect(wrapper.find('#events-grid').exists()).toBe(false)
     expect(wrapper.text()).toContain('No event matches your search')
+  })
+
+  it('gives the controls row and the grid one left edge at every column count', async () => {
+    await seedLocalEvents()
+    const { wrapper } = await mountEventsGrid()
+
+    // The row and the grid have to be inside the same box, or the grid's own
+    // centring pulls it away from the row above it.
+    const box = wrapper.get('.card-grid-body')
+    expect(box.element.contains(wrapper.get('.view-controls').element)).toBe(true)
+    expect(box.element.contains(wrapper.get('#events-grid').element)).toBe(true)
+
+    // ...and that box has to be exactly as wide as the grid at each
+    // breakpoint. Asserting the two progressions agree, rather than asserting
+    // three widths, is what catches a fifth column added without a width to
+    // match it.
+    const boxRule = layoutRuleFor('card-grid-body')
+    const gridRule = layoutRuleFor('card-grid')
+
+    const columnsAt: [string, string][] = [
+      ['md:', '2'],
+      ['layout-3col:', '3'],
+      ['layout-4col:', '4'],
+    ]
+
+    for (const [variant, columns] of columnsAt) {
+      expect(gridRule).toContain(
+        `${variant}grid-cols-[repeat(${columns},var(--layout-card-width))]`,
+      )
+      expect(boxRule).toContain(`${variant}w-[var(--layout-grid-width-${columns}col)]`)
+      expect(TAILWIND_CSS).toContain(`--layout-grid-width-${columns}col: calc(`)
+    }
+  })
+
+  it('caps the search field at one token and sizes every control on the row by another', () => {
+    expect(TAILWIND_CSS).toContain('--layout-search-width: 20rem;')
+
+    // A definite width, not a max-width: the group around the field is
+    // shrink-to-fit, so a percentage width inside it resolves against the
+    // input's intrinsic size and a max-width can never widen anything. Gated on
+    // sm, because below it the field runs full width to the same edge as the
+    // create button under it.
+    const searchRule = layoutRuleFor('view-search')
+    expect(searchRule).toContain('sm:w-[var(--layout-search-width)]')
+    expect(searchRule).not.toContain('max-w-[var(--layout-search-width)]')
+    // The search field, the icon buttons beside it and the create button at
+    // its end are read as one row, so one token sizes all three. Asserting the
+    // token rather than a pixel value is what stops them drifting apart again.
+    expect(TAILWIND_CSS).toContain('--layout-control-height: 2.75rem;')
+    for (const control of ['view-search-input', 'view-control-button', 'view-control-action']) {
+      expect(layoutRuleFor(control)).toContain('h-[var(--layout-control-height)]')
+    }
+  })
+
+  it('lays the events controls out with the class the three destinations share', async () => {
+    const { wrapper } = await mountEventsGrid()
+    const row = wrapper.get('.view-controls')
+
+    expect(row.find('.view-search').exists()).toBe(true)
+    expect(row.find('#add-event-btn').exists()).toBe(true)
+    expect(layoutRuleFor('view-controls')).toMatch(/sm:flex-row/)
+  })
+
+  it('puts the sort beside the search and reverses the rendered order', async () => {
+    await seedLocalEvents()
+
+    const { wrapper } = await mountEventsGrid()
+    const eventsUiStore = useEventsUiStore()
+
+    const sortButton = wrapper.get('#events-sort-btn')
+    expect(sortButton.element.closest('.view-controls-search')).not.toBeNull()
+
+    const before = wrapper.findAll('.event-card').map((card) => card.text())
+    expect(before).toEqual(['new', 'mid', 'old'])
+
+    await sortButton.trigger('click')
+    await nextTick()
+
+    expect(eventsUiStore.sortOrder).toBe('oldest')
+    const after = wrapper.findAll('.event-card').map((card) => card.text())
+    expect(after).toEqual(['old', 'mid', 'new'])
   })
 })

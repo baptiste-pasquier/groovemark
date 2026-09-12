@@ -23,7 +23,22 @@
   --layout-table-cell-padding-x: 0.75rem;
   --layout-table-cell-padding-y: 0.625rem;
   --layout-table-name-min-width: 11rem;
+  /* The search field's width on all three destinations, from sm up. It has to
+     be a definite width rather than a max-width: the group holding the field
+     and its buttons is shrink-to-fit, so a percentage width inside it resolves
+     against the input's own intrinsic size (~20 characters) and a max-width
+     never binds. Below sm the field is full width instead -- the row is
+     stacked there and the create button under it runs edge to edge, so a
+     narrower field would stop short of an edge everything else reaches. */
+  --layout-search-width: 20rem;
+  /* One height for every control on the controls row -- the search field, the
+     icon buttons beside it and the create button at its end. They are read as
+     one row, so they are sized by one token rather than by three paddings that
+     can drift apart. 2.75rem is the touch target WCAG 2.2 asks for. */
+  --layout-control-height: 2.75rem;
   --layout-grid-width-2col: calc(var(--layout-card-width) * 2 + var(--layout-grid-gap));
+  --layout-grid-width-3col: calc(var(--layout-card-width) * 3 + var(--layout-grid-gap) * 2);
+  --layout-grid-width-4col: calc(var(--layout-card-width) * 4 + var(--layout-grid-gap) * 3);
   --layout-switcher-padding: 0.1875rem;
   --layout-switcher-radius: 0.625rem;
 }
@@ -56,32 +71,49 @@ body {
     @apply layout-2col:max-w-[var(--layout-shell-2col)] layout-3col:max-w-[var(--layout-shell-3col)] layout-4col:max-w-[var(--layout-shell-4col)] mx-auto w-full p-4 sm:p-6 md:p-8;
   }
 
+  /* The mixes zone as one block: the controls row and the sidebar-plus-grid
+     below it share one left edge, because the row is the outer element's first
+     child rather than a sibling laid out against a different width. Carries the
+     centring that .favorites-layout used to carry alone. */
+  .mixes-body {
+    @apply layout-2col:mx-auto layout-2col:w-fit flex w-full flex-col gap-[var(--layout-grid-gap)] md:mx-auto md:w-[var(--layout-grid-width-2col)];
+  }
+
   .favorites-layout {
-    @apply layout-2col:mx-auto layout-2col:w-fit layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
+    @apply layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
   }
 
-  /* The gap below the header is halved on a phone, where the controls stack
-     into their own rows and the screen has no height to spare: a full 32px
-     there pushes the search field and the first card down for no gain. From md
-     up the header sits on one line and keeps its original room. */
+  /* Three slots in one wrapping row: brand, identity, tabs. Below sm the tabs
+     take the full basis and wrap, so the identity stays beside the title and
+     the header is two rows; from sm the row is single and the identity's
+     order-last puts it after the tabs. One mount, two positions -- see
+     HeaderBar.vue. The gap below is halved on a phone, where the screen has no
+     height to spare. */
   .favorites-header {
-    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
+    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
   }
 
-  .favorites-header-controls {
-    @apply flex flex-wrap items-center justify-center gap-2 md:justify-end;
-  }
-
+  /* The switcher is the app's primary navigation, so from md -- where it stops
+     being a full-width strip and becomes an inline control -- it is sized a
+     step up: a larger label, roomier tabs, and a track padded and rounded to
+     match. Below md the strip spans the screen and needs no emphasis. */
   .destination-switcher {
-    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto;
+    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto md:rounded-xl md:p-1;
   }
 
   .destination-tab {
-    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none;
+    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none md:px-4 md:text-base;
   }
 
   .destination-tab-active {
     @apply bg-white font-semibold text-gray-900 shadow-sm;
+  }
+
+  /* The dropdown shell both header menus use. Anchored to its trigger rather
+     than portalled: the header is not sticky and creates no stacking context,
+     so nothing here can be trapped underneath a later sibling. */
+  .header-menu-panel {
+    @apply absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none;
   }
 
   .favorites-sidebar-desktop {
@@ -93,12 +125,19 @@ body {
     @apply layout-2col:mx-0 layout-2col:w-auto layout-2col:flex-none min-w-0 flex-1 md:mx-auto md:w-[var(--layout-grid-width-2col)];
   }
 
-  .favorites-mobile-controls {
-    @apply layout-2col:hidden mb-6 space-y-4;
-  }
-
   .favorites-desktop-hidden {
     @apply layout-2col:hidden;
+  }
+
+  /* The box a .card-grid sits in, together with whatever is laid out over it.
+     .card-grid centres fixed-width columns, so a wider box leaves the grid
+     centred while the controls row above it starts at the box's left edge --
+     the two stop sharing a left edge. Matching the box to the grid's own width
+     at each breakpoint keeps them aligned and makes the grid's centring a
+     no-op. The mixes tab solves the same problem through .mixes-body, which
+     also has a sidebar to account for. */
+  .card-grid-body {
+    @apply layout-3col:w-[var(--layout-grid-width-3col)] layout-4col:w-[var(--layout-grid-width-4col)] mx-auto flex w-full flex-col md:w-[var(--layout-grid-width-2col)];
   }
 
   .card-grid {
@@ -136,12 +175,59 @@ body {
 
   /* The artists tab stacks its controls and its table at the grid gap, so the
      catalogue lines up with the card destinations' vertical rhythm. */
+  /* Below md the sort select sits between the controls row and the table, so
+     the stack has two gaps where every other tab has one. They take the
+     header's own bottom margin at that width (mb-4), which puts the same air
+     between the tabs and the search field as between the search field and the
+     select. From md the select is gone and the single remaining gap is the
+     grid gap, as on the card tabs. */
   .artists-view {
-    @apply flex w-full min-w-0 flex-col gap-[var(--layout-grid-gap)];
+    @apply flex w-full min-w-0 flex-col gap-4 md:gap-[var(--layout-grid-gap)];
   }
 
-  .artists-controls {
-    @apply flex flex-col gap-[var(--layout-grid-gap)] sm:flex-row sm:items-center;
+  /* The one controls row of the three card and table destinations: search and
+     its adjacent controls on one side, the create button on the other. Named
+     after what it lays out rather than after a destination, because all three
+     carry it -- see docs/conventions/frontend-layout.md. It sets no outer
+     margin: each host already spaces its own stack. */
+  .view-controls {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center;
+  }
+
+  /* Search, sort and the phone-only artist filter travel together: on a phone
+     they share one line rather than each taking a row of their own. */
+  .view-controls-search {
+    @apply flex w-full items-center gap-2 sm:w-auto;
+  }
+
+  /* The create button fills the width on a phone, where it is the row, and
+     shrinks to its label once the row is horizontal. */
+  .view-controls-action {
+    @apply w-full sm:w-auto;
+  }
+
+  /* The cap sits on the wrapper, not on the input: the sort button is the
+     wrapper's next sibling, so capping the input alone would leave the button
+     stranded at the far end of a full-width box. */
+  .view-search {
+    @apply relative w-full min-w-0 sm:w-[var(--layout-search-width)] sm:max-w-full;
+  }
+
+  .view-search-input {
+    @apply h-[var(--layout-control-height)] w-full rounded-lg border border-gray-200 bg-white pr-3 pl-10 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+  }
+
+  /* The icon buttons that sit beside the search field: the date sort on both
+     card destinations, and the phone-only artist filter on the mixes tab.
+     Square, so the token sets the width as well. */
+  .view-control-button {
+    @apply grid aspect-square h-[var(--layout-control-height)] shrink-0 place-items-center rounded-lg border border-gray-300 bg-white shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none;
+  }
+
+  /* The create button at the end of the row. Full width on a phone, where it
+     is the row; its own width from sm, where the wrapper releases it. */
+  .view-control-action {
+    @apply flex h-[var(--layout-control-height)] w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 font-semibold text-white shadow-md transition duration-300 hover:bg-blue-700 hover:shadow-lg focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none disabled:hover:bg-gray-300;
   }
 
   /* The compact select that changes the sort where the headers cannot: below

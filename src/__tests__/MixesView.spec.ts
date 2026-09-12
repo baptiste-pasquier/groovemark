@@ -28,7 +28,11 @@ class MockIntersectionObserver {
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 
-function createFavorite(id: string, title: string): Favorite {
+function createFavorite(
+  id: string,
+  title: string,
+  created: string = '2024-01-01T00:00:00.000Z',
+): Favorite {
   return {
     id,
     url: `https://www.youtube.com/watch?v=${id}`,
@@ -38,7 +42,7 @@ function createFavorite(id: string, title: string): Favorite {
     type: 'youtube',
     thumbnail: 'https://img.test/thumb.jpg',
     timestamps: [{ time: '01:30', label: 'Warehouse lift', rated: false }],
-    created: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+    created: new Date(created).toISOString(),
   }
 }
 
@@ -53,7 +57,7 @@ async function mountMixesView(): Promise<{ wrapper: ReturnType<typeof mount>; ro
       stubs: {
         FavoriteCard: {
           name: 'FavoriteCard',
-          template: '<div class="favorite-card" @click="$emit(\'edit\')" />',
+          template: '<div class="favorite-card" @click="$emit(\'edit\')">{{ favorite.id }}</div>',
           props: ['favorite', 'readOnly'],
           emits: ['edit', 'delete'],
         },
@@ -82,7 +86,31 @@ describe('MixesView', () => {
     expect(wrapper.findComponent(FavoriteSearchBar).exists()).toBe(true)
     expect(wrapper.findComponent(AddFavoriteButton).exists()).toBe(true)
     expect(wrapper.findComponent(ArtistList).exists()).toBe(true)
-    expect(wrapper.find('#sort-btn').exists()).toBe(true)
+  })
+
+  it('puts the sort beside the search and toggles the mixes order', async () => {
+    const favoritesStore = useFavoritesStore()
+    const favoritesUiStore = useFavoritesUiStore()
+    favoritesStore.favorites = [
+      createFavorite('fav-1', 'Anetha | Techno DJ Set', '2024-01-01T00:00:00.000Z'),
+      createFavorite('fav-2', 'Daft Punk | Alive', '2024-06-01T00:00:00.000Z'),
+    ]
+
+    const { wrapper } = await mountMixesView()
+
+    const sortButton = wrapper.get('#sort-btn')
+    expect(sortButton.element.closest('.view-controls-search')).not.toBeNull()
+    expect(favoritesUiStore.sortOrder).toBe('newest')
+
+    const before = wrapper.findAll('.favorite-card').map((card) => card.text())
+    expect(before).toEqual(['fav-2', 'fav-1'])
+
+    await sortButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(favoritesUiStore.sortOrder).toBe('oldest')
+    const after = wrapper.findAll('.favorite-card').map((card) => card.text())
+    expect(after).toEqual(['fav-1', 'fav-2'])
   })
 
   it('keeps the search narrowing the grid', async () => {
@@ -130,13 +158,36 @@ describe('MixesView', () => {
     )
   })
 
-  it('opens the artist filter sidebar from the header filter control', async () => {
+  it('opens the artist filter sidebar from the controls row', async () => {
     const { wrapper } = await mountMixesView()
 
     expect(wrapper.findComponent(ArtistSidebar).props('open')).toBe(false)
 
-    await wrapper.find('#filter-menu-btn').trigger('click')
+    const filterButton = wrapper.get('#filter-menu-btn')
+    expect(filterButton.element.closest('.view-controls')).not.toBeNull()
+
+    await filterButton.trigger('click')
 
     expect(wrapper.findComponent(ArtistSidebar).props('open')).toBe(true)
+  })
+
+  it('mounts the search and the create button once, above the sidebar and the grid', async () => {
+    const { wrapper } = await mountMixesView()
+
+    expect(wrapper.findAllComponents(FavoriteSearchBar)).toHaveLength(1)
+    expect(wrapper.findAllComponents(AddFavoriteButton)).toHaveLength(1)
+
+    const row = wrapper.get('.view-controls')
+    expect(row.element.closest('.favorites-layout')).toBeNull()
+    expect(wrapper.get('.mixes-body').element.contains(row.element)).toBe(true)
+  })
+
+  it('leaves the sidebar holding the artist list alone', async () => {
+    const { wrapper } = await mountMixesView()
+    const sidebar = wrapper.get('.favorites-sidebar-desktop')
+
+    expect(sidebar.findComponent(ArtistList).exists()).toBe(true)
+    expect(sidebar.findComponent(FavoriteSearchBar).exists()).toBe(false)
+    expect(sidebar.findComponent(AddFavoriteButton).exists()).toBe(false)
   })
 })
