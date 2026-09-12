@@ -245,6 +245,21 @@ describe('EventModal', () => {
     expect(closedOnce(wrapper)).toBe(true)
   })
 
+  it('centres the remove control on the verdict picker rather than offsetting each one', async () => {
+    await enterLocalMode()
+    const wrapper = mountEventModal()
+
+    const remove = wrapper.find('.remove-performance-btn')
+    const picker = wrapper.find('[role="group"]')
+    // The picker is two different heights either side of md -- its stars are
+    // bigger below it -- so a top offset tuned at one width is wrong at the
+    // other. The two share one centring parent instead. Splitting them back
+    // into siblings with their own padding is what sat the cross 7px above the
+    // stars on a phone.
+    expect(remove.element.parentElement).toBe(picker.element.parentElement)
+    expect(remove.element.parentElement?.className).toContain('items-center')
+  })
+
   it('removes only the row the operator removed (R8)', async () => {
     const performances = [
       storedPerformance('perf-1', 'event-1', 'artist-anetha', 'Anetha', 'two-stars'),
