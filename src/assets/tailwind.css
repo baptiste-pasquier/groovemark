@@ -72,12 +72,14 @@ body {
     @apply layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
   }
 
-  /* The gap below the header is halved on a phone, where the controls stack
-     into their own rows and the screen has no height to spare: a full 32px
-     there pushes the search field and the first card down for no gain. From md
-     up the header sits on one line and keeps its original room. */
+  /* Three slots in one wrapping row: brand, identity, tabs. Below sm the tabs
+     take the full basis and wrap, so the identity stays beside the title and
+     the header is two rows; from sm the row is single and the identity's
+     order-last puts it after the tabs. One mount, two positions -- see
+     HeaderBar.vue. The gap below is halved on a phone, where the screen has no
+     height to spare. */
   .favorites-header {
-    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-col items-center justify-between sm:flex-row md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
+    @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
   }
 
   .favorites-header-controls {

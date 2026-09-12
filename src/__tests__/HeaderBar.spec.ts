@@ -157,4 +157,42 @@ describe('HeaderBar', () => {
       expect(wrapper.find('#account-menu-btn').exists()).toBe(true)
     }
   })
+
+  it('hides the subtitle below sm, where the row is the scarce thing', () => {
+    const wrapper = mountHeaderBar()
+    const subtitle = wrapper.get('[data-app-subtitle]')
+
+    expect(subtitle.text()).toBe('Save your favorite mixes and their highlights.')
+    expect(subtitle.classes()).toContain('hidden')
+    expect(subtitle.classes()).toContain('sm:block')
+  })
+
+  it('mounts the identity exactly once, so no control beneath it has a duplicated id', () => {
+    const authStore = useAuthStore()
+    authStore.authMode = 'google'
+    authStore.user = createUser('user-1')
+
+    const wrapper = mountHeaderBar()
+
+    expect(wrapper.findAll('#account-menu-btn')).toHaveLength(1)
+  })
+
+  it('orders the header brand, identity and tabs so the tabs wrap to their own row below sm', () => {
+    const wrapper = mountHeaderBar()
+
+    const brand = wrapper.get('[data-header-slot="brand"]')
+    const identity = wrapper.get('[data-header-slot="identity"]')
+    const tabs = wrapper.get('[data-header-slot="tabs"]')
+
+    // All three are siblings of one wrapping row: that is what lets order and
+    // basis do the repositioning instead of a hidden/visible pair.
+    expect(identity.element.parentElement).toBe(brand.element.parentElement)
+    expect(tabs.element.parentElement).toBe(brand.element.parentElement)
+
+    // Below sm the tabs take the full basis and wrap; from sm the identity is
+    // pushed past them to the end of the single row.
+    expect(tabs.classes()).toContain('basis-full')
+    expect(tabs.classes()).toContain('sm:basis-auto')
+    expect(identity.classes()).toContain('sm:order-last')
+  })
 })

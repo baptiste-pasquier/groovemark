@@ -2,12 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { TriangleAlert } from 'lucide-vue-next'
-import AccountMenu from './AccountMenu.vue'
-import LocalModeMenu from './LocalModeMenu.vue'
-import { useAuthStore } from '../../stores/auth'
-
-const authStore = useAuthStore()
+import HeaderIdentity from './HeaderIdentity.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -25,39 +20,38 @@ const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : 
 
 <template>
   <header class="favorites-header">
-    <div class="flex items-center gap-4">
-      <img src="/icon.svg" alt="GrooveMark Logo" class="h-16 w-16" />
-      <div>
+    <div data-header-slot="brand" class="flex min-w-0 flex-1 items-center gap-4">
+      <img src="/icon.svg" alt="GrooveMark Logo" class="h-16 w-16 shrink-0" />
+      <div class="min-w-0">
         <h1 class="text-4xl font-bold text-gray-900">{{ t('app.title') }}</h1>
-        <p class="text-gray-600">{{ t('app.subtitle') }}</p>
+        <p data-app-subtitle class="hidden text-gray-600 sm:block">{{ t('app.subtitle') }}</p>
       </div>
     </div>
-    <div class="mt-4 flex flex-col items-center gap-3 sm:mt-0 sm:items-end">
-      <div class="favorites-header-controls">
-        <nav class="destination-switcher" :aria-label="t('nav.aria_label')">
-          <RouterLink
-            v-for="destination in DESTINATIONS"
-            :key="destination.name"
-            :to="{ name: destination.name }"
-            :data-destination="destination.name"
-            class="destination-tab"
-            :class="{ 'destination-tab-active': activeDestination === destination.name }"
-            :aria-current="activeDestination === destination.name ? 'page' : undefined"
-          >
-            {{ t(destination.label) }}
-          </RouterLink>
-        </nav>
-        <span
-          v-if="authStore.authMode === 'local'"
-          class="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700"
-          :title="t('login.local_mode_info')"
+
+    <!-- One mount, two positions. Below sm the tabs take the full basis and
+         wrap to their own row, leaving the identity beside the title; from sm
+         the row is single and order-last pushes the identity past the tabs to
+         the end. Mounting it twice behind a hidden/visible pair would put
+         every id beneath it in the document twice -- and the import control is
+         a <label for> bound to an <input id>, which a duplicate id breaks. -->
+    <div data-header-slot="identity" class="flex shrink-0 items-center gap-2 sm:order-last">
+      <HeaderIdentity />
+    </div>
+
+    <div data-header-slot="tabs" class="basis-full sm:basis-auto">
+      <nav class="destination-switcher" :aria-label="t('nav.aria_label')">
+        <RouterLink
+          v-for="destination in DESTINATIONS"
+          :key="destination.name"
+          :to="{ name: destination.name }"
+          :data-destination="destination.name"
+          class="destination-tab"
+          :class="{ 'destination-tab-active': activeDestination === destination.name }"
+          :aria-current="activeDestination === destination.name ? 'page' : undefined"
         >
-          <TriangleAlert class="h-4 w-4" />
-          {{ t('auth.local_mode') }}
-        </span>
-        <LocalModeMenu v-if="authStore.authMode === 'local'" />
-        <AccountMenu v-else />
-      </div>
+          {{ t(destination.label) }}
+        </RouterLink>
+      </nav>
     </div>
   </header>
 </template>
