@@ -23,10 +23,14 @@
   --layout-table-cell-padding-x: 0.75rem;
   --layout-table-cell-padding-y: 0.625rem;
   --layout-table-name-min-width: 11rem;
-  /* Caps the search field on all three destinations. A search term is a few
-     words; past this width the field reads as a text area and pushes the
-     controls beside it off the eye's path. */
-  --layout-search-max-width: 24rem;
+  /* The search field's width on all three destinations, from sm up. It has to
+     be a definite width rather than a max-width: the group holding the field
+     and its buttons is shrink-to-fit, so a percentage width inside it resolves
+     against the input's own intrinsic size (~20 characters) and a max-width
+     never binds. Below sm the field is full width instead -- the row is
+     stacked there and the create button under it runs edge to edge, so a
+     narrower field would stop short of an edge everything else reaches. */
+  --layout-search-width: 20rem;
   /* One height for every control on the controls row -- the search field, the
      icon buttons beside it and the create button at its end. They are read as
      one row, so they are sized by one token rather than by three paddings that
@@ -196,8 +200,7 @@ body {
      wrapper's next sibling, so capping the input alone would leave the button
      stranded at the far end of a full-width box. */
   .view-search {
-    @apply relative w-full min-w-0;
-    max-width: var(--layout-search-max-width);
+    @apply relative w-full min-w-0 sm:w-[var(--layout-search-width)] sm:max-w-full;
   }
 
   .view-search-input {

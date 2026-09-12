@@ -303,10 +303,16 @@ describe('EventsGrid', () => {
   })
 
   it('caps the search field at one token and sizes every control on the row by another', () => {
-    expect(TAILWIND_CSS).toContain('--layout-search-max-width: 24rem;')
+    expect(TAILWIND_CSS).toContain('--layout-search-width: 20rem;')
 
+    // A definite width, not a max-width: the group around the field is
+    // shrink-to-fit, so a percentage width inside it resolves against the
+    // input's intrinsic size and a max-width can never widen anything. Gated on
+    // sm, because below it the field runs full width to the same edge as the
+    // create button under it.
     const searchRule = layoutRuleFor('view-search')
-    expect(searchRule).toContain('var(--layout-search-max-width)')
+    expect(searchRule).toContain('sm:w-[var(--layout-search-width)]')
+    expect(searchRule).not.toContain('max-w-[var(--layout-search-width)]')
     // The search field, the icon buttons beside it and the create button at
     // its end are read as one row, so one token sizes all three. Asserting the
     // token rather than a pixel value is what stops them drifting apart again.

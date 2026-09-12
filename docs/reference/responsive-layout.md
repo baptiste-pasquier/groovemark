@@ -332,10 +332,14 @@ These classes translate the tokens into layout behavior:
   `--layout-control-height`.
 - `.view-control-action`: the create button at the end of the row, full width on a phone and its
   own width from `sm`, sized by `--layout-control-height`.
-- `.view-search` / `.view-search-input`: the search field, capped at
-  `--layout-search-max-width` (24rem) and sized by `--layout-control-height` (2.75rem), the
-  height every control on the row shares. The cap is on the wrapper so the sort
-  button stays beside the field.
+- `.view-search` / `.view-search-input`: the search field, `--layout-search-width` (20rem) wide
+  **from `sm` up only**, and sized by `--layout-control-height` (2.75rem), the height every control
+  on the row shares. It has to be a definite width rather than a `max-width`: the group holding the
+  field and its buttons is shrink-to-fit, so a percentage width inside it resolves against the
+  input's intrinsic size and a `max-width` never binds. Below `sm` the field takes the full width:
+  the row is stacked there and the create button under it is full width, so a narrower field would
+  stop short of an edge everything else reaches. The width is on the wrapper so the sort button
+  stays beside the field.
 - `.artists-sort-control`: the compact sort select, below `md` only
 - `.artists-table`: the artists table's own frame
 - `.artists-table-header` / `.artists-table-cell`: one header cell and one body cell
