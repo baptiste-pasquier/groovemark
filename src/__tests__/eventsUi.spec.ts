@@ -214,6 +214,10 @@ describe('Events UI Store', () => {
 
     eventsUiStore.toggleSort()
 
+    // Read the computed first: it is lazy, so without this the reversal branch
+    // never runs and the assertion below cannot fail however the reversal is
+    // implemented.
+    expect(eventsUiStore.filteredEvents.map((event) => event.id)).toEqual(['old', 'mid', 'new'])
     expect(eventsStore.events.map((event) => event.id)).toEqual(['new', 'mid', 'old'])
   })
 
