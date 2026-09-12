@@ -129,14 +129,14 @@ async function handleSignOut() {
     ></div>
 
     <div v-if="isMenuOpen" class="header-menu-panel" role="menu">
-      <div class="px-4 pt-2 pb-3">
-        <p class="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+      <div class="px-4 pt-3 pb-3">
+        <p class="mb-1.5 text-xs font-semibold tracking-wider text-gray-500 uppercase">
           {{ t('auth.account_signed_in_label') }}
         </p>
         <p class="truncate text-sm font-medium text-gray-900">{{ displayName }}</p>
-        <p class="truncate text-xs text-gray-500">{{ authStore.user?.email }}</p>
+        <p class="mt-0.5 truncate text-xs text-gray-500">{{ authStore.user?.email }}</p>
         <span
-          class="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold"
+          class="mt-3 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold"
           :class="STATUS_CHIP_CLASS[status]"
           :title="statusTitle"
         >
