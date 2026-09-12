@@ -60,8 +60,16 @@ body {
     @apply layout-2col:max-w-[var(--layout-shell-2col)] layout-3col:max-w-[var(--layout-shell-3col)] layout-4col:max-w-[var(--layout-shell-4col)] mx-auto w-full p-4 sm:p-6 md:p-8;
   }
 
+  /* The mixes zone as one block: the controls row and the sidebar-plus-grid
+     below it share one left edge, because the row is the outer element's first
+     child rather than a sibling laid out against a different width. Carries the
+     centring that .favorites-layout used to carry alone. */
+  .mixes-body {
+    @apply layout-2col:mx-auto layout-2col:w-fit flex w-full flex-col gap-[var(--layout-grid-gap)] md:mx-auto md:w-[var(--layout-grid-width-2col)];
+  }
+
   .favorites-layout {
-    @apply layout-2col:mx-auto layout-2col:w-fit layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
+    @apply layout-2col:flex-row layout-2col:gap-[var(--layout-desktop-gap)] flex flex-col;
   }
 
   /* The gap below the header is halved on a phone, where the controls stack
@@ -95,10 +103,6 @@ body {
 
   .favorites-main {
     @apply layout-2col:mx-0 layout-2col:w-auto layout-2col:flex-none min-w-0 flex-1 md:mx-auto md:w-[var(--layout-grid-width-2col)];
-  }
-
-  .favorites-mobile-controls {
-    @apply layout-2col:hidden mb-6 space-y-4;
   }
 
   .favorites-desktop-hidden {

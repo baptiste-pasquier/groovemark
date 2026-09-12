@@ -8,7 +8,6 @@ import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import {
   CalendarArrowDown,
   CalendarArrowUp,
-  Filter,
   Settings,
   Upload,
   Download,
@@ -83,10 +82,6 @@ async function handleLogout() {
   isMenuOpen.value = false
 }
 
-const emit = defineEmits<{
-  (e: 'openFilters'): void
-}>()
-
 // The import restores both domains from one file (R22), so it is an app-level
 // action rather than a mixes-destination one. It is handled here, where the
 // file input, the disabled state and the progress label already live, instead
@@ -108,10 +103,6 @@ async function handleImport(event: Event) {
 
 function toggleSort() {
   favoritesUiStore.toggleSort()
-}
-
-function openFilters() {
-  emit('openFilters')
 }
 </script>
 
@@ -186,14 +177,6 @@ function openFilters() {
             :is="favoritesUiStore.sortOrder === 'newest' ? CalendarArrowDown : CalendarArrowUp"
             class="h-6 w-6 text-gray-700"
           />
-        </button>
-        <button
-          v-if="showsMixesControls"
-          id="filter-menu-btn"
-          class="favorites-desktop-hidden rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
-          @click="openFilters"
-        >
-          <Filter class="h-6 w-6 text-gray-700" />
         </button>
         <div class="relative">
           <button

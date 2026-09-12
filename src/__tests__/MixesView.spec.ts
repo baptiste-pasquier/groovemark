@@ -130,13 +130,36 @@ describe('MixesView', () => {
     )
   })
 
-  it('opens the artist filter sidebar from the header filter control', async () => {
+  it('opens the artist filter sidebar from the controls row', async () => {
     const { wrapper } = await mountMixesView()
 
     expect(wrapper.findComponent(ArtistSidebar).props('open')).toBe(false)
 
-    await wrapper.find('#filter-menu-btn').trigger('click')
+    const filterButton = wrapper.get('#filter-menu-btn')
+    expect(filterButton.element.closest('.view-controls')).not.toBeNull()
+
+    await filterButton.trigger('click')
 
     expect(wrapper.findComponent(ArtistSidebar).props('open')).toBe(true)
+  })
+
+  it('mounts the search and the create button once, above the sidebar and the grid', async () => {
+    const { wrapper } = await mountMixesView()
+
+    expect(wrapper.findAllComponents(FavoriteSearchBar)).toHaveLength(1)
+    expect(wrapper.findAllComponents(AddFavoriteButton)).toHaveLength(1)
+
+    const row = wrapper.get('.view-controls')
+    expect(row.element.closest('.favorites-layout')).toBeNull()
+    expect(wrapper.get('.mixes-body').element.contains(row.element)).toBe(true)
+  })
+
+  it('leaves the sidebar holding the artist list alone', async () => {
+    const { wrapper } = await mountMixesView()
+    const sidebar = wrapper.get('.favorites-sidebar-desktop')
+
+    expect(sidebar.findComponent(ArtistList).exists()).toBe(true)
+    expect(sidebar.findComponent(FavoriteSearchBar).exists()).toBe(false)
+    expect(sidebar.findComponent(AddFavoriteButton).exists()).toBe(false)
   })
 })

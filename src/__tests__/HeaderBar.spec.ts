@@ -116,21 +116,25 @@ describe('HeaderBar', () => {
     expect(wrapper.get('#sort-btn').element.closest('.favorites-header-controls')).not.toBeNull()
   })
 
-  it('offers the grid sort and artist filter on the mixes destination only', async () => {
+  it('offers the grid sort on the mixes destination only', async () => {
     const router = createTestRouter()
     await router.push('/')
     await router.isReady()
 
     const wrapper = mountHeaderBar(router)
     expect(wrapper.find('#sort-btn').exists()).toBe(true)
-    expect(wrapper.find('#filter-menu-btn').exists()).toBe(true)
 
     for (const destination of ['/events', '/artists']) {
       await router.push(destination)
       await flushPromises()
       expect(wrapper.find('#sort-btn').exists()).toBe(false)
-      expect(wrapper.find('#filter-menu-btn').exists()).toBe(false)
     }
+  })
+
+  it('emits nothing, so no destination view has to wire a header control up', () => {
+    const wrapper = mountHeaderBar()
+
+    expect(Object.keys(wrapper.vm.$options.emits ?? {})).toEqual([])
   })
 
   it('keeps the app-level settings menu on every destination', async () => {
@@ -186,11 +190,5 @@ describe('HeaderBar', () => {
 
     expect(importFromFile).toHaveBeenCalledTimes(1)
     expect(importFromFile.mock.calls[0]?.[0]).toBe(file)
-  })
-
-  it('emits no import event, so no destination view has to wire the file up', () => {
-    const wrapper = mountHeaderBar()
-
-    expect(Object.keys(wrapper.vm.$options.emits ?? {})).not.toContain('importClick')
   })
 })
