@@ -1,28 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { Settings, TriangleAlert, LogOut, LoaderCircle } from 'lucide-vue-next'
+import AppMenuItems from './AppMenuItems.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
 import { useFavoritesStore } from '../../stores/favorites'
-import {
-  Settings,
-  Upload,
-  Download,
-  Languages,
-  Check,
-  TriangleAlert,
-  LogOut,
-  LoaderCircle,
-} from 'lucide-vue-next'
-import { useI18n } from 'vue-i18n'
-import { SUPPORTED_LOCALES } from '../../i18n'
-import { updateLocale } from '../../services/locale'
 
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 
 const isMenuOpen = ref(false)
@@ -52,43 +42,10 @@ const importingLabel = computed(() => {
   return t('app.importing', { processed: progress.processed, total: progress.total })
 })
 
-// Single source of truth for the import control's disabled state and styling,
-// so the label class and the input's disabled binding can never drift apart.
-const importControlState = computed<'importing' | 'readonly' | 'enabled'>(() => {
-  if (favoritesStore.importProgress) return 'importing'
-  if (favoritesStore.isReadOnly) return 'readonly'
-  return 'enabled'
-})
-const isImportDisabled = computed(() => importControlState.value !== 'enabled')
-
-function setAndPersistLocale(l: string) {
-  locale.value = l
-  updateLocale(l)
-}
-
 async function handleLogout() {
   await authStore.signOut()
   appStore.handleSignedOut()
   isMenuOpen.value = false
-}
-
-// The import restores both domains from one file (R22), so it is an app-level
-// action rather than a mixes-destination one. It is handled here, where the
-// file input, the disabled state and the progress label already live, instead
-// of being emitted for each destination view to wire up -- only MixesView ever
-// did, which left the menu item dead on the events and artists tabs.
-async function handleImport(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  isMenuOpen.value = false
-  if (!file) return
-
-  try {
-    await favoritesStore.importFromFile(file)
-  } finally {
-    // Cleared so selecting the same file again still fires a change event.
-    input.value = ''
-  }
 }
 </script>
 
@@ -173,63 +130,7 @@ async function handleImport(event: Event) {
             class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md border border-gray-300 bg-white py-1 shadow-xl focus:outline-none"
             role="menu"
           >
-            <div
-              class="flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wider text-gray-500 uppercase"
-            >
-              <Languages class="h-4 w-4" />
-              {{ t('app.language') }}
-            </div>
-            <button
-              v-for="l in SUPPORTED_LOCALES"
-              :key="l.code"
-              class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-              @click="
-                () => {
-                  setAndPersistLocale(l.code)
-                  isMenuOpen = false
-                }
-              "
-              role="menuitem"
-            >
-              <span>{{ l.label }}</span>
-              <Check v-if="locale === l.code" class="h-4 w-4 text-blue-500" />
-            </button>
-            <div class="my-1 border-t border-gray-100"></div>
-            <label
-              for="import-json"
-              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 focus-within:bg-gray-100 focus-within:outline-none hover:bg-gray-100"
-              :class="{
-                'cursor-not-allowed opacity-60': importControlState === 'importing',
-                'pointer-events-none opacity-50': importControlState === 'readonly',
-                'cursor-pointer': importControlState === 'enabled',
-              }"
-            >
-              <LoaderCircle v-if="favoritesStore.importProgress" class="h-4 w-4 animate-spin" />
-              <Upload v-else class="h-4 w-4" />
-              {{ favoritesStore.importProgress ? importingLabel : t('app.import_json') }}
-            </label>
-            <input
-              type="file"
-              id="import-json"
-              class="hidden"
-              accept=".json"
-              :disabled="isImportDisabled"
-              @change="handleImport"
-            />
-            <button
-              id="export-json-btn"
-              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-              @click="
-                () => {
-                  favoritesStore.exportFavorites()
-                  isMenuOpen = false
-                }
-              "
-              role="menuitem"
-            >
-              <Download class="h-4 w-4" />
-              {{ t('app.export_json') }}
-            </button>
+            <AppMenuItems @done="isMenuOpen = false" />
           </div>
         </div>
         <button
