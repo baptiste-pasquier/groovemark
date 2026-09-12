@@ -34,7 +34,10 @@ const activeDestination = computed(() => (route.name === 'artist' ? 'artists' : 
          the end. Mounting it twice behind a hidden/visible pair would put
          every id beneath it in the document twice -- and the import control is
          a <label for> bound to an <input id>, which a duplicate id breaks. -->
-    <div data-header-slot="identity" class="flex shrink-0 items-center gap-2 sm:order-last">
+    <div
+      data-header-slot="identity"
+      class="relative flex shrink-0 items-center gap-2 sm:order-last"
+    >
       <HeaderIdentity />
     </div>
 

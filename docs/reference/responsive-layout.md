@@ -127,6 +127,11 @@ breaks). See [ADR-0004](../journal/decisions/0004-one-account-menu-in-the-header
 
 One mount, two positions, driven by flex order and wrapping rather than by a second template.
 
+Local mode adds a warning badge beside the settings button inside the `identity` slot. From `md`
+the badge is `absolute top-full right-0`, hanging under the row and right-aligned on that button,
+so the header's bottom margin absorbs it and the controls row below keeps its place. The slot
+carries `relative` as its anchor. Below `md` the badge stays in the flex row, left of the button.
+
 ## Mobile And Tablet Behavior
 
 Before the desktop sidebar appears, the page uses a simpler stacked layout.

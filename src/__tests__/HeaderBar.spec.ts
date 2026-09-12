@@ -142,6 +142,28 @@ describe('HeaderBar', () => {
     expect(wrapper.find('#account-menu-btn').exists()).toBe(false)
   })
 
+  it('hangs the local-mode badge under the header row on desktop, in the row on a phone', () => {
+    const authStore = useAuthStore()
+    authStore.continueInLocalMode()
+
+    const wrapper = mountHeaderBar()
+    const badge = wrapper.get('[data-local-mode-badge]')
+
+    // On a phone the badge is an ordinary flex child, left of the settings
+    // button -- the row has the width to carry both.
+    expect(badge.classes()).not.toContain('absolute')
+
+    // From md it leaves the flow and hangs under the row, right-aligned on
+    // that button. Out of flow is the point: the header's bottom margin
+    // absorbs it, so the controls row and the cards below keep their place.
+    expect(badge.classes()).toContain('md:absolute')
+    expect(badge.classes()).toContain('md:top-full')
+    expect(badge.classes()).toContain('md:right-0')
+
+    // Without the anchor the badge would position against the page instead.
+    expect(wrapper.get('[data-header-slot="identity"]').classes()).toContain('relative')
+  })
+
   it('keeps an identity control on every destination', async () => {
     const authStore = useAuthStore()
     authStore.authMode = 'google'
