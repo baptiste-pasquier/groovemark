@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Settings, TriangleAlert, LogOut, LoaderCircle } from 'lucide-vue-next'
 import AppMenuItems from './AppMenuItems.vue'
+import LocalModeMenu from './LocalModeMenu.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useAppStore } from '../../stores/app'
 import { useFavoritesStore } from '../../stores/favorites'
@@ -105,7 +106,8 @@ async function handleLogout() {
             {{ t(destination.label) }}
           </RouterLink>
         </nav>
-        <div class="relative">
+        <LocalModeMenu v-if="authStore.authMode === 'local'" />
+        <div v-else class="relative">
           <button
             id="settings-menu-btn"
             class="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition duration-300 hover:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:outline-none"
@@ -134,6 +136,7 @@ async function handleLogout() {
           </div>
         </div>
         <button
+          v-if="authStore.authMode !== 'local'"
           id="logout-btn"
           class="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 font-bold whitespace-nowrap text-white shadow-sm transition duration-300 hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:outline-none"
           @click="handleLogout"

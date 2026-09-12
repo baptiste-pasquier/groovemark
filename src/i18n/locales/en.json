@@ -162,7 +162,8 @@
     "logout": "Logout",
     "signed_in_as": "Signed in as {name}",
     "local_mode": "Local Mode",
-    "offline_read_only": "Offline (Read-only)"
+    "offline_read_only": "Offline (Read-only)",
+    "exit_local_mode": "Leave local mode"
   },
   "dialog": {
     "info": "Information",

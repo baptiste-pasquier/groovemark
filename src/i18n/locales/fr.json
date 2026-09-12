@@ -162,7 +162,8 @@
     "logout": "Déconnexion",
     "signed_in_as": "Connecté en tant que {name}",
     "local_mode": "Mode Local",
-    "offline_read_only": "Hors ligne (Lecture seule)"
+    "offline_read_only": "Hors ligne (Lecture seule)",
+    "exit_local_mode": "Quitter le mode local"
   },
   "dialog": {
     "info": "Information",
