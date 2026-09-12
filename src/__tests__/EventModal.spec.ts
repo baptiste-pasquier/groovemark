@@ -561,9 +561,12 @@ describe('EventModal in the events tab', () => {
 
   it('withholds the new-event affordance while the session is read-only', async () => {
     await enterLocalMode()
-    // A failed events load is what puts a session in read-only, and it is the
-    // app store that owns that switch.
-    useEventsStore().loadFailed = true
+    // Any domain's failed load puts the whole session in read-only, and it is
+    // the app store that owns that switch. The lever here is the artists load
+    // rather than the events one, because a failed *events* load replaces this
+    // tab with its unavailable notice and there would be no affordance left to
+    // assert on -- a different behaviour, pinned in EventsGrid's own spec.
+    useArtistsStore().loadFailed = true
     const wrapper = await mountEventsGrid()
 
     expect(wrapper.find('#add-event-btn').attributes('disabled')).toBeDefined()

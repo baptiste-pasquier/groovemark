@@ -257,6 +257,52 @@ describe('ArtistPage', () => {
     expect(wrapper.findAll('#artist-mixes-grid .artist-mix-card')).toHaveLength(1)
   })
 
+  it('says the live half is unavailable rather than claiming the artist was never seen live', async () => {
+    useArtistsStore().artists = [artist('artist-1', 'Anetha', 'anetha')]
+    useFavoritesStore().favorites = [
+      favorite('mix-1', { artists: ['Anetha'], artistIds: ['artist-1'] }),
+    ]
+    // The artists half loaded, so the page renders; the events half did not, so
+    // its list is empty because it is unknown, not because it is empty.
+    await seedEvents([])
+    useEventsStore().loadFailed = true
+
+    const { wrapper } = await mountPage('anetha')
+
+    expect(wrapper.find('.artist-live-unavailable').exists()).toBe(true)
+    expect(wrapper.find('.artist-live-unavailable').text().length).toBeGreaterThan(0)
+    // "You haven't seen this artist live yet" would be a claim the page cannot make.
+    expect(wrapper.find('.artist-live-empty').exists()).toBe(false)
+    // The mixes half loaded and still renders in full.
+    expect(wrapper.findAll('#artist-mixes-grid .artist-mix-card')).toHaveLength(1)
+    expect(wrapper.find('.artist-mixes-empty').exists()).toBe(false)
+  })
+
+  it('says the mixes half is unavailable rather than claiming no mix credits the artist', async () => {
+    useArtistsStore().artists = [artist('artist-1', 'Anetha', 'anetha')]
+    // The mirror image of the live half: the favorites load failed, so the
+    // empty list is unknown rather than empty.
+    const favoritesStore = useFavoritesStore()
+    favoritesStore.favorites = []
+    favoritesStore.loadFailed = true
+    await seedEvents([
+      storedEvent('event-1', 'Nuits Sonores', '2026-05-04', 'Les Subsistances', [
+        ['artist-1', 'Anetha', 'three-stars'],
+      ]),
+    ])
+
+    const { wrapper } = await mountPage('anetha')
+
+    expect(wrapper.find('.artist-mixes-unavailable').exists()).toBe(true)
+    expect(wrapper.find('.artist-mixes-unavailable').text().length).toBeGreaterThan(0)
+    expect(wrapper.find('.artist-mixes-empty').exists()).toBe(false)
+    // Three zero chips beside that notice would contradict it.
+    expect(wrapper.findAll('.artist-stat')).toHaveLength(0)
+    // The live half loaded and still renders in full.
+    expect(wrapper.findAll('.artist-performance')).toHaveLength(1)
+    expect(wrapper.find('.artist-live-unavailable').exists()).toBe(false)
+  })
+
   it('counts moments and starred moments across the mixes, including a mix with no moment', async () => {
     useArtistsStore().artists = [artist('artist-1', 'Anetha', 'anetha')]
     useFavoritesStore().favorites = [

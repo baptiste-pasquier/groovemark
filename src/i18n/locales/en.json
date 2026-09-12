@@ -33,7 +33,9 @@
     "heading_mixes": "Their mixes",
     "latest_verdict": "on {date}",
     "latest_verdict_at": "at {venue}, on {date}",
+    "mixes_unavailable": "Your mixes could not be loaded, so this half cannot be shown. It will be back once the connection is restored.",
     "no_mixes": "No mix you kept credits this artist yet.",
+    "live_unavailable": "Your nights could not be loaded, so this half cannot be shown. It will be back once the connection is restored.",
     "no_performances": "You haven't seen this artist live yet.",
     "no_rated_verdict": "You haven't rated any of these nights yet.",
     "not_found": "No artist answers this address. It may have been renamed since this link was shared.",
@@ -71,7 +73,8 @@
     "empty_no_events": "You haven't recorded any event yet. Add one to get started!",
     "empty_no_results": "No event matches your search.",
     "open": "Open this event",
-    "search_placeholder": "Search by event or venue..."
+    "search_placeholder": "Search by event or venue...",
+    "unavailable": "Your events could not be loaded, so this tab cannot be shown. It will be back once the connection is restored."
   },
   "export": {
     "no_favorites": "There is nothing to export yet.",

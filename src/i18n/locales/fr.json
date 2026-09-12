@@ -33,7 +33,9 @@
     "heading_mixes": "Ses mix",
     "latest_verdict": "le {date}",
     "latest_verdict_at": "au {venue}, le {date}",
+    "mixes_unavailable": "Vos mix n'ont pas pu être chargés, cette partie ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion.",
     "no_mixes": "Aucun mix gardé ne crédite cet artiste pour le moment.",
+    "live_unavailable": "Vos soirées n'ont pas pu être chargées, cette partie ne peut donc pas être affichée. Elle reviendra dès le rétablissement de la connexion.",
     "no_performances": "Vous n'avez pas encore vu cet artiste en live.",
     "no_rated_verdict": "Vous n'avez noté aucune de ces soirées pour le moment.",
     "not_found": "Aucun artiste ne correspond à cette adresse. Il a peut-être été renommé depuis le partage de ce lien.",
@@ -71,7 +73,8 @@
     "empty_no_events": "Vous n'avez enregistré aucun événement pour le moment. Ajoutez-en un pour commencer !",
     "empty_no_results": "Aucun événement ne correspond à votre recherche.",
     "open": "Ouvrir cet événement",
-    "search_placeholder": "Rechercher par événement ou lieu..."
+    "search_placeholder": "Rechercher par événement ou lieu...",
+    "unavailable": "Vos événements n'ont pas pu être chargés, cet onglet ne peut donc pas être affiché. Il reviendra dès le rétablissement de la connexion."
   },
   "export": {
     "no_favorites": "Il n'y a rien à exporter pour le moment.",

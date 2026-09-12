@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { TriangleAlert } from 'lucide-vue-next'
 import HeaderBar from '../layout/HeaderBar.vue'
 import EventModal from '../modals/EventModal.vue'
 import AddEventButton from './AddEventButton.vue'
@@ -50,34 +51,52 @@ defineExpose({ openEventId, showEventModal })
   <HeaderBar />
 
   <main>
-    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-      <div class="min-w-0 flex-1">
-        <EventsSearchBar />
-      </div>
-      <div class="md:w-56">
-        <AddEventButton :disabled="appStore.isReadOnly" @click="createEvent" />
-      </div>
+    <!-- A failed load leaves the list empty because it is unknown, not because
+         nothing was ever recorded, and the tab cannot say the second. The
+         controls go with the list: a degraded session is read-only everywhere,
+         so the add button would sit greyed out with nothing on screen saying
+         why, and the search would filter a list that is not there. Same shape
+         the artists catalogue takes when its own load fails. -->
+    <div
+      v-if="eventsStore.loadFailed"
+      class="events-unavailable flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800"
+    >
+      <TriangleAlert class="mt-0.5 h-5 w-5 shrink-0" />
+      <p>{{ t('events.unavailable') }}</p>
     </div>
 
-    <div v-if="!eventsUiStore.filteredEvents.length" class="mt-8 text-center text-gray-500">
-      {{
-        eventsStore.events.length === 0 ? t('events.empty_no_events') : t('events.empty_no_results')
-      }}
-    </div>
-    <!-- Every event renders in one pass: no batch counter, no observer
-         sentinel. The mixes grid's progressive rendering answers a card count
-         an events list does not reach, so a plain iteration is the right shape
-         here -- see docs/reference/responsive-layout.md. -->
-    <div v-else id="events-grid" class="card-grid">
-      <EventCard
-        v-for="event in eventsUiStore.filteredEvents"
-        :key="event.id"
-        :event="event"
-        :read-only="appStore.isReadOnly"
-        @open="openEvent"
-        @delete="eventsStore.deleteEvent(event.id)"
-      />
-    </div>
+    <template v-else>
+      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
+        <div class="min-w-0 flex-1">
+          <EventsSearchBar />
+        </div>
+        <div class="md:w-56">
+          <AddEventButton :disabled="appStore.isReadOnly" @click="createEvent" />
+        </div>
+      </div>
+
+      <div v-if="!eventsUiStore.filteredEvents.length" class="mt-8 text-center text-gray-500">
+        {{
+          eventsStore.events.length === 0
+            ? t('events.empty_no_events')
+            : t('events.empty_no_results')
+        }}
+      </div>
+      <!-- Every event renders in one pass: no batch counter, no observer
+           sentinel. The mixes grid's progressive rendering answers a card count
+           an events list does not reach, so a plain iteration is the right shape
+           here -- see docs/reference/responsive-layout.md. -->
+      <div v-else id="events-grid" class="card-grid">
+        <EventCard
+          v-for="event in eventsUiStore.filteredEvents"
+          :key="event.id"
+          :event="event"
+          :read-only="appStore.isReadOnly"
+          @open="openEvent"
+          @delete="eventsStore.deleteEvent(event.id)"
+        />
+      </div>
+    </template>
   </main>
 
   <EventModal v-model="showEventModal" :edit-id="openEventId" />

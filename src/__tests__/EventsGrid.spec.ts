@@ -239,6 +239,25 @@ describe('EventsGrid', () => {
     expect(wrapper.text()).toContain("You haven't recorded any event yet")
   })
 
+  it('says the events could not be loaded rather than that none was ever recorded', async () => {
+    await seedLocalEvents([])
+    const eventsStore = useEventsStore()
+    eventsStore.loadFailed = true
+    await nextTick()
+
+    const { wrapper } = await mountEventsGrid()
+
+    expect(wrapper.find('.events-unavailable').exists()).toBe(true)
+    expect(wrapper.find('.events-unavailable').text().length).toBeGreaterThan(0)
+    expect(wrapper.text()).not.toContain("You haven't recorded any event yet")
+    // Nothing to search through and nothing to add to, so the controls go with
+    // the list rather than sitting there greyed out with no reason given --
+    // the same shape the artists catalogue takes when its load fails.
+    expect(wrapper.find('#events-grid').exists()).toBe(false)
+    expect(wrapper.findComponent(EventsSearchBar).exists()).toBe(false)
+    expect(wrapper.find('#add-event-btn').exists()).toBe(false)
+  })
+
   it('says the search matched nothing rather than that no event exists', async () => {
     await seedLocalEvents()
     const eventsUiStore = useEventsUiStore()

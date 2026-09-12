@@ -7,6 +7,7 @@ import HeaderBar from '../layout/HeaderBar.vue'
 import VerdictBadge from '../events/VerdictBadge.vue'
 import { useArtistsUiStore } from '../../stores/artistsUi'
 import { useEventsStore } from '../../stores/events'
+import { useFavoritesStore } from '../../stores/favorites'
 import { useFavoritesUiStore } from '../../stores/favoritesUi'
 import type { Favorite } from '../../types/favorite'
 import { formatDayAttended } from '../../utils/event'
@@ -14,6 +15,7 @@ import { isSafeHttpUrl } from '../../utils/url'
 
 const artistsUiStore = useArtistsUiStore()
 const eventsStore = useEventsStore()
+const favoritesStore = useFavoritesStore()
 const favoritesUiStore = useFavoritesUiStore()
 
 const { t, locale } = useI18n()
@@ -168,6 +170,13 @@ function openMix(mix: Favorite) {
             <VerdictBadge :verdict="performance.verdict" />
           </li>
         </ul>
+        <!-- A failed events load leaves this list empty because it is unknown,
+             not because the artist was never seen live. The two read the same
+             on screen, so the half says which -- the distinction the page
+             already draws for a failed artists load. -->
+        <p v-else-if="eventsStore.loadFailed" class="artist-live-unavailable mt-3 text-amber-700">
+          {{ t('artist_page.live_unavailable') }}
+        </p>
         <p v-else class="artist-live-empty mt-3 text-gray-500">
           {{ t('artist_page.no_performances') }}
         </p>
@@ -178,7 +187,9 @@ function openMix(mix: Favorite) {
           <span class="text-xs font-semibold text-gray-600">
             {{ t('artist_page.heading_mixes') }}
           </span>
-          <div class="flex flex-wrap items-center gap-1.5">
+          <!-- Three zero chips beside a "could not be loaded" notice would say
+               the opposite of it, so the counts go with the list they count. -->
+          <div v-if="!favoritesStore.loadFailed" class="flex flex-wrap items-center gap-1.5">
             <span
               class="artist-stat inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-0.5 text-sm font-medium text-gray-600"
             >
@@ -216,7 +227,10 @@ function openMix(mix: Favorite) {
              mixes destination, where the editing surface lives. A moment is
              counted rather than listed, because this page answers "who is this
              artist to me", and a full timestamp list belongs to the mix itself. -->
-        <div v-if="mixes.length" id="artist-mixes-grid" class="artist-mix-grid mt-3.5">
+        <p v-if="favoritesStore.loadFailed" class="artist-mixes-unavailable mt-3 text-amber-700">
+          {{ t('artist_page.mixes_unavailable') }}
+        </p>
+        <div v-else-if="mixes.length" id="artist-mixes-grid" class="artist-mix-grid mt-3.5">
           <button
             v-for="mix in mixes"
             :key="mix.id"
