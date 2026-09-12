@@ -93,12 +93,16 @@ body {
     @apply layout-2col:mx-0 layout-2col:w-full mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 md:mx-auto md:mb-8 md:w-[var(--layout-grid-width-2col)];
   }
 
+  /* The switcher is the app's primary navigation, so from md -- where it stops
+     being a full-width strip and becomes an inline control -- it is sized a
+     step up: a larger label, roomier tabs, and a track padded and rounded to
+     match. Below md the strip spans the screen and needs no emphasis. */
   .destination-switcher {
-    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto;
+    @apply flex w-full items-center gap-1 rounded-[var(--layout-switcher-radius)] bg-gray-200 p-[var(--layout-switcher-padding)] md:w-auto md:rounded-xl md:p-1;
   }
 
   .destination-tab {
-    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none;
+    @apply flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium whitespace-nowrap text-gray-600 transition duration-300 hover:text-gray-900 md:flex-none md:px-4 md:text-base;
   }
 
   .destination-tab-active {

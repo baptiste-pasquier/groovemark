@@ -214,7 +214,9 @@ The switcher itself has two forms, driven by one class:
 - Below `md` (`48rem` / `768px`): `.destination-switcher` is `w-full` and each
   `.destination-tab` is `flex-1`, so the three tabs span the full width and share it equally.
 - From `md` and up: the track is `w-auto` and each tab is `flex-none`, so the tabs size to
-  their labels and the switcher sits inline beside the other header controls.
+  their labels and the switcher sits inline beside the other header controls. It is also sized a
+  step up there -- a larger label, roomier tabs, and a track padded and rounded to match -- because
+  an inline control has to earn the eye that a full-width strip gets for free.
 
 `.destination-tab-active` marks the current destination with a white fill, a heavier weight and
 a small shadow. The active tab also carries `aria-current="page"`, so the state does not depend
@@ -309,7 +311,8 @@ These classes translate the tokens into layout behavior:
 - `.header-menu-panel`: the dropdown shell both header menus use, anchored to its trigger.
 - `.card-grid`: shared fixed-width card grid at 2/3/4 columns, carried by both the mixes
   grid and the events grid
-- `.destination-switcher`: segmented track for the three destinations, full width below `md`
+- `.destination-switcher`: segmented track for the three destinations, full width below `md`,
+  inline and a step larger from `md`
 - `.destination-tab`: one destination tab inside the track
 - `.destination-tab-active`: the current destination's tab
 - `.artist-page`: the artist page's stacked-section shell
