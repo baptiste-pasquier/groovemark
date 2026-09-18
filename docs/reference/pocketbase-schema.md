@@ -210,6 +210,27 @@ The owner-scoped rules match the other collections, and the create and update ru
 
 The update rule guards each relation only when the request submits it, so an edit that touches the verdict alone does not have to resubmit `eventId` or `artistId`. Each `?=` comparison correlates within one matched row, and the lookup resolves an event created by an earlier request of the same batch, which is what makes creating an event and its line-up in one transaction legal -- see [the server-behaviour journal entry](../journal/solutions/database-issues/pocketbase-batch-writes-and-field-shapes.md).
 
+## Collection: users
+
+The built-in auth collection (`_pb_users_auth_`), which every other collection's `owner` relation points at. Two migrations shape it: `pocketbase/pb_migrations/1788708042_updated_users.js` enables OAuth2, and `pocketbase/pb_migrations/1789769200_users_close_anonymous_create.js` sets the create rule. No field is added; the fields are PocketBase's own.
+
+### Collection Settings
+
+- **Create Rule**: `@request.context = "oauth2"`
+
+Everything else stays at the PocketBase default.
+
+Sign-in through Google is the only path that creates an account: local mode never touches PocketBase. PocketBase performs that creation by replaying the record-create API internally, with the caller still unauthenticated, and tags the request with the OAuth2 request context. `@request.context` is therefore the only condition that admits a first sign-in while refusing a plain `POST /api/collections/users/records`.
+
+Two rules that look stricter must not be used here, because both reject a first-ever sign-in and so leave a fresh deployment with no way in:
+
+| Rule                     | Effect on a first-ever sign-in                            |
+| ------------------------ | --------------------------------------------------------- |
+| `@request.auth.id != ""` | Rejected -- the caller has no identity yet, by definition |
+| `null` (superusers only) | Rejected -- the sign-in is not a superuser request        |
+
+The reverse direction of the migration restores `''`, PocketBase's own default, rather than `null`. `src/__tests__/pocketbaseMigrations.spec.ts` pins the rule verbatim in both directions. The measurements behind all of this are in [the users create-rule journal entry](../journal/solutions/database-issues/pocketbase-users-create-rule-oauth2-context.md).
+
 ## Value Shapes On Read
 
 Three stored values do not come back in the shape the client sent. `PocketBaseEventsRepository` normalises each at the read boundary, so a surface reads one shape whichever persistence mode produced it.

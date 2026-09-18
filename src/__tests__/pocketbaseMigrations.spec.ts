@@ -8,6 +8,8 @@ const CREATED_PERFORMANCES = '1789067401_created_performances.js'
 const ENABLE_BATCH = '1789067402_enable_batch.js'
 const PERFORMANCES_POSITION = '1789067403_updated_performances_position.js'
 const UPDATED_FAVORITES_ARTIST_IDS = '1788815925_updated_favorites.js'
+const UPDATED_USERS_OAUTH2 = '1788708042_updated_users.js'
+const USERS_CLOSE_ANONYMOUS_CREATE = '1789769200_users_close_anonymous_create.js'
 
 const EVENTS_COLLECTION_ID = 'pbc_1093733721'
 const PERFORMANCES_COLLECTION_ID = 'pbc_2758201643'
@@ -84,9 +86,12 @@ function readStringConfig(fieldBlock: string, key: string): string {
 
 // Collection-level rules are long enough that Prettier wraps some of them onto
 // the line after the key, so the whitespace between key and value is variable.
-// Rule expressions themselves only ever contain double quotes.
+// A rule reaches a collection in two shapes -- a `createRule: '...'` key inside
+// a collection literal, and a `collection.createRule = '...'` assignment in an
+// updated-collection migration -- so both separators are accepted. Rule
+// expressions themselves only ever contain double quotes.
 function extractCollectionRule(source: string, ruleName: string): string {
-  const match = source.match(new RegExp(`${ruleName}:\\s*'([^']*)'`))
+  const match = source.match(new RegExp(`${ruleName}\\s*[:=]\\s*'([^']*)'`))
   if (!match) {
     throw new Error(`Could not find a '${ruleName}' in the migration source`)
   }
@@ -240,6 +245,45 @@ describe('PocketBase migrations', () => {
       expect(extractCollectionRule(source, 'listRule')).toBe(OWNER_SCOPED_READ_RULE)
       expect(extractCollectionRule(source, 'viewRule')).toBe(OWNER_SCOPED_READ_RULE)
       expect(extractCollectionRule(source, 'deleteRule')).toBe(OWNER_SCOPED_READ_RULE)
+    })
+  })
+
+  describe('users collection', () => {
+    it('admits the OAuth2 sign-up path and nothing else on create', () => {
+      // PocketBase's default create rule on an auth collection is the empty
+      // string, i.e. open to anyone -- on a public origin that is an open
+      // account endpoint on a single-operator instance. The rule is pinned
+      // verbatim rather than merely asserted non-empty, because both obvious
+      // tightenings brick sign-in: PocketBase creates the OAuth2 account by
+      // replaying the record-create API internally, with the caller still
+      // unauthenticated, so `@request.auth.id != ""` and a locked (null) rule
+      // both reject the only path that ever creates an account here. Verified
+      // against the pinned v0.40.2 binary -- see the journal entry linked from
+      // docs/reference/pocketbase-schema.md.
+      const rule = extractCollectionRule(
+        readMigrationSource(USERS_CLOSE_ANONYMOUS_CREATE),
+        'createRule',
+      )
+      expect(rule).toBe('@request.context = "oauth2"')
+    })
+
+    it('targets the users collection and restores the open default when reverted', () => {
+      const source = readMigrationSource(USERS_CLOSE_ANONYMOUS_CREATE)
+      expect(source).toContain(`findCollectionByNameOrId('${USERS_COLLECTION_ID}')`)
+
+      const down = extractDownFunction(source)
+      expect(down).toContain(`findCollectionByNameOrId('${USERS_COLLECTION_ID}')`)
+      // The default is an empty rule, not a locked one: reverting to `null`
+      // would leave a clean instance unable to sign anyone in at all.
+      expect(extractCollectionRule(down, 'createRule')).toBe('')
+    })
+
+    it('runs after the migration that turns OAuth2 on', () => {
+      // A create rule that admits only the OAuth2 context is meaningless while
+      // OAuth2 is still off, and PocketBase applies migrations in filename
+      // order.
+      const applied = [UPDATED_USERS_OAUTH2, USERS_CLOSE_ANONYMOUS_CREATE]
+      expect([...applied].sort()).toEqual(applied)
     })
   })
 
