@@ -76,8 +76,8 @@ Every maintained doc appears here. A doc missing from this list fails CI.
 ### `reference/`
 
 - [`pocketbase-schema.md`](reference/pocketbase-schema.md) — fields and API rules for the
-  `favorites`, `artists`, `events` and `performances` collections, instance settings, value
-  shapes on read, storage keys
+  `favorites`, `artists`, `events`, `performances` and `users` collections, instance
+  settings, value shapes on read, storage keys
 - [`responsive-layout.md`](reference/responsive-layout.md) — layout tokens, shell width
   formulas, breakpoint behavior, destination switcher, artist page, artists table
 
